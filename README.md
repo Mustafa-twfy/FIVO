@@ -278,3 +278,5 @@ EAS_BUILD_PROFILE=production eas build --platform ios
 - ملف إعدادات البناء: `.github/workflows/build-app.yml`
 - البناء يتم باستخدام Expo EAS Build
 - النتائج (APK/AAB/IPA) تظهر في سجل Actions بعد اكتمال البناء 
+
+البناء التلقائي لأندرويد يتم الآن عبر GitHub Actions باستخدام Gradle فقط. 
