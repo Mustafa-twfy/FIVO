@@ -55,3 +55,7 @@ Thumbs.db
 # Misc
 *.log
 coverage/
+
+# تجاهل ملفات إعدادات بناء قديمة أو خاصة بمشاريع أخرى
+# مثال: تجاهل أي ملفات workflow قديمة غير مستخدمة
+# .github/old_workflows/
