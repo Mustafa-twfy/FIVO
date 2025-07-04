@@ -280,3 +280,5 @@ EAS_BUILD_PROFILE=production eas build --platform ios
 - النتائج (APK/AAB/IPA) تظهر في سجل Actions بعد اكتمال البناء 
 
 البناء التلقائي لأندرويد يتم الآن عبر GitHub Actions باستخدام Gradle فقط. 
+
+تمت تجربة البناء التلقائي بنجاح.
