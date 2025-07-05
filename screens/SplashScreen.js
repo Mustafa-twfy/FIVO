@@ -1,90 +1,231 @@
-import React from 'react';
-import { View, Text, StyleSheet, Image, Dimensions } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, Image, Dimensions, Animated, Easing } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import colors from '../colors';
 import fivoLogo from '../assets/fivo-logo.png';
 
-const DOTS_COUNT = 5;
+const DOTS_COUNT = 3;
 
 export default function SplashScreen() {
-  // يمكنك التحكم في أي نقطة نشطة (مثلاً متحركة) لاحقاً
-  const activeDot = 2;
+  const logoScale = useRef(new Animated.Value(0)).current;
+  const logoOpacity = useRef(new Animated.Value(0)).current;
+  const dotsOpacity = useRef(new Animated.Value(0)).current;
+  const bikePosition = useRef(new Animated.Value(-100)).current;
+  const activeDotIndex = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    // تسلسل الحركات
+    const animationSequence = async () => {
+      // ظهور الشعار مع تكبير
+      Animated.parallel([
+        Animated.timing(logoScale, {
+          toValue: 1,
+          duration: 800,
+          easing: Easing.elastic(1),
+          useNativeDriver: true,
+        }),
+        Animated.timing(logoOpacity, {
+          toValue: 1,
+          duration: 600,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]).start();
+
+      // تأخير قليل ثم ظهور النقاط
+      setTimeout(() => {
+        Animated.timing(dotsOpacity, {
+          toValue: 1,
+          duration: 400,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }).start();
+      }, 400);
+
+      // حركة الدراجة النارية
+      setTimeout(() => {
+        Animated.timing(bikePosition, {
+          toValue: 0,
+          duration: 1000,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }).start();
+      }, 600);
+
+      // حركة النقاط النشطة
+      const dotAnimation = () => {
+        Animated.timing(activeDotIndex, {
+          toValue: DOTS_COUNT - 1,
+          duration: 2000,
+          easing: Easing.linear,
+          useNativeDriver: false,
+        }).start(() => {
+          activeDotIndex.setValue(0);
+          dotAnimation();
+        });
+      };
+
+      setTimeout(dotAnimation, 1000);
+    };
+
+    animationSequence();
+  }, []);
+
+  const getActiveDot = () => {
+    return Math.floor(activeDotIndex._value);
+  };
 
   return (
-    <LinearGradient colors={colors.gradient} style={styles.container} start={{x:0, y:0}} end={{x:0, y:1}}>
-      <View style={styles.centerBox}>
-        <Image source={fivoLogo} style={{ width: 180, height: 180, resizeMode: 'contain', marginBottom: 30, borderRadius: 90, borderWidth: 3, borderColor: '#fff', backgroundColor: '#fff' }} />
-      </View>
-      <View style={styles.dotsRow}>
-        {[...Array(DOTS_COUNT)].map((_, idx) => (
-          <View
-            key={idx}
-            style={[styles.dot, idx === activeDot && styles.activeDot]}
-          />
-        ))}
-        <Ionicons name="bicycle" size={32} color={colors.secondary} style={styles.bikeIcon} />
+    <LinearGradient 
+      colors={['#FF6B35', '#F7931E']} 
+      style={styles.container} 
+      start={{x: 0, y: 0}} 
+      end={{x: 1, y: 1}}
+    >
+      <View style={styles.content}>
+        {/* الشعار المتحرك */}
+        <Animated.View 
+          style={[
+            styles.logoContainer,
+            {
+              opacity: logoOpacity,
+              transform: [{ scale: logoScale }]
+            }
+          ]}
+        >
+          <View style={styles.logoWrapper}>
+            <Image source={fivoLogo} style={styles.logo} />
+          </View>
+          <Text style={styles.appName}>توصيل بلس</Text>
+          <Text style={styles.tagline}>خدمة التوصيل الأسرع والأفضل</Text>
+        </Animated.View>
+
+        {/* النقاط المتحركة */}
+        <Animated.View 
+          style={[
+            styles.dotsContainer,
+            { opacity: dotsOpacity }
+          ]}
+        >
+          <View style={styles.dotsRow}>
+            {[...Array(DOTS_COUNT)].map((_, idx) => (
+              <View
+                key={idx}
+                style={[
+                  styles.dot, 
+                  idx === getActiveDot() && styles.activeDot
+                ]}
+              />
+            ))}
+          </View>
+        </Animated.View>
+
+        {/* الدراجة النارية المتحركة */}
+        <Animated.View 
+          style={[
+            styles.bikeContainer,
+            {
+              transform: [{ translateX: bikePosition }]
+            }
+          ]}
+        >
+          <Ionicons name="bicycle" size={40} color="#fff" />
+          <Text style={styles.loadingText}>جاري التحميل...</Text>
+        </Animated.View>
       </View>
     </LinearGradient>
   );
 }
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
   },
-  centerBox: {
+  content: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    width: '100%',
+    paddingHorizontal: 20,
   },
-  scooterImg: {
-    width: width * 0.7,
-    height: width * 0.7,
-    resizeMode: 'contain',
-    borderRadius: 32,
+  logoContainer: {
+    alignItems: 'center',
+    marginBottom: 60,
+  },
+  logoWrapper: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
     backgroundColor: '#fff',
-    shadowColor: '#FF9800',
-    shadowOpacity: 0.13,
-    shadowRadius: 10,
-    elevation: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  logo: {
+    width: 80,
+    height: 80,
+    resizeMode: 'contain',
+  },
+  appName: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 8,
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+  },
+  tagline: {
+    fontSize: 16,
+    color: '#fff',
+    opacity: 0.9,
+    textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  dotsContainer: {
+    marginBottom: 40,
   },
   dotsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 40,
-    marginTop: 10,
   },
   dot: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: '#fff',
-    marginHorizontal: 7,
-    opacity: 0.5,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+    marginHorizontal: 6,
+    transition: 'all 0.3s ease',
   },
   activeDot: {
-    backgroundColor: '#FF9800',
-    opacity: 1,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+    backgroundColor: '#fff',
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    shadowColor: '#fff',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  bikeIcon: {
-    marginLeft: 16,
-    marginTop: -4,
+  bikeContainer: {
+    alignItems: 'center',
   },
-  logoText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: colors.secondary,
-    marginTop: 20,
+  loadingText: {
+    fontSize: 14,
+    color: '#fff',
+    marginTop: 12,
+    opacity: 0.8,
+    fontWeight: '500',
   },
 }); 

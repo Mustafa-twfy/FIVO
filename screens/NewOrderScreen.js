@@ -19,6 +19,7 @@ export default function NewOrderScreen({ navigation }) {
   const [amount, setAmount] = useState('');
   const [address, setAddress] = useState('');
   const [phone, setPhone] = useState('');
+  const [isUrgent, setIsUrgent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [storeInfo, setStoreInfo] = useState(null);
 
@@ -118,7 +119,8 @@ export default function NewOrderScreen({ navigation }) {
           payment_method: 'cash',
           payment_status: 'pending',
           description: description, // حقل إضافي للتوافق
-          phone: phone // حقل إضافي للتوافق
+          phone: phone, // حقل إضافي للتوافق
+          is_urgent: isUrgent // إضافة حقل الطلب العاجل
         })
         .select()
         .single();
@@ -220,6 +222,29 @@ export default function NewOrderScreen({ navigation }) {
               keyboardType="phone-pad"
               textAlign="right"
             />
+          </View>
+
+          <View style={styles.urgentSection}>
+            <TouchableOpacity 
+              style={styles.urgentToggle}
+              onPress={() => setIsUrgent(!isUrgent)}
+            >
+              <View style={[styles.checkbox, isUrgent && styles.checkboxChecked]}>
+                {isUrgent && <Ionicons name="checkmark" size={16} color="#fff" />}
+              </View>
+              <View style={styles.urgentInfo}>
+                <Text style={styles.urgentLabel}>طلب عاجل</Text>
+                <Text style={styles.urgentDescription}>
+                  سيحصل الطلب على أولوية أعلى عند السائقين
+                </Text>
+              </View>
+              {isUrgent && (
+                <View style={styles.urgentBadge}>
+                  <Ionicons name="flash" size={16} color="#fff" />
+                  <Text style={styles.urgentBadgeText}>عاجل</Text>
+                </View>
+              )}
+            </TouchableOpacity>
           </View>
 
           <View style={styles.infoBox}>
@@ -351,5 +376,59 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     marginLeft: 8,
+  },
+  // أنماط الطلب العاجل
+  urgentSection: {
+    marginBottom: 20,
+  },
+  urgentToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f9f9f9',
+    padding: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: '#ddd',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  checkboxChecked: {
+    backgroundColor: '#F44336',
+    borderColor: '#F44336',
+  },
+  urgentInfo: {
+    flex: 1,
+  },
+  urgentLabel: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 4,
+  },
+  urgentDescription: {
+    fontSize: 12,
+    color: '#666',
+  },
+  urgentBadge: {
+    backgroundColor: '#F44336',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  urgentBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginLeft: 4,
   },
 }); 

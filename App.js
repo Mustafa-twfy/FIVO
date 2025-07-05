@@ -37,6 +37,8 @@ import StorePendingApprovalScreen from './screens/StorePendingApprovalScreen';
 import StoreLocationScreen from './screens/StoreLocationScreen';
 import StoreDocumentsScreen from './screens/StoreDocumentsScreen';
 import StoreMapScreen from './screens/StoreMapScreen';
+import UpdateStoreLocationScreen from './screens/UpdateStoreLocationScreen';
+import StoreProfileScreen from './screens/StoreProfileScreen';
 import { Ionicons } from '@expo/vector-icons';
 import { useState, useEffect } from 'react';
 import { createDrawerNavigator } from '@react-navigation/drawer';
@@ -44,6 +46,7 @@ import { DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { initializeDatabase } from './supabase';
 import UnifiedPendingApprovalScreen from './screens/UnifiedPendingApprovalScreen';
 import { supabase } from './supabase';
+import DriverDrawerContent from './components/DriverDrawerContent';
 
 I18nManager.forceRTL(true);
 
@@ -90,20 +93,25 @@ function AuthStack() {
       <Stack.Screen name="StoreDocuments" component={StoreDocumentsScreen} />
       <Stack.Screen name="StorePendingApproval" component={StorePendingApprovalScreen} />
       <Stack.Screen name="StoreMap" component={StoreMapScreen} />
+      <Stack.Screen name="UpdateStoreLocation" component={UpdateStoreLocationScreen} />
     </Stack.Navigator>
   );
 }
 
 function DriverDrawer() {
   return (
-    <Drawer.Navigator initialRouteName="DriverDashboard" screenOptions={{
-      headerShown: false,
-      drawerType: 'slide',
-      overlayColor: 'rgba(0,0,0,0.2)',
-      sceneContainerStyle: { backgroundColor: '#fff' },
-      animationTypeForReplace: 'push',
-      animation: 'slide_from_right',
-    }}>
+    <Drawer.Navigator 
+      initialRouteName="DriverDashboard" 
+      drawerContent={(props) => <DriverDrawerContent {...props} />}
+      screenOptions={{
+        headerShown: false,
+        drawerType: 'slide',
+        overlayColor: 'rgba(0,0,0,0.2)',
+        sceneContainerStyle: { backgroundColor: '#fff' },
+        animationTypeForReplace: 'push',
+        animation: 'slide_from_right',
+      }}
+    >
       <Drawer.Screen name="DriverDashboard" component={DriverDashboardScreen} options={{drawerLabel: 'الرئيسية'}} />
       <Drawer.Screen name="AvailableOrders" component={AvailableOrdersScreen} options={{drawerLabel: 'الطلبات المتاحة'}} />
       <Drawer.Screen name="MyOrders" component={MyOrdersScreen} options={{drawerLabel: 'طلباتي'}} />
@@ -130,6 +138,7 @@ function StoreDrawer() {
       <Drawer.Screen name="StoreDashboard" component={StoreDashboardScreen} options={{drawerLabel: 'الرئيسية'}} />
       <Drawer.Screen name="StoreOrders" component={StoreOrdersScreen} options={{drawerLabel: 'طلبات المتجر'}} />
       <Drawer.Screen name="NewOrder" component={NewOrderScreen} options={{drawerLabel: 'إنشاء طلب جديد'}} />
+      <Drawer.Screen name="StoreProfile" component={StoreProfileScreen} options={{drawerLabel: 'الملف الشخصي'}} />
       <Drawer.Screen name="StoreSupportChat" component={StoreSupportChatScreen} options={{drawerLabel: 'الدعم الفني'}} />
       <Drawer.Screen name="StoreNotifications" component={StoreNotificationsScreen} options={{drawerLabel: 'الإشعارات'}} />
     </Drawer.Navigator>
@@ -237,12 +246,12 @@ export default function App() {
           console.error('فشل في تهيئة قاعدة البيانات:', result.error);
         }
         
-        // إظهار شاشة البداية لمدة ثانيتين
-        setTimeout(() => setShowSplash(false), 2000);
+        // إظهار شاشة البداية لمدة 1.5 ثانية
+        setTimeout(() => setShowSplash(false), 1500);
         
       } catch (error) {
         console.error('خطأ في تهيئة التطبيق:', error);
-        setTimeout(() => setShowSplash(false), 2000);
+        setTimeout(() => setShowSplash(false), 1500);
       }
     };
     

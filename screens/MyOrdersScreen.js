@@ -283,7 +283,7 @@ export default function MyOrdersScreen({ navigation }) {
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Ionicons name="car-outline" size={80} color="#ccc" />
+            <Ionicons name="bicycle" size={80} color="#ccc" />
             <Text style={styles.emptyTitle}>لا توجد طلبات</Text>
             <Text style={styles.emptySubtitle}>
               لم تقبل أي طلبات بعد. اذهب إلى الطلبات المتاحة لقبول طلب جديد

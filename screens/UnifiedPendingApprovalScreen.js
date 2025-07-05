@@ -119,7 +119,7 @@ export default function UnifiedPendingApprovalScreen({ navigation, route }) {
   };
 
   const getIconName = () => {
-    return userType === 'driver' ? 'car-sport' : 'storefront-outline';
+    return userType === 'driver' ? 'bicycle' : 'storefront-outline';
   };
 
   const getTitle = () => {

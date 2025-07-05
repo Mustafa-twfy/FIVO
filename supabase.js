@@ -522,6 +522,16 @@ export const supportAPI = {
       .select('*')
       .order('created_at', { ascending: true });
     return { data, error };
+  },
+
+  // جلب عدد الرسائل غير المقروءة للدعم الفني
+  getUnreadSupportCount: async () => {
+    const { count, error } = await supabase
+      .from('support_messages')
+      .select('*', { count: 'exact', head: true })
+      .eq('sender', 'user')
+      .eq('read_by_admin', false);
+    return { data: count || 0, error };
   }
 };
 

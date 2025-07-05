@@ -22,100 +22,7 @@ export default function LoginScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  const testDatabaseConnection = async () => {
-    try {
-      console.log('=== بداية اختبار قاعدة البيانات ===');
-      
-      // اختبار الاتصال بقاعدة البيانات
-      console.log('اختبار الاتصال بقاعدة البيانات...');
-      const { data: testData, error: testError } = await supabase
-        .from('drivers')
-        .select('count')
-        .limit(1);
-      
-      if (testError) {
-        console.error('❌ خطأ في الاتصال بقاعدة البيانات:', testError);
-        throw new Error('فشل في الاتصال بقاعدة البيانات: ' + testError.message);
-      } else {
-        console.log('✅ الاتصال بقاعدة البيانات ناجح');
-      }
-      
-      // التحقق من وجود الحساب في جدول drivers
-      console.log('البحث عن الحساب في جدول drivers...');
-      const { data: driverTest, error: driverTestError } = await supabase
-        .from('drivers')
-        .select('*')
-        .eq('email', email);
-      
-      if (driverTestError) {
-        console.error('❌ خطأ في البحث في جدول drivers:', driverTestError);
-      } else {
-        console.log('✅ البحث في جدول drivers ناجح');
-        console.log('عدد السجلات الموجودة:', driverTest?.length || 0);
-        if (driverTest && driverTest.length > 0) {
-          console.log('تفاصيل السائق الأول:', {
-            id: driverTest[0].id,
-            email: driverTest[0].email,
-            name: driverTest[0].name,
-            status: driverTest[0].status,
-            is_active: driverTest[0].is_active
-          });
-        }
-      }
-      
-      // التحقق من وجود الحساب في جدول stores
-      console.log('البحث عن الحساب في جدول stores...');
-      const { data: storeTest, error: storeTestError } = await supabase
-        .from('stores')
-        .select('*')
-        .eq('email', email);
-      
-      if (storeTestError) {
-        console.error('❌ خطأ في البحث في جدول stores:', storeTestError);
-      } else {
-        console.log('✅ البحث في جدول stores ناجح');
-        console.log('عدد السجلات الموجودة:', storeTest?.length || 0);
-        if (storeTest && storeTest.length > 0) {
-          console.log('تفاصيل المتجر الأول:', {
-            id: storeTest[0].id,
-            email: storeTest[0].email,
-            name: storeTest[0].name,
-            is_active: storeTest[0].is_active
-          });
-        }
-      }
-      
-      // التحقق من وجود الحساب في جدول registration_requests
-      console.log('البحث عن الحساب في جدول registration_requests...');
-      const { data: requestTest, error: requestTestError } = await supabase
-        .from('registration_requests')
-        .select('*')
-        .eq('email', email);
-      
-      if (requestTestError) {
-        console.error('❌ خطأ في البحث في جدول registration_requests:', requestTestError);
-      } else {
-        console.log('✅ البحث في جدول registration_requests ناجح');
-        console.log('عدد السجلات الموجودة:', requestTest?.length || 0);
-        if (requestTest && requestTest.length > 0) {
-          console.log('تفاصيل طلب التسجيل الأول:', {
-            id: requestTest[0].id,
-            email: requestTest[0].email,
-            user_type: requestTest[0].user_type,
-            status: requestTest[0].status
-          });
-        }
-      }
-      
-      console.log('=== انتهاء اختبار قاعدة البيانات ===');
-      
-    } catch (error) {
-      console.error('=== خطأ في اختبار قاعدة البيانات ===');
-      console.error('نوع الخطأ:', error.constructor.name);
-      console.error('رسالة الخطأ:', error.message);
-      console.error('تفاصيل الخطأ:', error);
-    }
-  };
+
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -128,9 +35,6 @@ export default function LoginScreen({ navigation }) {
     try {
       console.log('=== بداية عملية تسجيل الدخول ===');
       console.log('البريد الإلكتروني:', email);
-      
-      // اختبار قاعدة البيانات أولاً
-      await testDatabaseConnection();
       
       // تحقق الأدمن (بريد خاص)
       if (email === 'nmcmilli07@gmail.com' && password === 'admin1234') {
@@ -264,12 +168,7 @@ export default function LoginScreen({ navigation }) {
     navigation.replace('Login');
   };
 
-  // دالة مسح AsyncStorage للاختبار
-  const clearStorage = async () => {
-    await AsyncStorage.clear();
-    console.log('تم مسح AsyncStorage');
-    Alert.alert('تم المسح', 'تم مسح جميع البيانات المحفوظة');
-  };
+
 
   // أضف دالة حذف بيانات المستخدم من جميع الجداول عند الرفض
   const deleteUserEverywhere = async (email) => {
@@ -286,7 +185,7 @@ export default function LoginScreen({ navigation }) {
     >
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.logoContainer}>
-          <Ionicons name="car-sport" size={80} color={colors.primary} />
+          <Ionicons name="bicycle" size={80} color={colors.primary} />
           <Text style={styles.logoText}>Fivo</Text>
           <Text style={styles.subtitle}>خدمة التوصيل الأسرع والأفضل</Text>
         </View>
@@ -339,24 +238,6 @@ export default function LoginScreen({ navigation }) {
             </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.testButton]}
-            onPress={testDatabaseConnection}
-          >
-            <Text style={styles.testButtonText}>
-              اختبار قاعدة البيانات
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.clearButton]}
-            onPress={clearStorage}
-          >
-            <Text style={styles.clearButtonText}>
-              مسح البيانات المحفوظة
-            </Text>
-          </TouchableOpacity>
-
           <View style={styles.divider}>
             <View style={styles.dividerLine} />
             <Text style={styles.dividerText}>أو</Text>
@@ -370,7 +251,7 @@ export default function LoginScreen({ navigation }) {
               style={styles.registerButton}
               onPress={() => handleRegister('driver')}
             >
-              <Ionicons name="car-outline" size={24} color={colors.primary} />
+              <Ionicons name="bicycle" size={24} color={colors.primary} />
               <Text style={styles.registerButtonText}>سائق</Text>
             </TouchableOpacity>
 
@@ -511,31 +392,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     marginTop: 5,
-  },
-  testButton: {
-    backgroundColor: colors.primary,
-    borderRadius: 10,
-    height: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  testButtonText: {
-    color: colors.secondary,
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  clearButton: {
-    backgroundColor: colors.primary,
-    borderRadius: 10,
-    height: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  clearButtonText: {
-    color: colors.secondary,
-    fontSize: 18,
-    fontWeight: 'bold',
   },
 }); 

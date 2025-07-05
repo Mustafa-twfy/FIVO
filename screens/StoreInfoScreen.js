@@ -53,34 +53,17 @@ export default function StoreInfoScreen({ navigation, route }) {
     if (validateForm()) {
       setLoading(true);
       try {
-        // إنشاء طلب تسجيل جديد مباشرة
-        const { error } = await supabase
-          .from('registration_requests')
-          .insert([
-            {
-              email: formData.email,
-              password: formData.password,
-              user_type: 'store',
-              name: info.storeName,
-              phone: info.phone,
-              address: info.address,
-              status: 'pending',
-              created_at: new Date().toISOString(),
-            }
-          ]);
-
-        if (error) {
-          Alert.alert('خطأ', 'فشل في إرسال طلب التسجيل');
-        } else {
-          Alert.alert('نجح', 'تم إرسال طلب التسجيل بنجاح! سيتم مراجعة طلبك من قبل الإدارة.', [
-            {
-              text: 'حسناً',
-              onPress: () => navigation.replace('UnifiedPendingApproval', { email: formData.email, user_type: 'store', password: formData.password })
-            }
-          ]);
-        }
+        // الانتقال إلى شاشة تحديد الموقع بدلاً من إرسال الطلب مباشرة
+        navigation.navigate('StoreLocation', {
+          formData,
+          storeInfo: {
+            name: info.storeName,
+            phone: info.phone,
+            address: info.address,
+          }
+        });
       } catch (error) {
-        Alert.alert('خطأ', 'حدث خطأ أثناء إرسال الطلب');
+        Alert.alert('خطأ', 'حدث خطأ أثناء الانتقال لصفحة تحديد الموقع');
       } finally {
         setLoading(false);
       }
@@ -156,9 +139,9 @@ export default function StoreInfoScreen({ navigation, route }) {
             <TouchableOpacity style={styles.nextButton} onPress={handleNext} disabled={loading} activeOpacity={0.7}>
               <LinearGradient colors={['#FF9800', '#F57C00']} style={styles.gradientButton}>
                 <Text style={styles.nextButtonText}>
-                  {loading ? 'جاري الإرسال...' : 'إرسال طلب التسجيل'}
+                  {loading ? 'جاري الانتقال...' : 'التالي - تحديد الموقع'}
                 </Text>
-                <Ionicons name="send" size={20} color="#fff" />
+                <Ionicons name="arrow-forward" size={20} color="#fff" />
               </LinearGradient>
             </TouchableOpacity>
           </View>

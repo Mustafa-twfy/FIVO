@@ -312,27 +312,20 @@ export default function DriverDashboardScreen({ navigation }) {
       </View>
 
       <ScrollView style={styles.content}>
-        <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
-            <Ionicons name="list-outline" size={32} color={colors.info} />
-            <Text style={styles.statNumber}>{stats.totalOrders}</Text>
-            <Text style={styles.statLabel}>إجمالي الطلبات</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Ionicons name="checkmark-circle-outline" size={32} color={colors.success} />
-            <Text style={styles.statNumber}>{stats.completedOrders}</Text>
-            <Text style={styles.statLabel}>مكتملة</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Ionicons name="cash-outline" size={32} color={colors.secondary} />
-            <Text style={styles.statNumber}>{stats.totalEarnings}</Text>
-            <Text style={styles.statLabel}>إجمالي الأرباح</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Ionicons name="card-outline" size={32} color={colors.primary} />
-            <Text style={styles.statNumber}>{driverInfo?.debt_points || 0}</Text>
-            <Text style={styles.statLabel}>نقاط الديون</Text>
-          </View>
+        {/* رسالة ترحيب */}
+        <View style={styles.welcomeCard}>
+          <LinearGradient
+            colors={colors.gradient}
+            style={styles.welcomeGradient}
+          >
+            <View style={styles.welcomeContent}>
+              <Ionicons name="bicycle" size={48} color={colors.secondary} />
+              <Text style={styles.welcomeTitle}>مرحباً بك!</Text>
+              <Text style={styles.welcomeSubtitle}>
+                {isOnline ? 'أنت متاح للعمل الآن' : 'أنت غير متاح للعمل'}
+              </Text>
+            </View>
+          </LinearGradient>
         </View>
 
         {driverInfo?.debt_points >= maxDebtPoints && (
@@ -411,7 +404,7 @@ export default function DriverDashboardScreen({ navigation }) {
           
           {myOrders.length === 0 && (
             <View style={styles.emptyOrders}>
-              <Ionicons name="car-outline" size={64} color={colors.primary} />
+              <Ionicons name="bicycle" size={64} color={colors.primary} />
               <Text style={styles.emptyText}>لا توجد طلبات حالية</Text>
             </View>
           )}
@@ -458,34 +451,34 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
   },
-  statsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  statCard: {
-    backgroundColor: colors.primary,
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    flex: 1,
-    marginHorizontal: 4,
+  welcomeCard: {
+    marginBottom: 24,
+    borderRadius: 16,
+    overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 8,
   },
-  statNumber: {
+  welcomeGradient: {
+    padding: 24,
+  },
+  welcomeContent: {
+    alignItems: 'center',
+  },
+  welcomeTitle: {
     fontSize: 24,
     fontWeight: 'bold',
     color: colors.secondary,
-    marginTop: 8,
+    marginTop: 12,
+    marginBottom: 8,
   },
-  statLabel: {
-    fontSize: 12,
+  welcomeSubtitle: {
+    fontSize: 16,
     color: colors.secondary,
-    marginTop: 4,
+    opacity: 0.9,
+    textAlign: 'center',
   },
   sectionTitle: {
     fontSize: 20,
@@ -500,15 +493,17 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   orderCard: {
-    backgroundColor: colors.primary,
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: colors.secondary,
+    borderRadius: 16,
+    padding: 20,
     marginBottom: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowRadius: 8,
+    elevation: 5,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   orderHeader: {
     flexDirection: 'row',
@@ -517,9 +512,9 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   orderId: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
-    color: colors.secondary,
+    color: colors.primary,
   },
   statusBadge: {
     paddingHorizontal: 8,
@@ -532,86 +527,111 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   orderDetails: {
-    fontSize: 14,
-    color: colors.secondary,
-    marginBottom: 8,
+    fontSize: 16,
+    color: colors.dark,
+    marginBottom: 12,
+    lineHeight: 22,
   },
   orderAddress: {
-    fontSize: 12,
+    fontSize: 14,
     color: colors.primary,
-    marginBottom: 4,
+    marginBottom: 8,
+    fontWeight: '500',
   },
   orderAmount: {
-    fontSize: 14,
-    color: colors.secondary,
+    fontSize: 18,
+    color: colors.success,
     fontWeight: 'bold',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   acceptButton: {
     backgroundColor: colors.success,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
     alignItems: 'center',
+    shadowColor: colors.success,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
   },
   acceptButtonText: {
     color: '#fff',
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: 'bold',
   },
   completeButton: {
     backgroundColor: colors.info,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
     alignItems: 'center',
+    shadowColor: colors.info,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
   },
   completeButtonText: {
     color: '#fff',
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: 'bold',
   },
   emptyOrders: {
     alignItems: 'center',
-    paddingVertical: 32,
+    paddingVertical: 48,
+    backgroundColor: colors.secondary,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: colors.border,
+    borderStyle: 'dashed',
   },
   emptyText: {
     fontSize: 16,
-    color: colors.secondary,
+    color: colors.dark,
     marginTop: 16,
+    textAlign: 'center',
+    opacity: 0.7,
   },
   warningCard: {
-    backgroundColor: colors.primary,
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    backgroundColor: colors.dangerGradient[1],
+    padding: 20,
+    borderRadius: 16,
+    marginBottom: 20,
+    shadowColor: colors.danger,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
+    borderWidth: 1,
+    borderColor: colors.danger,
   },
   warningText: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#fff',
-    marginTop: 8,
+    color: colors.danger,
+    marginTop: 12,
+    lineHeight: 22,
   },
   alertCard: {
-    backgroundColor: colors.primary,
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    backgroundColor: colors.warningGradient[1],
+    padding: 20,
+    borderRadius: 16,
+    marginBottom: 20,
+    shadowColor: colors.warning,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
+    borderWidth: 1,
+    borderColor: colors.warning,
   },
   alertText: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#fff',
-    marginTop: 8,
+    color: colors.warning,
+    marginTop: 12,
+    lineHeight: 22,
   },
 }); 

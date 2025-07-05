@@ -302,8 +302,8 @@ export default function DriversScreen({ navigation }) {
                 <Text style={styles.driverEmail}>{driver.email}</Text>
                 <Text style={styles.driverPhone}>{driver.phone || 'غير محدد'}</Text>
                 <View style={styles.vehicleInfo}>
-                  <Ionicons name="car-sport" size={16} color={colors.primary} />
-                  <Text style={styles.vehicleType}>{driver.vehicle_type || 'دراجة نارية'}</Text>
+                  <Ionicons name="bicycle" size={16} color={colors.primary} />
+                  <Text style={styles.vehicleType}>{driver.vehicle_type || 'غير محدد'}</Text>
                 </View>
                 <View style={styles.driverStats}>
                   <Text style={styles.debtText}>
@@ -503,7 +503,7 @@ export default function DriversScreen({ navigation }) {
                 <Text style={styles.detailText}>الاسم: {detailsDriver.name}</Text>
                 <Text style={styles.detailText}>البريد الإلكتروني: {detailsDriver.email}</Text>
                 <Text style={styles.detailText}>الهاتف: {detailsDriver.phone}</Text>
-                <Text style={styles.detailText}>نوع المركبة: {detailsDriver.vehicle_type}</Text>
+                <Text style={styles.detailText}>نوع المركبة: {detailsDriver.vehicle_type || 'غير محدد'}</Text>
                 <Text style={styles.detailText}>رقم المركبة: {detailsDriver.vehicle_number || 'غير محدد'}</Text>
                 <Text style={styles.detailText}>النقاط: {detailsDriver.debt_points || 0}</Text>
                 <Text style={styles.detailText}>الديون: {(detailsDriver.debt_points || 0) * debtPointValue} دينار</Text>

@@ -162,8 +162,14 @@ export default function StoreDashboardScreen({ navigation }) {
       case 'profile':
         navigation.navigate('StoreProfile');
         break;
+      case 'location':
+        navigation.navigate('UpdateStoreLocation');
+        break;
       case 'notifications':
         navigation.navigate('StoreNotifications');
+        break;
+      case 'support':
+        setSupportModalVisible(true);
         break;
     }
   };
@@ -313,6 +319,26 @@ export default function StoreDashboardScreen({ navigation }) {
 
             <TouchableOpacity
               style={styles.optionCard}
+              onPress={() => handleOptionPress('location')}
+            >
+              <LinearGradient
+                colors={['#607D8B', '#607D8BCC']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.optionGradient}
+              >
+                <View style={styles.optionContent}>
+                  <Ionicons name="location-outline" size={32} color={colors.secondary} />
+                  <Text style={styles.optionTitle}>تحديث الموقع</Text>
+                  <Text style={styles.optionDescription}>تحديث موقع المتجر</Text>
+                </View>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.optionsRow}>
+            <TouchableOpacity
+              style={styles.optionCard}
               onPress={() => handleOptionPress('notifications')}
             >
               <LinearGradient
@@ -325,6 +351,24 @@ export default function StoreDashboardScreen({ navigation }) {
                   <Ionicons name="notifications-outline" size={32} color={colors.secondary} />
                   <Text style={styles.optionTitle}>الإشعارات</Text>
                   <Text style={styles.optionDescription}>عرض الإشعارات والرسائل</Text>
+                </View>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.optionCard}
+              onPress={() => handleOptionPress('support')}
+            >
+              <LinearGradient
+                colors={['#E91E63', '#E91E63CC']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.optionGradient}
+              >
+                <View style={styles.optionContent}>
+                  <Ionicons name="chatbubbles-outline" size={32} color={colors.secondary} />
+                  <Text style={styles.optionTitle}>الدعم الفني</Text>
+                  <Text style={styles.optionDescription}>التواصل مع الدعم</Text>
                 </View>
               </LinearGradient>
             </TouchableOpacity>

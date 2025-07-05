@@ -12,19 +12,24 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { supabase, systemSettingsAPI } from '../supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { OrderPrioritySystem, OrderHelpers } from '../utils/orderPriority';
 
 export default function AvailableOrdersScreen({ navigation }) {
   const [orders, setOrders] = useState([]);
+  const [sortedOrders, setSortedOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [driverInfo, setDriverInfo] = useState(null);
+  const [driverLocation, setDriverLocation] = useState(null);
   const [debtPointValue, setDebtPointValue] = useState(250);
   const [maxDebtPoints, setMaxDebtPoints] = useState(20);
   const [settingsLoading, setSettingsLoading] = useState(true);
+  const [orderSummary, setOrderSummary] = useState(null);
 
   useEffect(() => {
     loadDriverInfo();
     loadAvailableOrders();
+    loadDriverLocation();
     const fetchSettings = async () => {
       setSettingsLoading(true);
       const { data, error } = await systemSettingsAPI.getSystemSettings();
@@ -36,6 +41,18 @@ export default function AvailableOrdersScreen({ navigation }) {
     };
     fetchSettings();
   }, []);
+
+  // تحديث الطلبات المرتبة عند تغيير الطلبات أو موقع السائق
+  useEffect(() => {
+    if (orders.length > 0) {
+      const sorted = OrderPrioritySystem.sortOrdersByPriority(orders, driverLocation);
+      setSortedOrders(sorted);
+      setOrderSummary(OrderPrioritySystem.generateOrderSummary(orders));
+    } else {
+      setSortedOrders([]);
+      setOrderSummary(null);
+    }
+  }, [orders, driverLocation]);
 
   const loadDriverInfo = async () => {
     try {
@@ -86,6 +103,18 @@ export default function AvailableOrdersScreen({ navigation }) {
     }
   };
 
+  const loadDriverLocation = async () => {
+    try {
+      // محاولة الحصول على موقع السائق من AsyncStorage أو GPS
+      const savedLocation = await AsyncStorage.getItem('driverLocation');
+      if (savedLocation) {
+        setDriverLocation(JSON.parse(savedLocation));
+      }
+    } catch (error) {
+      console.error('خطأ في تحميل موقع السائق:', error);
+    }
+  };
+
   const loadAvailableOrders = async () => {
     setLoading(true);
     try {
@@ -108,7 +137,9 @@ export default function AvailableOrdersScreen({ navigation }) {
             name,
             phone,
             address,
-            description
+            description,
+            category,
+            location
           )
         `)
         .eq('status', 'pending')
@@ -119,8 +150,23 @@ export default function AvailableOrdersScreen({ navigation }) {
         throw new Error('تعذر جلب الطلبات المتاحة: ' + error.message);
       }
 
-      console.log('تم تحميل الطلبات المتاحة:', data?.length || 0, 'طلب');
-      setOrders(data || []);
+      // إضافة معلومات إضافية للطلبات
+      const enhancedOrders = (data || []).map(order => ({
+        ...order,
+        store_category: order.stores?.category || 'أخرى',
+        store_location: order.stores?.location,
+        is_urgent: order.is_urgent || false,
+        distance: driverLocation ? 
+          OrderPrioritySystem.calculateDistance(
+            driverLocation.latitude,
+            driverLocation.longitude,
+            order.stores?.location?.latitude || 0,
+            order.stores?.location?.longitude || 0
+          ) : null
+      }));
+
+      console.log('تم تحميل الطلبات المتاحة:', enhancedOrders.length, 'طلب');
+      setOrders(enhancedOrders);
     } catch (error) {
       console.error('خطأ في تحميل الطلبات المتاحة:', error);
       Alert.alert('خطأ', error.message || 'حدث خطأ غير متوقع في تحميل الطلبات');
@@ -130,7 +176,10 @@ export default function AvailableOrdersScreen({ navigation }) {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadAvailableOrders();
+    await Promise.all([
+      loadAvailableOrders(),
+      loadDriverLocation()
+    ]);
     setRefreshing(false);
   };
 
@@ -207,36 +256,9 @@ export default function AvailableOrdersScreen({ navigation }) {
     }
   };
 
-  const getOrderStatusColor = (status) => {
-    switch (status) {
-      case 'pending': return '#FF9800';
-      case 'accepted': return '#4CAF50';
-      case 'completed': return '#2196F3';
-      case 'cancelled': return '#F44336';
-      default: return '#666';
-    }
-  };
-
-  const getOrderStatusText = (status) => {
-    switch (status) {
-      case 'pending': return 'في الانتظار';
-      case 'accepted': return 'مقبول';
-      case 'completed': return 'مكتمل';
-      case 'cancelled': return 'ملغي';
-      default: return 'غير محدد';
-    }
-  };
-
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('ar-SA', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
+  const getOrderStatusColor = (status) => OrderHelpers.getStatusColor(status);
+  const getOrderStatusText = (status) => OrderHelpers.getStatusText(status);
+  const formatDate = (dateString) => OrderHelpers.formatOrderTime(dateString);
 
   const renderOrderItem = ({ item }) => (
     <View style={styles.orderCard}>
@@ -245,14 +267,27 @@ export default function AvailableOrdersScreen({ navigation }) {
           <Text style={styles.orderId}>طلب #{item.id}</Text>
           <Text style={styles.orderDate}>{formatDate(item.created_at)}</Text>
         </View>
-        <View style={[styles.statusBadge, { backgroundColor: getOrderStatusColor(item.status) }]}>
-          <Text style={styles.statusText}>{getOrderStatusText(item.status)}</Text>
+        <View style={styles.priorityInfo}>
+          {item.is_urgent && (
+            <View style={styles.urgentBadge}>
+              <Ionicons name="flash" size={16} color="#fff" />
+              <Text style={styles.urgentText}>عاجل</Text>
+            </View>
+          )}
+          <View style={[styles.statusBadge, { backgroundColor: getOrderStatusColor(item.status) }]}>
+            <Text style={styles.statusText}>{getOrderStatusText(item.status)}</Text>
+          </View>
         </View>
       </View>
 
       <View style={styles.storeInfo}>
         <Ionicons name="business-outline" size={20} color="#666" />
         <Text style={styles.storeName}>{item.stores?.name || 'متجر غير محدد'}</Text>
+        {item.store_category && (
+          <View style={styles.categoryBadge}>
+            <Text style={styles.categoryText}>{item.store_category}</Text>
+          </View>
+        )}
       </View>
 
       <View style={styles.orderDetails}>
@@ -265,12 +300,26 @@ export default function AvailableOrdersScreen({ navigation }) {
         <Text style={styles.addressText}>{item.address || 'عنوان غير محدد'}</Text>
       </View>
 
-      <View style={styles.orderFooter}>
-        <View style={styles.amountInfo}>
-          <Text style={styles.amountLabel}>المبلغ:</Text>
-          <Text style={styles.amountValue}>{item.amount || 0} ألف دينار</Text>
+      <View style={styles.orderMetrics}>
+        <View style={styles.metricItem}>
+          <Ionicons name="cash-outline" size={16} color="#4CAF50" />
+          <Text style={styles.metricText}>{OrderHelpers.formatAmount(item.total_amount)}</Text>
         </View>
-        
+        {item.distance && (
+          <View style={styles.metricItem}>
+            <Ionicons name="navigate-outline" size={16} color="#2196F3" />
+            <Text style={styles.metricText}>{OrderHelpers.formatDistance(item.distance)}</Text>
+          </View>
+        )}
+        {item.priority && (
+          <View style={styles.metricItem}>
+            <Ionicons name="star" size={16} color="#FF9800" />
+            <Text style={styles.metricText}>أولوية: {item.priority}</Text>
+          </View>
+        )}
+      </View>
+
+      <View style={styles.orderFooter}>
         <TouchableOpacity 
           style={styles.acceptButton}
           onPress={() => acceptOrder(item.id)}
@@ -320,8 +369,32 @@ export default function AvailableOrdersScreen({ navigation }) {
         </View>
       )}
 
+      {orderSummary && (
+        <View style={styles.summaryCard}>
+          <Text style={styles.summaryTitle}>ملخص الطلبات المتاحة</Text>
+          <View style={styles.summaryGrid}>
+            <View style={styles.summaryItem}>
+              <Text style={styles.summaryNumber}>{orderSummary.totalOrders}</Text>
+              <Text style={styles.summaryLabel}>إجمالي الطلبات</Text>
+            </View>
+            <View style={styles.summaryItem}>
+              <Text style={styles.summaryNumber}>{orderSummary.urgentOrders}</Text>
+              <Text style={styles.summaryLabel}>طلبات عاجلة</Text>
+            </View>
+            <View style={styles.summaryItem}>
+              <Text style={styles.summaryNumber}>{orderSummary.highValueOrders}</Text>
+              <Text style={styles.summaryLabel}>طلبات عالية القيمة</Text>
+            </View>
+            <View style={styles.summaryItem}>
+              <Text style={styles.summaryNumber}>{OrderHelpers.formatAmount(orderSummary.totalValue)}</Text>
+              <Text style={styles.summaryLabel}>إجمالي القيمة</Text>
+            </View>
+          </View>
+        </View>
+      )}
+
       <FlatList
-        data={orders}
+        data={sortedOrders}
         renderItem={renderOrderItem}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.listContainer}
@@ -332,6 +405,15 @@ export default function AvailableOrdersScreen({ navigation }) {
             colors={['#FF9800']}
             tintColor="#FF9800"
           />
+        }
+        ListHeaderComponent={
+          sortedOrders.length > 0 && (
+            <View style={styles.listHeader}>
+              <Text style={styles.listHeaderTitle}>
+                الطلبات مرتبة حسب الأولوية (الأعلى أولاً)
+              </Text>
+            </View>
+          )
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
@@ -558,5 +640,106 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#F44336',
     fontWeight: 'bold',
+  },
+  // الأنماط الجديدة
+  priorityInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  urgentBadge: {
+    backgroundColor: '#F44336',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  urgentText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginLeft: 4,
+  },
+  categoryBadge: {
+    backgroundColor: '#E3F2FD',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginLeft: 8,
+  },
+  categoryText: {
+    color: '#1976D2',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  orderMetrics: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#F5F5F5',
+    borderRadius: 8,
+  },
+  metricItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  metricText: {
+    fontSize: 12,
+    color: '#666',
+    fontWeight: '500',
+  },
+  summaryCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  summaryTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  summaryGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  summaryItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  summaryNumber: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#FF9800',
+    marginBottom: 4,
+  },
+  summaryLabel: {
+    fontSize: 12,
+    color: '#666',
+    textAlign: 'center',
+  },
+  listHeader: {
+    backgroundColor: '#E8F5E8',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  listHeaderTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#4CAF50',
+    textAlign: 'center',
   },
 }); 

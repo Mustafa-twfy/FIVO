@@ -218,7 +218,7 @@ export default function RegistrationRequestsScreen({ navigation }) {
   const renderRequestItem = (item) => (
     <View style={styles.requestCard} key={item.id}>
       <View style={styles.requestHeader}>
-        <Ionicons name={item.user_type === 'driver' ? 'car-sport' : 'storefront-outline'} size={32} color={item.user_type === 'driver' ? '#2196F3' : '#FF9800'} />
+                        <Ionicons name={item.user_type === 'driver' ? 'bicycle' : 'storefront-outline'} size={32} color={item.user_type === 'driver' ? '#2196F3' : '#FF9800'} />
         <View style={{ marginLeft: 12, flex: 1 }}>
           <Text style={styles.userName}>{item.name || 'غير محدد'}</Text>
           <Text style={styles.userEmail}>{item.email}</Text>
@@ -234,10 +234,10 @@ export default function RegistrationRequestsScreen({ navigation }) {
         {item.phone && <Text style={styles.detailText}>الهاتف: {item.phone}</Text>}
         {item.address && <Text style={styles.detailText}>العنوان: {item.address}</Text>}
         {item.vehicle_type && <Text style={styles.detailText}>نوع المركبة: {item.vehicle_type}</Text>}
-        {item.user_type === 'driver' && (
+        {item.user_type === 'driver' && item.vehicle_type && (
           <View style={styles.driverBadge}>
-            <Ionicons name="car-sport" size={16} color="#2196F3" />
-            <Text style={styles.driverBadgeText}>دراجة نارية</Text>
+                            <Ionicons name="bicycle" size={16} color="#2196F3" />
+            <Text style={styles.driverBadgeText}>{item.vehicle_type}</Text>
           </View>
         )}
       </View>

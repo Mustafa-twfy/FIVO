@@ -35,6 +35,7 @@ export default function AdminSupportScreen({ navigation }) {
       setLoading(false);
       return;
     }
+    
     // تجميع الرسائل حسب المستخدم (user_type + user_id)
     const grouped = {};
     data.forEach(msg => {
@@ -42,21 +43,48 @@ export default function AdminSupportScreen({ navigation }) {
       if (!grouped[key]) grouped[key] = [];
       grouped[key].push(msg);
     });
-    // بناء قائمة المحادثات
-    const convs = Object.keys(grouped).map(key => {
+    
+    // بناء قائمة المحادثات مع جلب معلومات المستخدمين
+    const convs = [];
+    for (const key of Object.keys(grouped)) {
       const msgs = grouped[key];
       const lastMsg = msgs[msgs.length - 1];
-      return {
+      
+      // جلب معلومات المستخدم من الجدول المناسب
+      let userInfo = { name: 'مستخدم غير معروف', phone: '' };
+      
+      try {
+        if (lastMsg.user_type === 'driver') {
+          const { data: driver } = await supabase
+            .from('drivers')
+            .select('name, phone')
+            .eq('id', lastMsg.user_id)
+            .single();
+          if (driver) userInfo = driver;
+        } else if (lastMsg.user_type === 'store') {
+          const { data: store } = await supabase
+            .from('stores')
+            .select('name, phone')
+            .eq('id', lastMsg.user_id)
+            .single();
+          if (store) userInfo = store;
+        }
+      } catch (error) {
+        console.log('خطأ في جلب معلومات المستخدم:', error);
+      }
+      
+      convs.push({
         user_type: lastMsg.user_type,
         user_id: lastMsg.user_id,
-        name: lastMsg.name || (lastMsg.user_type === 'driver' ? 'سائق' : 'متجر'),
-        phone: lastMsg.phone || '',
+        name: userInfo.name || (lastMsg.user_type === 'driver' ? 'سائق' : 'متجر'),
+        phone: userInfo.phone || '',
         last_message: lastMsg.message,
         last_sender: lastMsg.sender,
         last_time: lastMsg.created_at,
         messages: msgs
-      };
-    });
+      });
+    }
+    
     setConversations(convs);
     setLoading(false);
   };
@@ -91,7 +119,7 @@ export default function AdminSupportScreen({ navigation }) {
     <TouchableOpacity style={styles.messageCard} onPress={() => openConversation(item.user_type, item.user_id, item.name, item.phone)}>
       <View style={styles.messageHeader}>
         <View style={styles.userInfo}>
-          <Ionicons name={item.user_type === 'driver' ? 'car-outline' : 'storefront-outline'} size={20} color={item.user_type === 'driver' ? '#2196F3' : '#FF9800'} />
+                          <Ionicons name={item.user_type === 'driver' ? 'bicycle' : 'storefront-outline'} size={20} color={item.user_type === 'driver' ? '#2196F3' : '#FF9800'} />
           <Text style={styles.userName}>{item.name}</Text>
           <View style={[styles.userTypeBadge, { backgroundColor: item.user_type === 'driver' ? '#2196F3' : '#FF9800' }]}>
             <Text style={styles.userTypeText}>{item.user_type === 'driver' ? 'سائق' : 'متجر'}</Text>

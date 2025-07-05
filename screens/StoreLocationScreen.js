@@ -13,6 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
+import { supabase } from '../supabase';
 
 // استيراد الخريطة فقط على الأجهزة المحمولة
 let MapView, Marker;
@@ -41,6 +42,7 @@ export default function StoreLocationScreen({ navigation, route }) {
   }
   
   const [location, setLocation] = useState(null);
+  const [loading, setLoading] = useState(false);
   const [region, setRegion] = useState({
     latitude: 24.7136,
     longitude: 46.6753,
@@ -100,24 +102,52 @@ export default function StoreLocationScreen({ navigation, route }) {
     }
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (!location) {
       Alert.alert('خطأ', 'يرجى تحديد موقع المتجر');
       return;
     }
 
+    setLoading(true);
     try {
-      navigation.navigate('StoreDocuments', {
-        formData,
-        storeInfo: {
-          ...storeInfo,
-          latitude: location.latitude,
-          longitude: location.longitude,
-        }
-      });
-    } catch (navError) {
-      console.error('Navigation error:', navError);
-      Alert.alert('خطأ في التنقل', 'حدث خطأ أثناء الانتقال لصفحة مستندات المتجر');
+      // إنشاء طلب تسجيل جديد مع الموقع
+      const { error } = await supabase
+        .from('registration_requests')
+        .insert([
+          {
+            email: formData.email,
+            password: formData.password,
+            user_type: 'store',
+            name: storeInfo.name,
+            phone: storeInfo.phone,
+            address: storeInfo.address,
+            latitude: location.latitude,
+            longitude: location.longitude,
+            status: 'pending',
+            created_at: new Date().toISOString(),
+          }
+        ]);
+
+      if (error) {
+        console.error('Error creating registration request:', error);
+        Alert.alert('خطأ', 'فشل في إرسال طلب التسجيل: ' + error.message);
+      } else {
+        Alert.alert('نجح', 'تم إرسال طلب التسجيل بنجاح! سيتم مراجعة طلبك من قبل الإدارة.', [
+          {
+            text: 'حسناً',
+            onPress: () => navigation.replace('UnifiedPendingApproval', { 
+              email: formData.email, 
+              user_type: 'store', 
+              password: formData.password 
+            })
+          }
+        ]);
+      }
+    } catch (error) {
+      console.error('Error in handleNext:', error);
+      Alert.alert('خطأ', 'حدث خطأ أثناء إرسال طلب التسجيل');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -152,10 +182,16 @@ export default function StoreLocationScreen({ navigation, route }) {
             </Text>
           </View>
 
-          <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
+          <TouchableOpacity style={styles.nextButton} onPress={handleNext} disabled={loading}>
             <LinearGradient colors={['#FF9800', '#F57C00']} style={styles.gradientButton}>
-              <Text style={styles.nextButtonText}>التالي</Text>
-              <Ionicons name="arrow-forward" size={20} color="#fff" />
+              {loading ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <>
+                  <Text style={styles.nextButtonText}>إرسال طلب التسجيل</Text>
+                  <Ionicons name="send" size={20} color="#fff" />
+                </>
+              )}
             </LinearGradient>
           </TouchableOpacity>
         </View>
@@ -273,11 +309,17 @@ export default function StoreLocationScreen({ navigation, route }) {
         <TouchableOpacity 
           style={styles.confirmButton} 
           onPress={handleNext}
-          disabled={!location}
+          disabled={!location || loading}
         >
           <LinearGradient colors={['#FF9800', '#F57C00']} style={styles.gradientButton}>
-            <Text style={styles.confirmButtonText}>تأكيد الموقع</Text>
-            <Ionicons name="checkmark" size={20} color="#fff" />
+            {loading ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <>
+                <Text style={styles.confirmButtonText}>إرسال طلب التسجيل</Text>
+                <Ionicons name="send" size={20} color="#fff" />
+              </>
+            )}
           </LinearGradient>
         </TouchableOpacity>
       </ScrollView>

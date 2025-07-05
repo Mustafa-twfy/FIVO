@@ -20,7 +20,7 @@ export default function DriverVehicleScreen({ navigation, route }) {
   const [vehicleData, setVehicleData] = useState({
     name: '',
     phone: '',
-    vehicle_type: 'دراجة نارية'
+    vehicle_type: ''
   });
   const [loading, setLoading] = useState(false);
 
@@ -43,6 +43,10 @@ export default function DriverVehicleScreen({ navigation, route }) {
     }
     if (vehicleData.phone.length < 8) {
       Alert.alert('خطأ', 'رقم الهاتف غير صحيح');
+      return;
+    }
+    if (!vehicleData.vehicle_type.trim()) {
+      Alert.alert('خطأ', 'يرجى إدخال نوع المركبة');
       return;
     }
 
@@ -106,7 +110,7 @@ export default function DriverVehicleScreen({ navigation, route }) {
 
         <View style={styles.formContainer}>
           <View style={styles.logoContainer}>
-            <Ionicons name="car-sport" size={80} color="#FF9800" />
+            <Ionicons name="bicycle" size={80} color="#FF9800" />
             <Text style={styles.logoText}>توصيل بلس</Text>
             <Text style={styles.subtitle}>بيانات السائق والمركبة</Text>
           </View>
@@ -139,16 +143,17 @@ export default function DriverVehicleScreen({ navigation, route }) {
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>نوع المركبة</Text>
+            <Text style={styles.label}>نوع المركبة *</Text>
             <View style={styles.inputWrapper}>
-              <Ionicons name="car-sport-outline" size={20} color="#666" style={styles.inputIcon} />
+              <Ionicons name="bicycle" size={20} color="#666" style={styles.inputIcon} />
               <TextInput
-                style={[styles.input, styles.disabledInput]}
+                style={styles.input}
+                placeholder="أدخل نوع مركبتك (مثال: دراجة نارية، سيارة، شاحنة)"
                 value={vehicleData.vehicle_type}
-                editable={false}
+                onChangeText={(text) => handleInputChange('vehicle_type', text)}
               />
             </View>
-            <Text style={styles.hintText}>نوع المركبة: دراجات نارية فقط</Text>
+            <Text style={styles.hintText}>أدخل نوع المركبة التي ستستخدمها في التوصيل</Text>
           </View>
 
           <View style={styles.infoCard}>

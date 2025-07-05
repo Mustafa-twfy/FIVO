@@ -97,18 +97,19 @@ CREATE TABLE IF NOT EXISTS store_notifications (
     created_at TIMESTAMP DEFAULT NOW()
 );
 
--- إنشاء جدول رسائل الدعم الفني للسائقين
+-- إنشاء جدول رسائل الدعم الفني الموحد
 CREATE TABLE IF NOT EXISTS support_messages (
     id SERIAL PRIMARY KEY,
-    driver_id INTEGER REFERENCES drivers(id),
+    user_type VARCHAR(20) NOT NULL, -- 'driver' أو 'store'
+    user_id INTEGER NOT NULL,       -- driver_id أو store_id
     message TEXT NOT NULL,
-    sender VARCHAR(20) NOT NULL, -- driver, admin
+    sender VARCHAR(20) NOT NULL,    -- 'user' أو 'admin'
     is_read BOOLEAN DEFAULT false,
     read_by_admin BOOLEAN DEFAULT false,
     created_at TIMESTAMP DEFAULT NOW()
 );
 
--- إنشاء جدول رسائل دعم المتاجر
+-- إنشاء جدول رسائل دعم المتاجر (للتوافق مع الكود القديم)
 CREATE TABLE IF NOT EXISTS store_support_messages (
     id SERIAL PRIMARY KEY,
     store_id INTEGER REFERENCES stores(id),
@@ -184,7 +185,7 @@ CREATE INDEX IF NOT EXISTS idx_orders_driver_id ON orders(driver_id);
 CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
 CREATE INDEX IF NOT EXISTS idx_notifications_driver_id ON notifications(driver_id);
 CREATE INDEX IF NOT EXISTS idx_store_notifications_store_id ON store_notifications(store_id);
-CREATE INDEX IF NOT EXISTS idx_support_messages_driver_id ON support_messages(driver_id);
+CREATE INDEX IF NOT EXISTS idx_support_messages_user_type_user_id ON support_messages(user_type, user_id);
 CREATE INDEX IF NOT EXISTS idx_store_support_messages_store_id ON store_support_messages(store_id);
 CREATE INDEX IF NOT EXISTS idx_rewards_driver_id ON rewards(driver_id);
 CREATE INDEX IF NOT EXISTS idx_fines_driver_id ON fines(driver_id);
@@ -235,10 +236,10 @@ INSERT INTO notifications (driver_id, title, message, type) VALUES
 ON CONFLICT DO NOTHING;
 
 -- إدخال بيانات تجريبية لرسائل الدعم الفني
-INSERT INTO support_messages (driver_id, message, sender) VALUES
-(1, 'أحتاج مساعدة في تحديث بياناتي', 'driver'),
-(1, 'تم استلام رسالتك وسيتم الرد عليك قريباً', 'admin'),
-(2, 'مشكلة في تسجيل الدخول', 'driver')
+INSERT INTO support_messages (user_type, user_id, message, sender) VALUES
+('driver', 1, 'أحتاج مساعدة في تحديث بياناتي', 'user'),
+('admin', 1, 'تم استلام رسالتك وسيتم الرد عليك قريباً', 'admin'),
+('driver', 2, 'مشكلة في تسجيل الدخول', 'user')
 ON CONFLICT DO NOTHING;
 
 -- إدخال بيانات تجريبية للمكافآت

@@ -180,7 +180,7 @@ export default function DriverRegistrationScreen({ navigation }) {
 
         <View style={styles.content}>
           <View style={styles.logoContainer}>
-            <Ionicons name="car-sport" size={80} color={colors.primary} />
+            <Ionicons name="bicycle" size={80} color={colors.primary} />
             <Text style={styles.logoText}>Fivo</Text>
             <Text style={styles.subtitle}>انضم إلينا ككابتن</Text>
           </View>

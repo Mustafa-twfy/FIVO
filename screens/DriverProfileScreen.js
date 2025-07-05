@@ -204,8 +204,8 @@ export default function DriverProfileScreen({ navigation }) {
           </View>
 
           <View style={styles.vehicleInfoCard}>
-            <Ionicons name="car-sport" size={24} color="#2196F3" />
-            <Text style={styles.vehicleInfoText}>دراجة نارية</Text>
+            <Ionicons name="bicycle" size={24} color="#2196F3" />
+            <Text style={styles.vehicleInfoText}>{formData.vehicle_type || 'غير محدد'}</Text>
           </View>
         </View>
 
