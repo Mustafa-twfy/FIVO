@@ -1,5 +1,5 @@
 // ملف اختبار الاتصال بقاعدة البيانات
-import { supabase } from './supabase';
+import { supabase } from './supabase.js';
 
 export const testDatabaseConnection = async () => {
   console.log('=== بداية اختبار قاعدة البيانات ===');

@@ -561,3 +561,253 @@ export const systemSettingsAPI = {
     return { data, error };
   }
 }; 
+
+// دوال إدارة الطلبات المحسنة
+export const ordersAPI = {
+  // إنشاء طلب جديد
+  createOrder: async (orderData) => {
+    const { data, error } = await supabase
+      .from('orders')
+      .insert({
+        store_id: orderData.store_id,
+        customer_name: orderData.customer_name || 'عميل',
+        customer_phone: orderData.customer_phone,
+        pickup_address: orderData.pickup_address,
+        delivery_address: orderData.delivery_address,
+        items_description: orderData.items_description,
+        description: orderData.description,
+        phone: orderData.phone,
+        total_amount: orderData.total_amount,
+        delivery_fee: orderData.delivery_fee || 0,
+        is_urgent: orderData.is_urgent || false,
+        payment_method: orderData.payment_method || 'cash',
+        payment_status: orderData.payment_status || 'pending',
+        created_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+    return { data, error };
+  },
+
+  // جلب الطلبات المتاحة للسائقين
+  getAvailableOrders: async () => {
+    const { data, error } = await supabase
+      .from('orders')
+      .select(`
+        *,
+        stores (
+          id,
+          name,
+          phone,
+          address,
+          category,
+          location
+        )
+      `)
+      .eq('status', 'pending')
+      .order('priority_score', { ascending: false })
+      .order('created_at', { ascending: true });
+    return { data, error };
+  },
+
+  // قبول طلب
+  acceptOrder: async (orderId, driverId) => {
+    const { data, error } = await supabase
+      .from('orders')
+      .update({
+        status: 'accepted',
+        driver_id: driverId,
+        accepted_at: new Date().toISOString()
+      })
+      .eq('id', orderId)
+      .eq('status', 'pending')
+      .select()
+      .single();
+    return { data, error };
+  },
+
+  // إكمال طلب
+  completeOrder: async (orderId) => {
+    const { data, error } = await supabase
+      .from('orders')
+      .update({
+        status: 'completed',
+        actual_delivery_time: new Date().toISOString()
+      })
+      .eq('id', orderId)
+      .eq('status', 'accepted')
+      .select()
+      .single();
+    return { data, error };
+  },
+
+  // إلغاء طلب
+  cancelOrder: async (orderId, reason = null) => {
+    const { data, error } = await supabase
+      .from('orders')
+      .update({
+        status: 'cancelled',
+        cancelled_at: new Date().toISOString(),
+        cancellation_reason: reason
+      })
+      .eq('id', orderId)
+      .select()
+      .single();
+    return { data, error };
+  },
+
+  // جلب طلبات السائق
+  getDriverOrders: async (driverId, status = null) => {
+    let query = supabase
+      .from('orders')
+      .select(`
+        *,
+        stores (
+          id,
+          name,
+          phone,
+          address,
+          category
+        )
+      `)
+      .eq('driver_id', driverId);
+
+    if (status) {
+      query = query.eq('status', status);
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: false });
+    return { data, error };
+  },
+
+  // جلب طلبات المتجر
+  getStoreOrders: async (storeId, status = null) => {
+    let query = supabase
+      .from('orders')
+      .select(`
+        *,
+        drivers (
+          id,
+          name,
+          phone,
+          vehicle_type
+        )
+      `)
+      .eq('store_id', storeId);
+
+    if (status) {
+      query = query.eq('status', status);
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: false });
+    return { data, error };
+  },
+
+  // تحديث حالة الطلب
+  updateOrderStatus: async (orderId, newStatus, notes = null) => {
+    const updateData = {
+      status: newStatus,
+      updated_at: new Date().toISOString()
+    };
+
+    // إضافة timestamps حسب الحالة
+    switch (newStatus) {
+      case 'accepted':
+        updateData.accepted_at = new Date().toISOString();
+        break;
+      case 'completed':
+        updateData.actual_delivery_time = new Date().toISOString();
+        break;
+      case 'cancelled':
+        updateData.cancelled_at = new Date().toISOString();
+        break;
+    }
+
+    if (notes) {
+      updateData.notes = notes;
+    }
+
+    const { data, error } = await supabase
+      .from('orders')
+      .update(updateData)
+      .eq('id', orderId)
+      .select()
+      .single();
+    return { data, error };
+  },
+
+  // تقييم الطلب
+  rateOrder: async (orderId, driverRating = null, customerRating = null) => {
+    const updateData = {};
+    
+    if (driverRating !== null) {
+      updateData.driver_rating = driverRating;
+    }
+    
+    if (customerRating !== null) {
+      updateData.customer_rating = customerRating;
+    }
+
+    const { data, error } = await supabase
+      .from('orders')
+      .update(updateData)
+      .eq('id', orderId)
+      .select()
+      .single();
+    return { data, error };
+  },
+
+  // جلب إحصائيات الطلبات
+  getOrderStatistics: async (storeId = null) => {
+    let query = supabase
+      .from('orders')
+      .select('status, total_amount, is_urgent');
+
+    if (storeId) {
+      query = query.eq('store_id', storeId);
+    }
+
+    const { data, error } = await query;
+    
+    if (error) return { data: null, error };
+
+    const stats = {
+      total_orders: data.length,
+      pending_orders: data.filter(o => o.status === 'pending').length,
+      accepted_orders: data.filter(o => o.status === 'accepted').length,
+      completed_orders: data.filter(o => o.status === 'completed').length,
+      cancelled_orders: data.filter(o => o.status === 'cancelled').length,
+      total_revenue: data
+        .filter(o => o.status === 'completed')
+        .reduce((sum, o) => sum + parseFloat(o.total_amount), 0),
+      urgent_orders: data.filter(o => o.is_urgent).length
+    };
+
+    return { data: stats, error: null };
+  },
+
+  // جلب طلب واحد
+  getOrderById: async (orderId) => {
+    const { data, error } = await supabase
+      .from('orders')
+      .select(`
+        *,
+        stores (
+          id,
+          name,
+          phone,
+          address,
+          category
+        ),
+        drivers (
+          id,
+          name,
+          phone,
+          vehicle_type
+        )
+      `)
+      .eq('id', orderId)
+      .single();
+    return { data, error };
+  }
+}; 

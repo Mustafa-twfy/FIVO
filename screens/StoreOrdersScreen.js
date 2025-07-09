@@ -13,7 +13,7 @@ import {
   Platform
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { supabase } from '../supabase';
+import { supabase, ordersAPI } from '../supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import colors from '../colors';
 
@@ -63,20 +63,7 @@ export default function StoreOrdersScreen({ navigation }) {
         throw new Error('لم يتم العثور على معرف المتجر');
       }
 
-      const { data, error } = await supabase
-        .from('orders')
-        .select(`
-          *,
-          drivers (
-            id,
-            name,
-            phone,
-            vehicle_type,
-            vehicle_number
-          )
-        `)
-        .eq('store_id', storeId)
-        .order('created_at', { ascending: false });
+      const { data, error } = await ordersAPI.getStoreOrders(storeId);
 
       if (error) {
         throw new Error('تعذر جلب الطلبات: ' + error.message);

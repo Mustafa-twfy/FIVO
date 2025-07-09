@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { supabase } from '../supabase';
+import { supabase, ordersAPI } from '../supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function NewOrderScreen({ navigation }) {
@@ -103,27 +103,22 @@ export default function NewOrderScreen({ navigation }) {
         phone
       });
 
-      // إنشاء الطلب في قاعدة البيانات
-      const { data, error } = await supabase
-        .from('orders')
-        .insert({
-          store_id: parseInt(storeId),
-          customer_name: 'عميل',
-          customer_phone: phone,
-          pickup_address: storeInfo?.address || 'عنوان المتجر',
-          delivery_address: address,
-          items_description: description,
-          total_amount: parseFloat(amount),
-          delivery_fee: 0,
-          status: 'pending',
-          payment_method: 'cash',
-          payment_status: 'pending',
-          description: description, // حقل إضافي للتوافق
-          phone: phone, // حقل إضافي للتوافق
-          is_urgent: isUrgent // إضافة حقل الطلب العاجل
-        })
-        .select()
-        .single();
+      // إنشاء الطلب باستخدام API الجديد
+      const { data, error } = await ordersAPI.createOrder({
+        store_id: parseInt(storeId),
+        customer_name: 'عميل',
+        customer_phone: phone,
+        pickup_address: storeInfo?.address || 'عنوان المتجر',
+        delivery_address: address,
+        items_description: description,
+        description: description,
+        phone: phone,
+        total_amount: parseFloat(amount),
+        delivery_fee: 0,
+        is_urgent: isUrgent,
+        payment_method: 'cash',
+        payment_status: 'pending'
+      });
 
       if (error) {
         console.error('خطأ في إنشاء الطلب:', error);

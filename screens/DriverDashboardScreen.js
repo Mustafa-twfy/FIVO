@@ -280,6 +280,38 @@ export default function DriverDashboardScreen({ navigation }) {
     );
   }
 
+  // شاشة فارغة إذا لم توجد طلبات متاحة
+  if (availableOrders.length === 0) {
+    return (
+      <View style={[styles.container, {justifyContent: 'flex-start', backgroundColor: '#fff'}]}>
+        {/* Header */}
+        <View style={styles.customHeader}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerIcon}>
+            <Ionicons name="arrow-back" size={26} color={colors.primary} />
+          </TouchableOpacity>
+          <View style={styles.profileCircle}>
+            <Ionicons name="person" size={38} color={colors.primary} />
+          </View>
+          <TouchableOpacity onPress={() => navigation.openDrawer()} style={styles.headerIcon}>
+            <Ionicons name="menu" size={28} color={colors.primary} />
+          </TouchableOpacity>
+        </View>
+        {/* حالة السائق */}
+        <View style={styles.statusRow}>
+          <Text style={styles.statusLabel}>{isOnline ? 'متاح' : 'غير متاح'}</Text>
+          <View style={[styles.statusDot, {backgroundColor: isOnline ? '#4CAF50' : '#bbb'}]} />
+        </View>
+        {/* محتوى فارغ */}
+        <View style={styles.emptyContent}>
+          <View style={styles.emptyIconCircle}>
+            <Ionicons name="list-outline" size={54} color={colors.primary} />
+          </View>
+          <Text style={styles.emptyText}>لا يوجد طلبات</Text>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -633,5 +665,71 @@ const styles = StyleSheet.create({
     color: colors.warning,
     marginTop: 12,
     lineHeight: 22,
+  },
+  customHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 24,
+    paddingTop: 40,
+    paddingBottom: 8,
+    backgroundColor: '#fff',
+  },
+  headerIcon: {
+    padding: 6,
+  },
+  profileCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#fff',
+    borderWidth: 2,
+    borderColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 0,
+  },
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 0,
+    marginBottom: 16,
+  },
+  statusLabel: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#444',
+    marginRight: 8,
+  },
+  statusDot: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    marginLeft: 2,
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  emptyContent: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 40,
+  },
+  emptyIconCircle: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: '#e0f7fa',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 18,
+  },
+  emptyText: {
+    fontSize: 22,
+    color: colors.primary,
+    fontWeight: 'bold',
+    marginTop: 8,
+    textAlign: 'center',
   },
 }); 

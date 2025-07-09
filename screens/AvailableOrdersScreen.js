@@ -10,7 +10,7 @@ import {
   RefreshControl 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { supabase, systemSettingsAPI } from '../supabase';
+import { supabase, systemSettingsAPI, ordersAPI } from '../supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { OrderPrioritySystem, OrderHelpers } from '../utils/orderPriority';
 
@@ -128,22 +128,7 @@ export default function AvailableOrdersScreen({ navigation }) {
         return;
       }
 
-      const { data, error } = await supabase
-        .from('orders')
-        .select(`
-          *,
-          stores (
-            id,
-            name,
-            phone,
-            address,
-            description,
-            category,
-            location
-          )
-        `)
-        .eq('status', 'pending')
-        .order('created_at', { ascending: false });
+      const { data, error } = await ordersAPI.getAvailableOrders();
 
       if (error) {
         console.error('خطأ في تحميل الطلبات المتاحة:', error);
@@ -221,15 +206,8 @@ export default function AvailableOrdersScreen({ navigation }) {
         return;
       }
 
-      // قبول الطلب
-      const { error } = await supabase
-        .from('orders')
-        .update({ 
-          status: 'accepted',
-          driver_id: driverInfo.id,
-          accepted_at: new Date().toISOString()
-        })
-        .eq('id', orderId);
+      // قبول الطلب باستخدام API الجديد
+      const { error } = await ordersAPI.acceptOrder(orderId, driverInfo.id);
 
       if (error) {
         console.error('خطأ في قبول الطلب:', error);
