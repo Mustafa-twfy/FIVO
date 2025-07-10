@@ -18,8 +18,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { supabase, storesAPI } from '../supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import colors from '../colors';
+import { useAuth } from '../context/AuthContext';
 
 export default function StoreDashboardScreen({ navigation }) {
+  const { logout } = useAuth();
   const [storeId, setStoreId] = useState(null);
   const [storeInfo, setStoreInfo] = useState(null);
   const [orders, setOrders] = useState([]);
@@ -51,28 +53,19 @@ export default function StoreDashboardScreen({ navigation }) {
         .select('*')
         .eq('id', id)
         .single();
-        
-      if (storeError) {
-        // إذا لم يتم العثور على المتجر، استخدم بيانات افتراضية
-        setStoreInfo({
-          id: id,
-          name: 'متجر تجريبي',
-          phone: '+966501234567',
-          email: 'store@example.com',
-          address: 'عنوان تجريبي'
-        });
-      } else if (store) {
-        setStoreInfo(store);
-      } else {
-        // بيانات افتراضية
-        setStoreInfo({
-          id: id,
-          name: 'متجر تجريبي',
-          phone: '+966501234567',
-          email: 'store@example.com',
-          address: 'عنوان تجريبي'
-        });
+      // تحقق من حالة الحساب
+      if (!store || store.is_active === false) {
+        Alert.alert(
+          'تم إيقاف الحساب',
+          !store ? 'تعذر العثور على حسابك. سيتم تسجيل الخروج.' : 'تم إيقاف حساب المتجر من قبل الإدارة. يرجى التواصل مع الدعم.',
+          [
+            { text: 'حسناً', onPress: () => { logout(); navigation.replace('Login'); } }
+          ]
+        );
+        setLoading(false);
+        return;
       }
+      setStoreInfo(store);
       
       // جلب طلبات المتجر من supabase
       const { data: ordersData, error: ordersError } = await supabase

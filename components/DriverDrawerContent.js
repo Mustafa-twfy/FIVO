@@ -116,6 +116,22 @@ export default function DriverDrawerContent({ navigation, state }) {
     );
   }
 
+  const maxDebtPoints = 10; // Assuming a default max debt points for this example
+  function isWithinWorkHours() {
+    if (!driverInfo?.work_start_time || !driverInfo?.work_end_time) return true;
+    const now = new Date();
+    const [startH, startM] = driverInfo.work_start_time.split(':').map(Number);
+    const [endH, endM] = driverInfo.work_end_time.split(':').map(Number);
+    const start = new Date(now);
+    start.setHours(startH, startM, 0, 0);
+    const end = new Date(now);
+    end.setHours(endH, endM, 0, 0);
+    if (end <= start) end.setDate(end.getDate() + 1);
+    return now >= start && now <= end;
+  }
+  const isOutOfWorkHours = driverInfo && !isWithinWorkHours();
+  const isBlocked = driverInfo?.is_suspended || (driverInfo?.debt_points >= maxDebtPoints) || isOutOfWorkHours;
+
   return (
     <View style={styles.container}>
       {/* Header مع معلومات السائق */}
@@ -139,95 +155,108 @@ export default function DriverDrawerContent({ navigation, state }) {
         </View>
       </LinearGradient>
 
-      <ScrollView style={styles.content}>
-        {/* الإحصائيات */}
-        <View style={styles.statsSection}>
-          <Text style={styles.sectionTitle}>الإحصائيات</Text>
-          
-          <View style={styles.statsGrid}>
-            <View style={styles.statCard}>
-              <Ionicons name="list-outline" size={24} color={colors.info} />
-              <Text style={styles.statNumber}>{stats.totalOrders}</Text>
-              <Text style={styles.statLabel}>إجمالي الطلبات</Text>
-            </View>
-            
-            <View style={styles.statCard}>
-              <Ionicons name="checkmark-circle-outline" size={24} color={colors.success} />
-              <Text style={styles.statNumber}>{stats.completedOrders}</Text>
-              <Text style={styles.statLabel}>مكتملة</Text>
-            </View>
-            
-            <View style={styles.statCard}>
-              <Ionicons name="cash-outline" size={24} color={colors.warning} />
-              <Text style={styles.statNumber}>{stats.totalEarnings.toFixed(0)}</Text>
-              <Text style={styles.statLabel}>إجمالي الأرباح</Text>
-            </View>
-            
-            <View style={styles.statCard}>
-              <Ionicons name="today-outline" size={24} color={colors.primary} />
-              <Text style={styles.statNumber}>{stats.todayEarnings.toFixed(0)}</Text>
-              <Text style={styles.statLabel}>أرباح اليوم</Text>
-            </View>
-          </View>
-
-          {/* نقاط الديون */}
-          <View style={[styles.debtCard, stats.debtPoints > 10 ? styles.debtWarning : null]}>
-            <Ionicons 
-              name={stats.debtPoints > 10 ? "warning-outline" : "card-outline"} 
-              size={24} 
-              color={stats.debtPoints > 10 ? colors.danger : colors.primary} 
-            />
-            <View style={styles.debtInfo}>
-              <Text style={styles.debtLabel}>نقاط الديون</Text>
-              <Text style={[styles.debtNumber, stats.debtPoints > 10 ? styles.debtWarningText : null]}>
-                {stats.debtPoints} نقطة
-              </Text>
-              <Text style={styles.debtValue}>
-                ({stats.debtPoints * 250} دينار)
-              </Text>
-            </View>
-          </View>
+      {isOutOfWorkHours && (
+        <View style={{padding: 12, backgroundColor: '#FFF3E0', borderRadius: 8, marginVertical: 8}}>
+          <Text style={{color: colors.warning, fontWeight: 'bold', textAlign: 'center'}}>
+            أنت خارج أوقات العمل المحددة من الإدارة. يرجى الالتزام بجدول الدوام.
+          </Text>
         </View>
+      )}
+      {/* إذا كان السائق موقوفًا، لا تعرض زر تفعيل العمل */}
+      {!isBlocked && (
+        // باقي عناصر القائمة الجانبية (زر متصل/غير متصل ...)
+        <>
+          <ScrollView style={styles.content}>
+            {/* الإحصائيات */}
+            <View style={styles.statsSection}>
+              <Text style={styles.sectionTitle}>الإحصائيات</Text>
+              
+              <View style={styles.statsGrid}>
+                <View style={styles.statCard}>
+                  <Ionicons name="list-outline" size={24} color={colors.info} />
+                  <Text style={styles.statNumber}>{stats.totalOrders}</Text>
+                  <Text style={styles.statLabel}>إجمالي الطلبات</Text>
+                </View>
+                
+                <View style={styles.statCard}>
+                  <Ionicons name="checkmark-circle-outline" size={24} color={colors.success} />
+                  <Text style={styles.statNumber}>{stats.completedOrders}</Text>
+                  <Text style={styles.statLabel}>مكتملة</Text>
+                </View>
+                
+                <View style={styles.statCard}>
+                  <Ionicons name="cash-outline" size={24} color={colors.warning} />
+                  <Text style={styles.statNumber}>{stats.totalEarnings.toFixed(0)}</Text>
+                  <Text style={styles.statLabel}>إجمالي الأرباح</Text>
+                </View>
+                
+                <View style={styles.statCard}>
+                  <Ionicons name="today-outline" size={24} color={colors.primary} />
+                  <Text style={styles.statNumber}>{stats.todayEarnings.toFixed(0)}</Text>
+                  <Text style={styles.statLabel}>أرباح اليوم</Text>
+                </View>
+              </View>
 
-        {/* قائمة التنقل */}
-        <View style={styles.menuSection}>
-          <Text style={styles.sectionTitle}>القائمة</Text>
-          
-          {menuItems.map((item, index) => (
-            <TouchableOpacity
-              key={index}
-              style={[
-                styles.menuItem,
-                state.index === index && styles.activeMenuItem
-              ]}
-              onPress={() => navigation.navigate(item.name)}
-            >
-              <Ionicons 
-                name={item.icon} 
-                size={24} 
-                color={state.index === index ? colors.primary : colors.dark} 
-              />
-              <Text style={[
-                styles.menuText,
-                state.index === index && styles.activeMenuText
-              ]}>
-                {item.label}
-              </Text>
-              <Ionicons 
-                name="chevron-forward" 
-                size={20} 
-                color={state.index === index ? colors.primary : colors.dark} 
-              />
-            </TouchableOpacity>
-          ))}
-        </View>
-      </ScrollView>
+              {/* نقاط الديون */}
+              <View style={[styles.debtCard, stats.debtPoints > 10 ? styles.debtWarning : null]}>
+                <Ionicons 
+                  name={stats.debtPoints > 10 ? "warning-outline" : "card-outline"} 
+                  size={24} 
+                  color={stats.debtPoints > 10 ? colors.danger : colors.primary} 
+                />
+                <View style={styles.debtInfo}>
+                  <Text style={styles.debtLabel}>نقاط الديون</Text>
+                  <Text style={[styles.debtNumber, stats.debtPoints > 10 ? styles.debtWarningText : null]}>
+                    {stats.debtPoints} نقطة
+                  </Text>
+                  <Text style={styles.debtValue}>
+                    ({stats.debtPoints * 250} دينار)
+                  </Text>
+                </View>
+              </View>
+            </View>
 
-      {/* زر تسجيل الخروج */}
-      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-        <Ionicons name="log-out-outline" size={24} color={colors.danger} />
-        <Text style={styles.logoutText}>تسجيل الخروج</Text>
-      </TouchableOpacity>
+            {/* قائمة التنقل */}
+            <View style={styles.menuSection}>
+              <Text style={styles.sectionTitle}>القائمة</Text>
+              
+              {menuItems.map((item, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={[
+                    styles.menuItem,
+                    state.index === index && styles.activeMenuItem
+                  ]}
+                  onPress={() => navigation.navigate(item.name)}
+                >
+                  <Ionicons 
+                    name={item.icon} 
+                    size={24} 
+                    color={state.index === index ? colors.primary : colors.dark} 
+                  />
+                  <Text style={[
+                    styles.menuText,
+                    state.index === index && styles.activeMenuText
+                  ]}>
+                    {item.label}
+                  </Text>
+                  <Ionicons 
+                    name="chevron-forward" 
+                    size={20} 
+                    color={state.index === index ? colors.primary : colors.dark} 
+                  />
+                </TouchableOpacity>
+              ))}
+            </View>
+          </ScrollView>
+
+          {/* زر تسجيل الخروج */}
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+            <Ionicons name="log-out-outline" size={24} color={colors.danger} />
+            <Text style={styles.logoutText}>تسجيل الخروج</Text>
+          </TouchableOpacity>
+        </>
+      )}
     </View>
   );
 }

@@ -122,6 +122,9 @@ export default function DriverProfileScreen({ navigation }) {
     handleInputChange('is_active', value);
   };
 
+  const maxDebtPoints = 40; // حد الديون الأقصى من إعدادات النظام
+  const isBlocked = driverInfo?.is_suspended || (driverInfo?.debt_points >= maxDebtPoints);
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -297,10 +300,10 @@ export default function DriverProfileScreen({ navigation }) {
             <Text style={styles.infoLabel}>الحد الأقصى:</Text>
             <Text style={styles.infoValue}>40 نقطة</Text>
           </View>
-          {driverInfo?.debt_points >= 40 && (
+          {isBlocked && (
             <View style={styles.warningRow}>
               <Ionicons name="warning-outline" size={20} color="#F44336" />
-              <Text style={styles.warningText}>لا يمكنك العمل - تجاوزت الحد الأقصى</Text>
+              <Text style={styles.warningText}>تم إيقافك مؤقتًا بسبب تجاوز حد الديون. يرجى تصفير الديون للعودة للعمل.</Text>
             </View>
           )}
           {driverInfo?.debt_points >= 30 && driverInfo?.debt_points < 40 && (

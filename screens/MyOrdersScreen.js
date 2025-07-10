@@ -246,6 +246,21 @@ export default function MyOrdersScreen({ navigation }) {
     </View>
   );
 
+  function isWithinWorkHours() {
+    if (!driverInfo?.work_start_time || !driverInfo?.work_end_time) return true;
+    const now = new Date();
+    const [startH, startM] = driverInfo.work_start_time.split(':').map(Number);
+    const [endH, endM] = driverInfo.work_end_time.split(':').map(Number);
+    const start = new Date(now);
+    start.setHours(startH, startM, 0, 0);
+    const end = new Date(now);
+    end.setHours(endH, endM, 0, 0);
+    if (end <= start) end.setDate(end.getDate() + 1);
+    return now >= start && now <= end;
+  }
+  const isOutOfWorkHours = driverInfo && !isWithinWorkHours();
+  const isBlocked = driverInfo?.is_suspended || (driverInfo?.debt_points >= maxDebtPoints) || isOutOfWorkHours;
+
   if (settingsLoading || loading) {
     return (
       <View style={{flex:1,justifyContent:'center',alignItems:'center'}}>
@@ -299,21 +314,40 @@ export default function MyOrdersScreen({ navigation }) {
         }
       />
 
-      {driverInfo && (
+      {isOutOfWorkHours ? (
         <View style={styles.driverInfoCard}>
-          <Text style={styles.driverName}>{driverInfo.name}</Text>
-          <Text style={styles.driverStatus}>
-            الحالة: {driverInfo.is_active ? 'متصل' : 'غير متصل'}
+          <Text style={styles.driverName}>{driverInfo?.name}</Text>
+          <Text style={styles.warningText}>
+            أنت خارج أوقات العمل المحددة من الإدارة. يرجى الالتزام بجدول الدوام.
           </Text>
-          <Text style={styles.debtInfo}>
-            نقاط الديون: {driverInfo.debt_points || 0} نقطة ({driverInfo.total_debt || 0} دينار)
-          </Text>
-          {driverInfo.debt_points >= maxDebtPoints && (
-            <Text style={styles.warningText}>
-              ⚠️ لا يمكنك العمل - تجاوزت الحد الأقصى للنقاط
-            </Text>
-          )}
         </View>
+      ) : isBlocked ? (
+        <View style={styles.driverInfoCard}>
+          <Text style={styles.driverName}>{driverInfo?.name}</Text>
+          <Text style={styles.warningText}>
+            تم إيقافك مؤقتًا بسبب تجاوز حد الديون. يرجى تصفير الديون للعودة للعمل.
+          </Text>
+        </View>
+      ) : (
+        // باقي محتوى الشاشة: الطلبات الخاصة بي
+        <>
+          {driverInfo && (
+            <View style={styles.driverInfoCard}>
+              <Text style={styles.driverName}>{driverInfo.name}</Text>
+              <Text style={styles.driverStatus}>
+                الحالة: {driverInfo.is_active ? 'متصل' : 'غير متصل'}
+              </Text>
+              <Text style={styles.debtInfo}>
+                نقاط الديون: {driverInfo.debt_points || 0} نقطة ({driverInfo.total_debt || 0} دينار)
+              </Text>
+              {driverInfo.debt_points >= maxDebtPoints && (
+                <Text style={styles.warningText}>
+                  ⚠️ لا يمكنك العمل - تجاوزت الحد الأقصى للنقاط
+                </Text>
+              )}
+            </View>
+          )}
+        </>
       )}
     </View>
   );

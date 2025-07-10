@@ -15,8 +15,10 @@ import { supabase } from '../supabase';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import colors from '../colors';
+import { useAuth } from '../context/AuthContext';
 
 export default function LoginScreen({ navigation }) {
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -102,6 +104,10 @@ export default function LoginScreen({ navigation }) {
       if (driver) {
         await AsyncStorage.setItem('userId', driver.id.toString());
         await AsyncStorage.setItem('userType', 'driver');
+        // حساب تاريخ انتهاء الجلسة بعد 7 أيام
+        const expiry = new Date();
+        expiry.setDate(expiry.getDate() + 7);
+        login(driver, 'driver', expiry.toISOString());
         console.log('تم العثور على سائق، توجيه لـ DriverDrawer');
         Alert.alert('نجح تسجيل الدخول', `مرحباً بك ${driver.name || ''}!`);
         navigation.replace('Driver', { driverId: driver.id });
@@ -128,6 +134,10 @@ export default function LoginScreen({ navigation }) {
       if (store) {
         await AsyncStorage.setItem('userId', store.id.toString());
         await AsyncStorage.setItem('userType', 'store');
+        // حساب تاريخ انتهاء الجلسة بعد 7 أيام
+        const expiry = new Date();
+        expiry.setDate(expiry.getDate() + 7);
+        login(store, 'store', expiry.toISOString());
         console.log('تم العثور على متجر، توجيه لـ StoreDrawer');
         Alert.alert('نجح تسجيل الدخول', `مرحباً بك ${store.name || ''}!`);
         navigation.replace('Store', { storeId: store.id });

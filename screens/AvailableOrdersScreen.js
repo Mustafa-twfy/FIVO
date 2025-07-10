@@ -309,6 +309,21 @@ export default function AvailableOrdersScreen({ navigation }) {
     </View>
   );
 
+  function isWithinWorkHours() {
+    if (!driverInfo?.work_start_time || !driverInfo?.work_end_time) return true;
+    const now = new Date();
+    const [startH, startM] = driverInfo.work_start_time.split(':').map(Number);
+    const [endH, endM] = driverInfo.work_end_time.split(':').map(Number);
+    const start = new Date(now);
+    start.setHours(startH, startM, 0, 0);
+    const end = new Date(now);
+    end.setHours(endH, endM, 0, 0);
+    if (end <= start) end.setDate(end.getDate() + 1);
+    return now >= start && now <= end;
+  }
+  const isOutOfWorkHours = driverInfo && !isWithinWorkHours();
+  const isBlocked = driverInfo?.is_suspended || (driverInfo?.debt_points >= maxDebtPoints) || isOutOfWorkHours;
+
   if (settingsLoading || loading) {
     return (
       <View style={{flex:1,justifyContent:'center',alignItems:'center'}}>
@@ -330,86 +345,105 @@ export default function AvailableOrdersScreen({ navigation }) {
         </TouchableOpacity>
       </View>
 
-      {driverInfo && (
+      {isOutOfWorkHours ? (
         <View style={styles.driverInfoCard}>
-          <Text style={styles.driverName}>{driverInfo.name}</Text>
-          <Text style={styles.driverStatus}>
-            الحالة: {driverInfo.is_active ? 'متصل' : 'غير متصل'}
+          <Text style={styles.driverName}>{driverInfo?.name}</Text>
+          <Text style={styles.warningText}>
+            أنت خارج أوقات العمل المحددة من الإدارة. يرجى الالتزام بجدول الدوام.
           </Text>
-          <Text style={styles.debtInfo}>
-            نقاط الديون: {driverInfo.debt_points || 0} نقطة ({(driverInfo.debt_points || 0) * debtPointValue} دينار)
+        </View>
+      ) : isBlocked ? (
+        <View style={styles.driverInfoCard}>
+          <Text style={styles.driverName}>{driverInfo?.name}</Text>
+          <Text style={styles.warningText}>
+            تم إيقافك مؤقتًا بسبب تجاوز حد الديون. يرجى تصفير الديون للعودة للعمل.
           </Text>
-          {driverInfo.debt_points >= maxDebtPoints && (
-            <Text style={styles.warningText}>
-              ⚠️ لا يمكنك العمل - تجاوزت الحد الأقصى للنقاط
-            </Text>
-          )}
         </View>
-      )}
-
-      {orderSummary && (
-        <View style={styles.summaryCard}>
-          <Text style={styles.summaryTitle}>ملخص الطلبات المتاحة</Text>
-          <View style={styles.summaryGrid}>
-            <View style={styles.summaryItem}>
-              <Text style={styles.summaryNumber}>{orderSummary.totalOrders}</Text>
-              <Text style={styles.summaryLabel}>إجمالي الطلبات</Text>
-            </View>
-            <View style={styles.summaryItem}>
-              <Text style={styles.summaryNumber}>{orderSummary.urgentOrders}</Text>
-              <Text style={styles.summaryLabel}>طلبات عاجلة</Text>
-            </View>
-            <View style={styles.summaryItem}>
-              <Text style={styles.summaryNumber}>{orderSummary.highValueOrders}</Text>
-              <Text style={styles.summaryLabel}>طلبات عالية القيمة</Text>
-            </View>
-            <View style={styles.summaryItem}>
-              <Text style={styles.summaryNumber}>{OrderHelpers.formatAmount(orderSummary.totalValue)}</Text>
-              <Text style={styles.summaryLabel}>إجمالي القيمة</Text>
-            </View>
-          </View>
-        </View>
-      )}
-
-      <FlatList
-        data={sortedOrders}
-        renderItem={renderOrderItem}
-        keyExtractor={(item) => item.id.toString()}
-        contentContainerStyle={styles.listContainer}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={['#FF9800']}
-            tintColor="#FF9800"
-          />
-        }
-        ListHeaderComponent={
-          sortedOrders.length > 0 && (
-            <View style={styles.listHeader}>
-              <Text style={styles.listHeaderTitle}>
-                الطلبات مرتبة حسب الأولوية (الأعلى أولاً)
+      ) : (
+        // باقي محتوى الشاشة: الطلبات المتاحة
+        <>
+          {driverInfo && (
+            <View style={styles.driverInfoCard}>
+              <Text style={styles.driverName}>{driverInfo.name}</Text>
+              <Text style={styles.driverStatus}>
+                الحالة: {driverInfo.is_active ? 'متصل' : 'غير متصل'}
               </Text>
+              <Text style={styles.debtInfo}>
+                نقاط الديون: {driverInfo.debt_points || 0} نقطة ({(driverInfo.debt_points || 0) * debtPointValue} دينار)
+              </Text>
+              {driverInfo.debt_points >= maxDebtPoints && (
+                <Text style={styles.warningText}>
+                  ⚠️ لا يمكنك العمل - تجاوزت الحد الأقصى للنقاط
+                </Text>
+              )}
             </View>
-          )
-        }
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Ionicons name="list-outline" size={80} color="#ccc" />
-            <Text style={styles.emptyTitle}>لا توجد طلبات متاحة</Text>
-            <Text style={styles.emptySubtitle}>
-              جميع الطلبات تم قبولها أو لا توجد طلبات جديدة حالياً
-            </Text>
-            <TouchableOpacity 
-              style={styles.refreshButton}
-              onPress={onRefresh}
-            >
-              <Ionicons name="refresh-outline" size={20} color="#FF9800" />
-              <Text style={styles.refreshButtonText}>تحديث</Text>
-            </TouchableOpacity>
-          </View>
-        }
-      />
+          )}
+
+          {orderSummary && (
+            <View style={styles.summaryCard}>
+              <Text style={styles.summaryTitle}>ملخص الطلبات المتاحة</Text>
+              <View style={styles.summaryGrid}>
+                <View style={styles.summaryItem}>
+                  <Text style={styles.summaryNumber}>{orderSummary.totalOrders}</Text>
+                  <Text style={styles.summaryLabel}>إجمالي الطلبات</Text>
+                </View>
+                <View style={styles.summaryItem}>
+                  <Text style={styles.summaryNumber}>{orderSummary.urgentOrders}</Text>
+                  <Text style={styles.summaryLabel}>طلبات عاجلة</Text>
+                </View>
+                <View style={styles.summaryItem}>
+                  <Text style={styles.summaryNumber}>{orderSummary.highValueOrders}</Text>
+                  <Text style={styles.summaryLabel}>طلبات عالية القيمة</Text>
+                </View>
+                <View style={styles.summaryItem}>
+                  <Text style={styles.summaryNumber}>{OrderHelpers.formatAmount(orderSummary.totalValue)}</Text>
+                  <Text style={styles.summaryLabel}>إجمالي القيمة</Text>
+                </View>
+              </View>
+            </View>
+          )}
+
+          <FlatList
+            data={sortedOrders}
+            renderItem={renderOrderItem}
+            keyExtractor={(item) => item.id.toString()}
+            contentContainerStyle={styles.listContainer}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                colors={['#FF9800']}
+                tintColor="#FF9800"
+              />
+            }
+            ListHeaderComponent={
+              sortedOrders.length > 0 && (
+                <View style={styles.listHeader}>
+                  <Text style={styles.listHeaderTitle}>
+                    الطلبات مرتبة حسب الأولوية (الأعلى أولاً)
+                  </Text>
+                </View>
+              )
+            }
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <Ionicons name="list-outline" size={80} color="#ccc" />
+                <Text style={styles.emptyTitle}>لا توجد طلبات متاحة</Text>
+                <Text style={styles.emptySubtitle}>
+                  جميع الطلبات تم قبولها أو لا توجد طلبات جديدة حالياً
+                </Text>
+                <TouchableOpacity 
+                  style={styles.refreshButton}
+                  onPress={onRefresh}
+                >
+                  <Ionicons name="refresh-outline" size={20} color="#FF9800" />
+                  <Text style={styles.refreshButtonText}>تحديث</Text>
+                </TouchableOpacity>
+              </View>
+            }
+          />
+        </>
+      )}
     </View>
   );
 }

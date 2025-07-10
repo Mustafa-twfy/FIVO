@@ -49,6 +49,9 @@ export default function StoreLocationScreen({ navigation, route }) {
     latitudeDelta: 0.01,
     longitudeDelta: 0.01,
   });
+  const [manualEntry, setManualEntry] = useState(false);
+  const [manualLat, setManualLat] = useState('');
+  const [manualLng, setManualLng] = useState('');
 
   useEffect(() => {
     getCurrentLocation();
@@ -58,10 +61,22 @@ export default function StoreLocationScreen({ navigation, route }) {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('إذن الموقع مطلوب', 'نحتاج إلى إذن الموقع لتحديد موقع المتجر');
+        Alert.alert(
+          'إذن الموقع مطلوب',
+          'نحتاج إلى إذن الموقع لتحديد موقع المتجر. يمكنك إدخال الموقع يدويًا أو تعيين موقع افتراضي.',
+          [
+            { text: 'إدخال يدوي', onPress: () => setManualEntry(true) },
+            { text: 'موقع افتراضي', onPress: () => {
+                const defaultLocation = { latitude: 24.7136, longitude: 46.6753 };
+                setLocation(defaultLocation);
+                setRegion({ ...region, ...defaultLocation });
+              }
+            },
+            { text: 'إلغاء', style: 'cancel' }
+          ]
+        );
         return;
       }
-
       const currentLocation = await Location.getCurrentPositionAsync({});
       const newRegion = {
         latitude: currentLocation.coords.latitude,
@@ -69,12 +84,25 @@ export default function StoreLocationScreen({ navigation, route }) {
         latitudeDelta: 0.01,
         longitudeDelta: 0.01,
       };
-      
       setLocation(currentLocation.coords);
       setRegion(newRegion);
     } catch (error) {
       console.error('Error getting location:', error);
-      Alert.alert('خطأ', 'فشل في تحديد الموقع');
+      Alert.alert(
+        'خطأ',
+        'فشل في تحديد الموقع. يمكنك إعادة المحاولة أو إدخال الموقع يدويًا.',
+        [
+          { text: 'إعادة المحاولة', onPress: () => getCurrentLocation() },
+          { text: 'إدخال يدوي', onPress: () => setManualEntry(true) },
+          { text: 'موقع افتراضي', onPress: () => {
+              const defaultLocation = { latitude: 24.7136, longitude: 46.6753 };
+              setLocation(defaultLocation);
+              setRegion({ ...region, ...defaultLocation });
+            }
+          },
+          { text: 'إلغاء', style: 'cancel' }
+        ]
+      );
     }
   };
 
@@ -150,6 +178,60 @@ export default function StoreLocationScreen({ navigation, route }) {
       setLoading(false);
     }
   };
+
+  // إضافة واجهة الإدخال اليدوي للإحداثيات
+  if (manualEntry) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => setManualEntry(false)} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color="#FF9800" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>إدخال الموقع يدويًا</Text>
+          <View style={{width: 24}} />
+        </View>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <Text style={{ fontSize: 18, marginBottom: 20 }}>أدخل إحداثيات المتجر</Text>
+          <TextInput
+            style={[styles.searchInput, { marginBottom: 12 }]}
+            placeholder="خط العرض (latitude)"
+            keyboardType="numeric"
+            value={manualLat}
+            onChangeText={setManualLat}
+          />
+          <TextInput
+            style={[styles.searchInput, { marginBottom: 20 }]}
+            placeholder="خط الطول (longitude)"
+            keyboardType="numeric"
+            value={manualLng}
+            onChangeText={setManualLng}
+          />
+          <TouchableOpacity
+            style={[styles.confirmButton, { marginBottom: 16 }]}
+            onPress={() => {
+              const lat = parseFloat(manualLat);
+              const lng = parseFloat(manualLng);
+              if (isNaN(lat) || isNaN(lng)) {
+                Alert.alert('خطأ', 'يرجى إدخال قيم صحيحة لخط العرض والطول');
+                return;
+              }
+              setLocation({ latitude: lat, longitude: lng });
+              setRegion({ ...region, latitude: lat, longitude: lng });
+              setManualEntry(false);
+            }}
+          >
+            <LinearGradient colors={['#FF9800', '#F57C00']} style={styles.gradientButton}>
+              <Text style={styles.confirmButtonText}>تأكيد الموقع</Text>
+              <Ionicons name="checkmark" size={20} color="#fff" />
+            </LinearGradient>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setManualEntry(false)}>
+            <Text style={{ color: '#FF9800', fontSize: 16 }}>إلغاء</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   // عرض واجهة بديلة على الويب
   if (Platform.OS === 'web') {

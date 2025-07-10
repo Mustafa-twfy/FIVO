@@ -47,6 +47,7 @@ import { initializeDatabase } from './supabase';
 import UnifiedPendingApprovalScreen from './screens/UnifiedPendingApprovalScreen';
 import { supabase } from './supabase';
 import DriverDrawerContent from './components/DriverDrawerContent';
+import { AuthProvider } from './context/AuthContext';
 
 I18nManager.forceRTL(true);
 
@@ -246,12 +247,12 @@ export default function App() {
           console.error('فشل في تهيئة قاعدة البيانات:', result.error);
         }
         
-        // إظهار شاشة البداية لمدة 1.5 ثانية
-        setTimeout(() => setShowSplash(false), 1500);
+        // إظهار شاشة البداية لمدة 0.8 ثانية فقط
+        setTimeout(() => setShowSplash(false), 800);
         
       } catch (error) {
         console.error('خطأ في تهيئة التطبيق:', error);
-        setTimeout(() => setShowSplash(false), 1500);
+        setTimeout(() => setShowSplash(false), 800);
       }
     };
     
@@ -261,42 +262,44 @@ export default function App() {
   if (showSplash) return <SplashScreen />;
   
   return (
-    <NavigationContainer theme={scheme === 'dark' ? darkTheme : lightTheme}>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="Login" component={LoginScreen} />
-        <Stack.Screen name="DriverRegistration" component={DriverRegistrationScreen} />
-        <Stack.Screen name="DriverDocuments" component={DriverDocumentsScreen} />
-        <Stack.Screen name="DriverVehicle" component={DriverVehicleScreen} />
-        <Stack.Screen name="PendingApproval" component={PendingApprovalScreen} />
-        <Stack.Screen name="StoreRegistration" component={StoreRegistrationScreen} />
-        <Stack.Screen name="StoreInfo" component={StoreInfoScreen} />
-        <Stack.Screen name="StoreLocation" component={StoreLocationScreen} />
-        <Stack.Screen name="StoreDocuments" component={StoreDocumentsScreen} />
-        <Stack.Screen name="StorePendingApproval" component={StorePendingApprovalScreen} />
-        <Stack.Screen name="StoreMap" component={StoreMapScreen} />
-        <Stack.Screen name="UnifiedPendingApproval" component={UnifiedPendingApprovalScreen} />
-        <Stack.Screen name="Driver" component={DriverDrawer} />
-        <Stack.Screen name="Store" component={StoreDrawer} />
-        <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} />
-        <Stack.Screen name="Drivers" component={DriversScreen} />
-        <Stack.Screen name="Stores" component={StoresScreen} />
-        <Stack.Screen name="BannedUsers" component={BannedUsersScreen} />
-        <Stack.Screen name="RegistrationRequests" component={RegistrationRequestsScreen} />
-        <Stack.Screen name="StoreOrders" component={StoreOrdersScreen} />
-        <Stack.Screen name="NewOrder" component={NewOrderScreen} />
-        <Stack.Screen name="AvailableOrders" component={AvailableOrdersScreen} />
-        <Stack.Screen name="MyOrders" component={MyOrdersScreen} />
-        <Stack.Screen name="DriverEarnings" component={DriverEarningsScreen} />
-        <Stack.Screen name="DriverProfile" component={DriverProfileScreen} />
-        <Stack.Screen name="FinancialAccounts" component={FinancialAccountsScreen} />
-        <Stack.Screen name="Rewards" component={RewardsScreen} />
-        <Stack.Screen name="SupportChat" component={SupportChatScreen} />
-        <Stack.Screen name="DriverNotifications" component={DriverNotificationsScreen} />
-        <Stack.Screen name="StoreSupportChat" component={StoreSupportChatScreen} />
-        <Stack.Screen name="StoreNotifications" component={StoreNotificationsScreen} />
-        <Stack.Screen name="AdminSupport" component={AdminSupportScreen} />
-        <Stack.Screen name="StoreProfile" component={StoreInfoScreen} />
-      </Stack.Navigator>
-    </NavigationContainer>
+    <AuthProvider>
+      <NavigationContainer theme={scheme === 'dark' ? darkTheme : lightTheme}>
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="DriverRegistration" component={DriverRegistrationScreen} />
+          <Stack.Screen name="DriverDocuments" component={DriverDocumentsScreen} />
+          <Stack.Screen name="DriverVehicle" component={DriverVehicleScreen} />
+          <Stack.Screen name="PendingApproval" component={PendingApprovalScreen} />
+          <Stack.Screen name="StoreRegistration" component={StoreRegistrationScreen} />
+          <Stack.Screen name="StoreInfo" component={StoreInfoScreen} />
+          <Stack.Screen name="StoreLocation" component={StoreLocationScreen} />
+          <Stack.Screen name="StoreDocuments" component={StoreDocumentsScreen} />
+          <Stack.Screen name="StorePendingApproval" component={StorePendingApprovalScreen} />
+          <Stack.Screen name="StoreMap" component={StoreMapScreen} />
+          <Stack.Screen name="UnifiedPendingApproval" component={UnifiedPendingApprovalScreen} />
+          <Stack.Screen name="Driver" component={DriverDrawer} />
+          <Stack.Screen name="Store" component={StoreDrawer} />
+          <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} />
+          <Stack.Screen name="Drivers" component={DriversScreen} />
+          <Stack.Screen name="Stores" component={StoresScreen} />
+          <Stack.Screen name="BannedUsers" component={BannedUsersScreen} />
+          <Stack.Screen name="RegistrationRequests" component={RegistrationRequestsScreen} />
+          <Stack.Screen name="StoreOrders" component={StoreOrdersScreen} />
+          <Stack.Screen name="NewOrder" component={NewOrderScreen} />
+          <Stack.Screen name="AvailableOrders" component={AvailableOrdersScreen} />
+          <Stack.Screen name="MyOrders" component={MyOrdersScreen} />
+          <Stack.Screen name="DriverEarnings" component={DriverEarningsScreen} />
+          <Stack.Screen name="DriverProfile" component={DriverProfileScreen} />
+          <Stack.Screen name="FinancialAccounts" component={FinancialAccountsScreen} />
+          <Stack.Screen name="Rewards" component={RewardsScreen} />
+          <Stack.Screen name="SupportChat" component={SupportChatScreen} />
+          <Stack.Screen name="DriverNotifications" component={DriverNotificationsScreen} />
+          <Stack.Screen name="StoreSupportChat" component={StoreSupportChatScreen} />
+          <Stack.Screen name="StoreNotifications" component={StoreNotificationsScreen} />
+          <Stack.Screen name="AdminSupport" component={AdminSupportScreen} />
+          <Stack.Screen name="StoreProfile" component={StoreInfoScreen} />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </AuthProvider>
   );
 }

@@ -115,16 +115,40 @@ export const driversAPI = {
     return { data, error };
   },
 
-  // تحديث نقاط السائق
+  // تحديث نقاط السائق مع تفعيل الإيقاف التلقائي
   updateDriverDebt: async (driverId, newPoints) => {
+    // جلب الحد الأقصى من إعدادات النظام
+    const { data: settings } = await systemSettingsAPI.getSystemSettings();
+    const maxDebtPoints = settings?.max_debt_points || 20;
+    let isSuspended = false;
+    // تحديث النقاط
     const { data, error } = await supabase
       .from('drivers')
       .update({ debt_points: newPoints })
       .eq('id', driverId);
-    return { data, error };
+    if (!error) {
+      // إذا تجاوز الحد، أوقف السائق
+      if (newPoints >= maxDebtPoints) {
+        await driversAPI.suspendDriver(driverId, 'تم إيقافك مؤقتًا بسبب تجاوز حد الديون. يرجى تصفير الديون للعودة للعمل.');
+        await driversAPI.sendNotification(driverId, 'إيقاف مؤقت', 'تم إيقافك مؤقتًا بسبب تجاوز حد الديون. يرجى تصفير الديون للعودة للعمل.');
+        isSuspended = true;
+      } else {
+        // إذا كان موقوفًا سابقًا وأصبح أقل من الحد، أرفع الإيقاف
+        const { data: driver } = await supabase
+          .from('drivers')
+          .select('is_suspended')
+          .eq('id', driverId)
+          .single();
+        if (driver?.is_suspended) {
+          await driversAPI.unsuspendDriver(driverId);
+          await driversAPI.sendNotification(driverId, 'تم رفع الإيقاف', 'تم رفع الإيقاف عنك بعد تصفير أو تقليل الديون. يمكنك العودة للعمل.');
+        }
+      }
+    }
+    return { data, error, isSuspended };
   },
 
-  // تصفية ديون السائق
+  // تصفية ديون السائق مع رفع الإيقاف إذا كان موقوفًا
   clearDriverDebt: async (driverId) => {
     // تصفير النقاط
     const { data, error } = await supabase
@@ -138,6 +162,16 @@ export const driversAPI = {
         'تصفير نقاط الديون',
         'تم تصفير جميع نقاط الديون الخاصة بك. مجموع نقاطك الآن: 0 نقطة (0 دينار).'
       );
+      // رفع الإيقاف إذا كان موقوفًا
+      const { data: driver } = await supabase
+        .from('drivers')
+        .select('is_suspended')
+        .eq('id', driverId)
+        .single();
+      if (driver?.is_suspended) {
+        await driversAPI.unsuspendDriver(driverId);
+        await driversAPI.sendNotification(driverId, 'تم رفع الإيقاف', 'تم رفع الإيقاف عنك بعد تصفير الديون. يمكنك العودة للعمل.');
+      }
     }
     return { data, error };
   },
@@ -154,7 +188,7 @@ export const driversAPI = {
     return { data, error };
   },
 
-  // تغريم السائق
+  // تغريم السائق مع تفعيل الإيقاف التلقائي
   fineDriver: async (driverId, finePoints, reason) => {
     // جلب النقاط الحالية
     const { data: driver } = await supabase
@@ -163,7 +197,11 @@ export const driversAPI = {
       .eq('id', driverId)
       .single();
     const newPoints = (driver?.debt_points || 0) + finePoints;
-    const { data, error } = await supabase
+    // جلب الحد الأقصى من إعدادات النظام
+    const { data: settings } = await systemSettingsAPI.getSystemSettings();
+    const maxDebtPoints = settings?.max_debt_points || 20;
+    let isSuspended = false;
+    const { data: updateData, error } = await supabase
       .from('drivers')
       .update({ debt_points: newPoints })
       .eq('id', driverId);
@@ -181,10 +219,27 @@ export const driversAPI = {
       await driversAPI.sendNotification(
         driverId,
         'إضافة غرامة',
-        `تم إضافة غرامة ${finePoints} نقطة (${finePoints * 250} دينار). مجموع نقاطك الآن: ${newPoints} نقطة (${newPoints * 250} دينار).${reason ? ' السبب: ' + reason : ''}`
+        `تم إضافة غرامة ${finePoints} نقطة. مجموع نقاطك الآن: ${newPoints} نقطة.${reason ? ' السبب: ' + reason : ''}`
       );
+      // إذا تجاوز الحد، أوقف السائق
+      if (newPoints >= maxDebtPoints) {
+        await driversAPI.suspendDriver(driverId, 'تم إيقافك مؤقتًا بسبب تجاوز حد الديون. يرجى تصفير الديون للعودة للعمل.');
+        await driversAPI.sendNotification(driverId, 'إيقاف مؤقت', 'تم إيقافك مؤقتًا بسبب تجاوز حد الديون. يرجى تصفير الديون للعودة للعمل.');
+        isSuspended = true;
+      } else {
+        // إذا كان موقوفًا سابقًا وأصبح أقل من الحد، أرفع الإيقاف
+        const { data: driver2 } = await supabase
+          .from('drivers')
+          .select('is_suspended')
+          .eq('id', driverId)
+          .single();
+        if (driver2?.is_suspended) {
+          await driversAPI.unsuspendDriver(driverId);
+          await driversAPI.sendNotification(driverId, 'تم رفع الإيقاف', 'تم رفع الإيقاف عنك بعد تصفير أو تقليل الديون. يمكنك العودة للعمل.');
+        }
+      }
     }
-    return { data, error };
+    return { data: updateData, error, isSuspended };
   },
 
   // إيقاف السائق
