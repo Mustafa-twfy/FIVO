@@ -18,7 +18,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { supabase, driversAPI, supportAPI, systemSettingsAPI } from '../supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import colors from '../colors';
-import illustration from '../assets/driver-illustration.png'; // استخدم صورة افتراضية أو أضف صورتك
 import { useAuth } from '../context/AuthContext';
 
 export default function DriverDashboardScreen({ navigation }) {
@@ -371,7 +370,8 @@ export default function DriverDashboardScreen({ navigation }) {
       </View>
       {/* محتوى الشاشة */}
       <View style={{flex:1, justifyContent:'center', alignItems:'center', padding:24}}>
-        <Image source={illustration} style={{width:180, height:180, resizeMode:'contain', marginBottom:24}} />
+        {/* احذف أو علق السطر التالي: */}
+        {/* <Image source={require('../assets/driver-illustration.png')} style={{width:180, height:180, resizeMode:'contain', marginBottom:24}} /> */}
         <Text style={{fontSize:18, color:'#222', textAlign:'center', marginBottom:24, fontWeight:'bold'}}>
           يرجى تحويل حالتك إلى متوفر لاستقبال طلبات جديدة
         </Text>
