@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase, systemSettingsAPI, ordersAPI } from '../supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { OrderPrioritySystem, OrderHelpers } from '../utils/orderPriority';
+import ErrorMessage from '../components/ErrorMessage';
 
 export default function AvailableOrdersScreen({ navigation }) {
   const [orders, setOrders] = useState([]);
@@ -25,6 +26,8 @@ export default function AvailableOrdersScreen({ navigation }) {
   const [maxDebtPoints, setMaxDebtPoints] = useState(20);
   const [settingsLoading, setSettingsLoading] = useState(true);
   const [orderSummary, setOrderSummary] = useState(null);
+  const [itemLoading, setItemLoading] = useState({}); // حالة تحميل لكل عنصر
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     loadDriverInfo();
@@ -40,6 +43,12 @@ export default function AvailableOrdersScreen({ navigation }) {
       setSettingsLoading(false);
     };
     fetchSettings();
+
+    // تحديث الطلبات كل 15 ثانية
+    const interval = setInterval(() => {
+      loadAvailableOrders();
+    }, 15000);
+    return () => clearInterval(interval);
   }, []);
 
   // تحديث الطلبات المرتبة عند تغيير الطلبات أو موقع السائق
@@ -117,6 +126,7 @@ export default function AvailableOrdersScreen({ navigation }) {
 
   const loadAvailableOrders = async () => {
     setLoading(true);
+    setError(null);
     try {
       console.log('=== تحميل الطلبات المتاحة ===');
       
@@ -153,8 +163,7 @@ export default function AvailableOrdersScreen({ navigation }) {
       console.log('تم تحميل الطلبات المتاحة:', enhancedOrders.length, 'طلب');
       setOrders(enhancedOrders);
     } catch (error) {
-      console.error('خطأ في تحميل الطلبات المتاحة:', error);
-      Alert.alert('خطأ', error.message || 'حدث خطأ غير متوقع في تحميل الطلبات');
+      setError(error.message || 'حدث خطأ غير متوقع في تحميل الطلبات');
     }
     setLoading(false);
   };
@@ -214,7 +223,13 @@ export default function AvailableOrdersScreen({ navigation }) {
         throw new Error('فشل في قبول الطلب: ' + error.message);
       }
 
-      console.log('تم قبول الطلب بنجاح');
+      // زيادة نقطة للسائق عند قبول الطلب
+      await supabase
+        .from('drivers')
+        .update({
+          debt_points: (driverInfo.debt_points || 0) + 1
+        })
+        .eq('id', driverInfo.id);
 
       // إرسال إشعار للمتجر
       await supabase
@@ -331,6 +346,9 @@ export default function AvailableOrdersScreen({ navigation }) {
         <Text style={{marginTop:12}}>جاري تحميل الإعدادات...</Text>
       </View>
     );
+  }
+  if (error) {
+    return <ErrorMessage message={error} suggestion="يرجى التحقق من اتصالك بالإنترنت أو إعادة المحاولة." />;
   }
 
   return (

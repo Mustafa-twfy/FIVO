@@ -10,12 +10,14 @@ import {
   TextInput,
   ActivityIndicator,
   RefreshControl,
-  Platform
+  Platform,
+  FlatList
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase, ordersAPI } from '../supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import colors from '../colors';
+import ErrorMessage from '../components/ErrorMessage';
 
 export default function StoreOrdersScreen({ navigation }) {
   const [orders, setOrders] = useState([]);
@@ -26,10 +28,18 @@ export default function StoreOrdersScreen({ navigation }) {
   const [modalType, setModalType] = useState('');
   const [inputValue, setInputValue] = useState('');
   const [storeInfo, setStoreInfo] = useState(null);
+  const [itemLoading, setItemLoading] = useState({});
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     loadStoreInfo();
     loadOrders();
+
+    // تحديث الطلبات كل 15 ثانية
+    const interval = setInterval(() => {
+      loadOrders();
+    }, 15000);
+    return () => clearInterval(interval);
   }, []);
 
   const loadStoreInfo = async () => {
@@ -57,6 +67,7 @@ export default function StoreOrdersScreen({ navigation }) {
 
   const loadOrders = async () => {
     setLoading(true);
+    setError(null);
     try {
       const storeId = await AsyncStorage.getItem('userId');
       if (!storeId) {
@@ -71,7 +82,7 @@ export default function StoreOrdersScreen({ navigation }) {
 
       setOrders(data || []);
     } catch (error) {
-      Alert.alert('خطأ', error.message || 'حدث خطأ غير متوقع في تحميل الطلبات');
+      setError(error.message || 'حدث خطأ غير متوقع في تحميل الطلبات');
     }
     setLoading(false);
   };
@@ -197,6 +208,9 @@ export default function StoreOrdersScreen({ navigation }) {
       </View>
     );
   }
+  if (error) {
+    return <ErrorMessage message={error} suggestion="يرجى التحقق من اتصالك بالإنترنت أو إعادة المحاولة." />;
+  }
 
   return (
     <View style={styles.container}>
@@ -217,40 +231,50 @@ export default function StoreOrdersScreen({ navigation }) {
             <Text style={styles.emptyText}>لا توجد طلبات</Text>
           </View>
         ) : (
-          orders.map((order) => (
-            <View key={order.id} style={styles.orderCardCustom}>
-              <View style={styles.orderHeaderCustom}>
-                <Text style={styles.statusTextCustom}>{getOrderStatusText(order.status)}</Text>
-                <Text style={styles.orderIdCustom}>رقم الطلب {order.id}</Text>
-              </View>
-              <View style={styles.orderBodyCustom}>
-                <View style={styles.orderImgPlaceholder} />
-                <View style={{ flex: 1 }}>
-                  <View style={styles.infoRowCustom}>
-                    <Ionicons name="location-outline" size={18} color={colors.primary} />
-                    <Text style={styles.infoTextCustom}>منطقة التوصيل: {order.address?.split('،')[0] || 'غير محدد'}</Text>
-                  </View>
-                  <View style={styles.infoRowCustom}>
-                    <Ionicons name="cash-outline" size={16} color={colors.primary} />
-                    <Text style={styles.infoTextCustom}>سعر الطلب: {((order.amount || 0) / 1000).toFixed(2)} ألف دينار</Text>
-                  </View>
-                  <View style={styles.infoRowCustom}>
-                    <Ionicons name="cash-outline" size={16} color={colors.accepted} />
-                    <Text style={styles.infoTextCustom}>سعر التوصيل: {((order.deliveryPrice || 0) / 1000).toFixed(2)} ألف دينار</Text>
-                  </View>
-                  <Text style={styles.customerTextCustom}>تفاصيل الطلب: {order.description}</Text>
+          <FlatList
+            data={orders}
+            keyExtractor={item => item.id?.toString()}
+            renderItem={({ item }) => (
+              <View style={styles.orderItem}>
+                <View style={styles.orderHeaderCustom}>
+                  <Text style={styles.statusTextCustom}>{getOrderStatusText(item.status)}</Text>
+                  <Text style={styles.orderIdCustom}>رقم الطلب {item.id}</Text>
                 </View>
+                <View style={styles.orderBodyCustom}>
+                  <View style={styles.orderImgPlaceholder} />
+                  <View style={{ flex: 1 }}>
+                    <View style={styles.infoRowCustom}>
+                      <Ionicons name="location-outline" size={18} color={colors.primary} />
+                      <Text style={styles.infoTextCustom}>منطقة التوصيل: {item.address?.split('،')[0] || 'غير محدد'}</Text>
+                    </View>
+                    <View style={styles.infoRowCustom}>
+                      <Ionicons name="cash-outline" size={16} color={colors.primary} />
+                      <Text style={styles.infoTextCustom}>سعر الطلب: {((item.amount || 0) / 1000).toFixed(2)} ألف دينار</Text>
+                    </View>
+                    <View style={styles.infoRowCustom}>
+                      <Ionicons name="cash-outline" size={16} color={colors.accepted} />
+                      <Text style={styles.infoTextCustom}>سعر التوصيل: {((item.deliveryPrice || 0) / 1000).toFixed(2)} ألف دينار</Text>
+                    </View>
+                    <Text style={styles.customerTextCustom}>تفاصيل الطلب: {item.description}</Text>
+                  </View>
+                </View>
+                <View style={styles.btnRowCustom}>
+                  <TouchableOpacity style={styles.cancelBtnCustom}>
+                    <Text style={styles.cancelTextCustom}>إلغاء الطلب</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.readyBtnCustom}>
+                    <Text style={styles.readyTextCustom}>قيد التجهيز</Text>
+                  </TouchableOpacity>
+                </View>
+                {itemLoading[item.id] && (
+                  <ActivityIndicator size="small" color={colors.primary} style={{ marginLeft: 8 }} />
+                )}
               </View>
-              <View style={styles.btnRowCustom}>
-                <TouchableOpacity style={styles.cancelBtnCustom}>
-                  <Text style={styles.cancelTextCustom}>إلغاء الطلب</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.readyBtnCustom}>
-                  <Text style={styles.readyTextCustom}>قيد التجهيز</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          ))
+            )}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
+            }
+          />
         )}
       </ScrollView>
 
@@ -549,5 +573,17 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     padding: 8,
     fontWeight: 'bold',
+  },
+  orderItem: {
+    backgroundColor: colors.secondary,
+    borderRadius: 18,
+    padding: 14,
+    marginBottom: 18,
+    marginHorizontal: 10,
+    ...(Platform.OS === 'web'
+      ? { boxShadow: '0 2px 8px rgba(0,0,0,0.09)' }
+      : { shadowColor: colors.primary, shadowOpacity: 0.09, shadowRadius: 8, elevation: 3 }),
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
   },
 }); 

@@ -47,7 +47,13 @@ export default function DriverDashboardScreen({ navigation }) {
       if (id) loadDriverData(id);
     };
     fetchDriverId();
-  }, []);
+
+    // تحديث بيانات السائق كل 15 ثانية
+    const interval = setInterval(() => {
+      if (driverId) loadDriverData(driverId);
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [driverId]);
 
   useEffect(() => {
     const fetchSettings = async () => {

@@ -12,6 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { supabase, systemSettingsAPI } from '../supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import ErrorMessage from '../components/ErrorMessage';
 
 export default function MyOrdersScreen({ navigation }) {
   const [orders, setOrders] = useState([]);
@@ -21,6 +22,8 @@ export default function MyOrdersScreen({ navigation }) {
   const [debtPointValue, setDebtPointValue] = useState(250);
   const [maxDebtPoints, setMaxDebtPoints] = useState(20);
   const [settingsLoading, setSettingsLoading] = useState(true);
+  const [itemLoading, setItemLoading] = useState({});
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     loadDriverInfo();
@@ -35,6 +38,12 @@ export default function MyOrdersScreen({ navigation }) {
       setSettingsLoading(false);
     };
     fetchSettings();
+
+    // تحديث الطلبات كل 15 ثانية
+    const interval = setInterval(() => {
+      loadMyOrders();
+    }, 15000);
+    return () => clearInterval(interval);
   }, []);
 
   const loadDriverInfo = async () => {
@@ -62,6 +71,7 @@ export default function MyOrdersScreen({ navigation }) {
 
   const loadMyOrders = async () => {
     setLoading(true);
+    setError(null);
     try {
       const driverId = await AsyncStorage.getItem('userId');
       if (!driverId) {
@@ -89,7 +99,7 @@ export default function MyOrdersScreen({ navigation }) {
 
       setOrders(data || []);
     } catch (error) {
-      Alert.alert('خطأ', error.message || 'حدث خطأ غير متوقع في تحميل الطلبات');
+      setError(error.message || 'حدث خطأ غير متوقع في تحميل الطلبات');
     }
     setLoading(false);
   };
@@ -138,12 +148,13 @@ export default function MyOrdersScreen({ navigation }) {
         })
         .eq('id', driverId);
 
+      // إشعار المتجر بإكمال الطلب
       await supabase
         .from('store_notifications')
         .insert({
           store_id: currentOrder.store_id,
-          title: 'تم إكمال طلبك',
-          message: `تم إكمال طلبك رقم #${orderId} بنجاح`,
+          title: 'تم توصيل الطلب',
+          message: `تم توصيل طلبك رقم #${orderId} بنجاح من قبل السائق.`,
           type: 'order'
         });
 
@@ -268,6 +279,9 @@ export default function MyOrdersScreen({ navigation }) {
         <Text style={{marginTop:12}}>جاري تحميل الإعدادات...</Text>
       </View>
     );
+  }
+  if (error) {
+    return <ErrorMessage message={error} suggestion="يرجى التحقق من اتصالك بالإنترنت أو إعادة المحاولة." />;
   }
 
   return (

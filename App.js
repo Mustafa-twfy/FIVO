@@ -228,35 +228,29 @@ export default function App() {
   const scheme = useColorScheme();
   
   useEffect(() => {
-    const initializeApp = async () => {
+    // إظهار شاشة البداية لمدة ثابتة فقط
+    const splashTimeout = setTimeout(() => setShowSplash(false), 800);
+
+    // فحص قاعدة البيانات وتهيئة الجداول في الخلفية
+    const backgroundInit = async () => {
       try {
-        console.log('بدء تهيئة التطبيق...');
-        
-        // اختبار الاتصال بقاعدة البيانات
         const connectionTest = await testDatabaseConnection();
         if (!connectionTest) {
           console.error('فشل في اختبار الاتصال بقاعدة البيانات');
         }
-        
-        // إنشاء الجداول في Supabase
         const result = await initializeDatabase();
         if (result.success) {
-          console.log('تم تهيئة قاعدة البيانات بنجاح');
           setDatabaseInitialized(true);
         } else {
           console.error('فشل في تهيئة قاعدة البيانات:', result.error);
         }
-        
-        // إظهار شاشة البداية لمدة 0.8 ثانية فقط
-        setTimeout(() => setShowSplash(false), 800);
-        
       } catch (error) {
         console.error('خطأ في تهيئة التطبيق:', error);
-        setTimeout(() => setShowSplash(false), 800);
       }
     };
-    
-    initializeApp();
+    backgroundInit();
+
+    return () => clearTimeout(splashTimeout);
   }, []);
   
   if (showSplash) return <SplashScreen />;
@@ -269,13 +263,12 @@ export default function App() {
           <Stack.Screen name="DriverRegistration" component={DriverRegistrationScreen} />
           <Stack.Screen name="DriverDocuments" component={DriverDocumentsScreen} />
           <Stack.Screen name="DriverVehicle" component={DriverVehicleScreen} />
-          <Stack.Screen name="PendingApproval" component={PendingApprovalScreen} />
           <Stack.Screen name="StoreRegistration" component={StoreRegistrationScreen} />
           <Stack.Screen name="StoreInfo" component={StoreInfoScreen} />
           <Stack.Screen name="StoreLocation" component={StoreLocationScreen} />
           <Stack.Screen name="StoreDocuments" component={StoreDocumentsScreen} />
-          <Stack.Screen name="StorePendingApproval" component={StorePendingApprovalScreen} />
           <Stack.Screen name="StoreMap" component={StoreMapScreen} />
+          <Stack.Screen name="UpdateStoreLocation" component={UpdateStoreLocationScreen} />
           <Stack.Screen name="UnifiedPendingApproval" component={UnifiedPendingApprovalScreen} />
           <Stack.Screen name="Driver" component={DriverDrawer} />
           <Stack.Screen name="Store" component={StoreDrawer} />

@@ -53,17 +53,17 @@ export default function StoreInfoScreen({ navigation, route }) {
     if (validateForm()) {
       setLoading(true);
       try {
-        // الانتقال إلى شاشة تحديد الموقع بدلاً من إرسال الطلب مباشرة
-        navigation.navigate('StoreLocation', {
+        // الانتقال مباشرة إلى شاشة رفع المستندات بدون تحديد الموقع
+        navigation.navigate('StoreDocuments', {
           formData,
           storeInfo: {
-            name: info.storeName,
+            storeName: info.storeName,
             phone: info.phone,
             address: info.address,
           }
         });
       } catch (error) {
-        Alert.alert('خطأ', 'حدث خطأ أثناء الانتقال لصفحة تحديد الموقع');
+        Alert.alert('خطأ', 'حدث خطأ أثناء الانتقال لصفحة رفع المستندات');
       } finally {
         setLoading(false);
       }
@@ -139,7 +139,7 @@ export default function StoreInfoScreen({ navigation, route }) {
             <TouchableOpacity style={styles.nextButton} onPress={handleNext} disabled={loading} activeOpacity={0.7}>
               <LinearGradient colors={['#FF9800', '#F57C00']} style={styles.gradientButton}>
                 <Text style={styles.nextButtonText}>
-                  {loading ? 'جاري الانتقال...' : 'التالي - تحديد الموقع'}
+                  {loading ? 'جاري الانتقال...' : 'التالي - رفع المستندات'}
                 </Text>
                 <Ionicons name="arrow-forward" size={20} color="#fff" />
               </LinearGradient>

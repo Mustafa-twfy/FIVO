@@ -42,7 +42,13 @@ export default function StoreDashboardScreen({ navigation }) {
       if (id) loadStoreData(id);
     };
     fetchStoreId();
-  }, []);
+
+    // تحديث بيانات المتجر كل 15 ثانية
+    const interval = setInterval(() => {
+      if (storeId) loadStoreData(storeId);
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [storeId]);
 
   const loadStoreData = async (id) => {
     setLoading(true);

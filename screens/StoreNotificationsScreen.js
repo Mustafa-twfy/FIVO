@@ -4,15 +4,19 @@ import { Ionicons } from '@expo/vector-icons';
 import { storesAPI } from '../supabase';
 import colors from '../colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import ErrorMessage from '../components/ErrorMessage';
 
 export default function StoreNotificationsScreen({ navigation }) {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [storeId, setStoreId] = useState(null);
+  const [itemLoading, setItemLoading] = useState({});
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchIdAndNotifications = async () => {
       setLoading(true);
+      setError(null);
       try {
         const id = await AsyncStorage.getItem('userId');
         if (!id) throw new Error('لم يتم العثور على معرف المتجر');
@@ -21,11 +25,17 @@ export default function StoreNotificationsScreen({ navigation }) {
         if (error) throw new Error('تعذر جلب الإشعارات');
         setNotifications(data || []);
       } catch (error) {
-        Alert.alert('خطأ', error.message || 'تعذر جلب الإشعارات');
+        setError(error.message || 'حدث خطأ غير متوقع في تحميل الإشعارات');
       }
       setLoading(false);
     };
     fetchIdAndNotifications();
+
+    // تحديث الإشعارات كل 15 ثانية
+    const interval = setInterval(() => {
+      fetchIdAndNotifications();
+    }, 15000);
+    return () => clearInterval(interval);
   }, []);
 
   if (loading) {
@@ -35,6 +45,9 @@ export default function StoreNotificationsScreen({ navigation }) {
         <Text style={{marginTop:12}}>جاري تحميل الإشعارات...</Text>
       </View>
     );
+  }
+  if (error) {
+    return <ErrorMessage message={error} suggestion="يرجى التحقق من اتصالك بالإنترنت أو إعادة المحاولة." />;
   }
 
   return (
@@ -55,6 +68,9 @@ export default function StoreNotificationsScreen({ navigation }) {
             <Text style={styles.notificationTitle}>{item.title}</Text>
             <Text style={styles.notificationBody}>{item.message}</Text>
             <Text style={styles.notificationDate}>{item.created_at ? item.created_at.substring(0,16).replace('T',' ') : ''}</Text>
+            {itemLoading[item.id] && (
+              <ActivityIndicator size="small" color="#2196F3" style={{ marginLeft: 8 }} />
+            )}
           </View>
         )}
         contentContainerStyle={{ paddingTop: 16, paddingBottom: 32 }}

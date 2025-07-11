@@ -81,8 +81,7 @@ export default function StoreDocumentsScreen({ navigation, route }) {
             name: storeInfo.storeName,
             phone: storeInfo.phone,
             address: storeInfo.address,
-            latitude: storeInfo.latitude,
-            longitude: storeInfo.longitude,
+            // تم حذف latitude و longitude
             commercial_license: documents.commercial_license?.uri || documents.commercial_license?.name,
             tax_card: documents.tax_card?.uri || documents.tax_card?.name,
             municipality_license: documents.municipality_license?.uri || documents.municipality_license?.name,
