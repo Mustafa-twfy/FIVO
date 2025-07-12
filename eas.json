@@ -1,31 +1,9 @@
 {
   "build": {
-    "development": {
-      "developmentClient": true,
-      "distribution": "internal",
-      "android": {
-        "buildType": "apk"
-      }
-    },
-    "preview": {
-      "distribution": "internal",
-      "android": {
-        "buildType": "apk"
-      }
-    },
     "production": {
       "android": {
-        "buildType": "app-bundle"
-      },
-      "ios": {
-        "simulator": true
+        "buildType": "apk"
       }
     }
-  },
-  "cli": {
-    "version": ">= 3.0.0"
-  },
-  "submit": {
-    "production": {}
   }
 } 

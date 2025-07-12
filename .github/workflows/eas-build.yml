@@ -1,9 +1,9 @@
-name: Build Tawseel Plus App
+name: EAS Build
 
 on:
-  workflow_dispatch:
   push:
     branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -23,12 +23,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Login to Expo
+      - name: Build Android & iOS apps
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        run: eas login --token $EXPO_TOKEN
-
-      - name: Build Android & iOS apps
-        run: eas build --platform all --profile production --non-interactive
-
-      # يمكنك إضافة خطوات لرفع النتائج أو إرسال إشعار بعد البناء 
+        run: eas build --platform all --profile production --non-interactive 
