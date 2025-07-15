@@ -31,8 +31,9 @@ jobs:
 
       - name: Patch gradle-plugin build.gradle.kts for warningsAsErrors bug
         run: |
-          sed -i 's/allWarningsAsErrors =/allWarningsAsErrors.set(/' node_modules/@react-native/gradle-plugin/react-native-gradle-plugin/build.gradle.kts
-          sed -i 's/^\( *project\.properties\["enableWarningsAsErrors"\].*\)$/\1)/' node_modules/@react-native/gradle-plugin/react-native-gradle-plugin/build.gradle.kts
+          sed -i'' 's/allWarningsAsErrors =/allWarningsAsErrors.set(/' node_modules/@react-native/gradle-plugin/react-native-gradle-plugin/build.gradle.kts
+          sed -i'' 's/^\( *project\.properties\["enableWarningsAsErrors"\].*\)$/\1)/' node_modules/@react-native/gradle-plugin/react-native-gradle-plugin/build.gradle.kts
+          cat node_modules/@react-native/gradle-plugin/react-native-gradle-plugin/build.gradle.kts | grep allWarningsAsErrors || true
 
       - name: Build Release APK
         working-directory: ./android
