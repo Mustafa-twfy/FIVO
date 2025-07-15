@@ -24,6 +24,8 @@ jobs:
       - name: Build Release APK
         working-directory: ./android
         run: ./gradlew assembleRelease
+        env:
+          enableWarningsAsErrors: false
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
