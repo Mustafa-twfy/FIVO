@@ -43,7 +43,17 @@ jobs:
 
       - name: Build Release APK
         working-directory: ./android
-        run: ./gradlew assembleRelease
+        run: |
+          sed -i'' 's/allWarningsAsErrors =/allWarningsAsErrors.set(/' ../node_modules/@react-native/gradle-plugin/react-native-gradle-plugin/build.gradle.kts
+          sed -i'' 's/^\( *project\.properties\["enableWarningsAsErrors"\].*\)$/\1)/' ../node_modules/@react-native/gradle-plugin/react-native-gradle-plugin/build.gradle.kts
+          sed -i'' 's/allWarningsAsErrors =/allWarningsAsErrors.set(/' ../node_modules/@react-native/gradle-plugin/settings-plugin/build.gradle.kts
+          sed -i'' 's/^\( *project\.properties\["enableWarningsAsErrors"\].*\)$/\1)/' ../node_modules/@react-native/gradle-plugin/settings-plugin/build.gradle.kts
+          sed -i'' 's/allWarningsAsErrors =/allWarningsAsErrors.set(/' ../node_modules/@react-native/gradle-plugin/shared/build.gradle.kts
+          sed -i'' 's/^\( *project\.properties\["enableWarningsAsErrors"\].*\)$/\1)/' ../node_modules/@react-native/gradle-plugin/shared/build.gradle.kts
+          cat ../node_modules/@react-native/gradle-plugin/react-native-gradle-plugin/build.gradle.kts | grep allWarningsAsErrors || true
+          cat ../node_modules/@react-native/gradle-plugin/settings-plugin/build.gradle.kts | grep allWarningsAsErrors || true
+          cat ../node_modules/@react-native/gradle-plugin/shared/build.gradle.kts | grep allWarningsAsErrors || true
+          ./gradlew assembleRelease
         env:
           enableWarningsAsErrors: false
 
