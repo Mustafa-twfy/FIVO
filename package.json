@@ -10,12 +10,12 @@
     "build:android-dev": "eas build --platform android --profile development",
     "build:android-preview": "eas build --platform android --profile preview",
     "build:android-prod": "eas build --platform android --profile production",
-    "build:ios": "eas build --platform ios --profile production",
     "build:all": "eas build --platform all --profile production",
     "build:android-local": "cd android && gradlew.bat assembleDebug",
     "build:android-release": "cd android && gradlew.bat assembleRelease",
     "clean:android": "cd android && gradlew.bat clean",
-    "install:android": "cd android && gradlew.bat installDebug"
+    "install:android": "cd android && gradlew.bat installDebug",
+    "postinstall": "node fix-react-native-gradle-plugin.js"
   },
   "dependencies": {
     "@expo/metro-runtime": "~5.0.4",
