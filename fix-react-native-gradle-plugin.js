@@ -22,19 +22,21 @@ function fixFile(filePath) {
   }
 }
 
-if (fs.existsSync(pluginDir)) {
-  const files = fs.readdirSync(pluginDir);
+function walkAndFix(dir) {
+  if (!fs.existsSync(dir)) return;
+  const files = fs.readdirSync(dir);
   files.forEach((file) => {
-    if (file.endsWith('build.gradle.kts')) {
-      fixFile(path.join(pluginDir, file));
-    } else {
-      // ابحث في المجلدات الفرعية أيضًا
-      const subPath = path.join(pluginDir, file, 'build.gradle.kts');
-      if (fs.existsSync(subPath)) {
-        fixFile(subPath);
-      }
+    const fullPath = path.join(dir, file);
+    if (fs.statSync(fullPath).isDirectory()) {
+      walkAndFix(fullPath);
+    } else if (file.endsWith('build.gradle.kts') || file.endsWith('settings.gradle.kts')) {
+      fixFile(fullPath);
     }
   });
+}
+
+if (fs.existsSync(pluginDir)) {
+  walkAndFix(pluginDir);
 } else {
   console.log('⚠️ لم يتم العثور على مجلد gradle-plugin');
 } 
