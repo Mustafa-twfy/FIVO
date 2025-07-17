@@ -30,10 +30,6 @@ jobs:
       - name: Run gradle plugin fix script
         run: node fix-react-native-gradle-plugin.js
 
-      - name: Print gradle plugin file (debug)
-        run: |
-          tail -n 20 node_modules/@react-native/gradle-plugin/react-native-gradle-plugin/build.gradle.kts || cat node_modules/@react-native/gradle-plugin/react-native-gradle-plugin/build.gradle.kts
-
       - name: Make gradlew executable
         run: chmod +x android/gradlew
 
