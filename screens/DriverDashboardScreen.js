@@ -39,6 +39,7 @@ export default function DriverDashboardScreen({ navigation }) {
   const [debtPointValue, setDebtPointValue] = useState(250);
   const [maxDebtPoints, setMaxDebtPoints] = useState(20);
   const [settingsLoading, setSettingsLoading] = useState(true);
+  const [currentOrder, setCurrentOrder] = useState(null);
 
   useEffect(() => {
     const fetchDriverId = async () => {
@@ -313,6 +314,35 @@ export default function DriverDashboardScreen({ navigation }) {
   const isBlocked = driverInfo?.is_suspended || (driverInfo?.debt_points >= maxDebtPoints) || isOutOfWorkHours;
   const isAvailable = isOnline && !isBlocked;
 
+  // دالة قبول الطلب
+  const handleAcceptOrder = async (order) => {
+    try {
+      setLoading(true);
+      // تحديث الطلب في قاعدة البيانات (يمكنك تخصيصها حسب API)
+      await supabase.from('orders').update({ status: 'accepted', driver_id: driverId }).eq('id', order.id);
+      setCurrentOrder(order);
+      setLoading(false);
+      Alert.alert('تم قبول الطلب', 'تم تعيين الطلب لك بنجاح!');
+    } catch (error) {
+      setLoading(false);
+      Alert.alert('خطأ', 'حدث خطأ أثناء قبول الطلب');
+    }
+  };
+  // دالة إنهاء الطلب
+  const handleCompleteOrder = async () => {
+    if (!currentOrder) return;
+    Alert.alert('تأكيد', 'هل أنت متأكد من إنهاء الطلب؟', [
+      { text: 'إلغاء', style: 'cancel' },
+      { text: 'إنهاء الطلب', style: 'destructive', onPress: async () => {
+        setLoading(true);
+        await supabase.from('orders').update({ status: 'completed' }).eq('id', currentOrder.id);
+        setCurrentOrder(null);
+        setLoading(false);
+        Alert.alert('تم', 'تم إنهاء الطلب بنجاح!');
+      }}
+    ]);
+  };
+
   if (settingsLoading || loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -358,12 +388,8 @@ export default function DriverDashboardScreen({ navigation }) {
     <View style={{flex:1, backgroundColor:'#fff'}}>
       {/* الشريط العلوي */}
       <View style={{backgroundColor: colors.primary, paddingTop: 40, paddingBottom: 12, paddingHorizontal: 16, flexDirection:'row', alignItems:'center', justifyContent:'space-between'}}>
-        <View style={{flexDirection:'row', alignItems:'center'}}>
-          <Ionicons name="mail-outline" size={22} color="#fff" style={{marginHorizontal:4}} />
-          <Ionicons name="notifications-outline" size={22} color="#fff" style={{marginHorizontal:4}} />
-          <Ionicons name="pause-circle" size={22} color="#fff" style={{marginHorizontal:4}} />
-          <Ionicons name="wifi" size={22} color="#fff" style={{marginHorizontal:4}} />
-        </View>
+        {/* تم حذف الأيقونات من اليمين */}
+        <View />
         <TouchableOpacity onPress={()=>navigation.openDrawer()}>
           <Ionicons name="menu" size={28} color="#fff" />
         </TouchableOpacity>
@@ -372,41 +398,81 @@ export default function DriverDashboardScreen({ navigation }) {
       <View style={{backgroundColor:'#fff', flexDirection:'row', alignItems:'center', justifyContent:'space-between', paddingHorizontal:16, paddingVertical:8, borderBottomWidth:1, borderColor:'#F5F5F5'}}>
         <Text style={{color:colors.primary, fontWeight:'bold'}}>غير متصل</Text>
         <Text style={{color:'#222'}}>الحالة - {isAvailable ? 'متوفر' : 'غير متوفر'}</Text>
-        <Text style={{color:'#222'}}>سعة السائق: {driverInfo?.capacity || 50}</Text>
       </View>
       {/* محتوى الشاشة */}
-      <View style={{flex:1, justifyContent:'center', alignItems:'center', padding:24}}>
-        {/* احذف أو علق السطر التالي: */}
-        {/* <Image source={require('../assets/driver-illustration.png')} style={{width:180, height:180, resizeMode:'contain', marginBottom:24}} /> */}
-        <Text style={{fontSize:18, color:'#222', textAlign:'center', marginBottom:24, fontWeight:'bold'}}>
-          يرجى تحويل حالتك إلى متوفر لاستقبال طلبات جديدة
-        </Text>
-        <View style={{flexDirection:'row', backgroundColor:'#F5F5F5', borderRadius:24, overflow:'hidden', marginTop:8}}>
-          <TouchableOpacity
-            style={{paddingVertical:10, paddingHorizontal:32, backgroundColor: isAvailable ? colors.primary : '#fff'}}
-            onPress={()=>!isBlocked && setIsOnline(true)}
-            disabled={isBlocked}
-          >
-            <Text style={{color: isAvailable ? '#fff' : colors.primary, fontWeight:'bold'}}>متوفر</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={{paddingVertical:10, paddingHorizontal:32, backgroundColor: !isAvailable ? colors.primary : '#fff'}}
-            onPress={()=>setIsOnline(false)}
-          >
-            <Text style={{color: !isAvailable ? '#fff' : colors.primary, fontWeight:'bold'}}>غير متوفر</Text>
+      {currentOrder ? (
+        // إذا كان هناك طلب جاري، اعرضه فقط
+        <View style={{flex:1, justifyContent:'center', alignItems:'center', padding:16}}>
+          <Text style={{fontWeight:'bold', fontSize:18, marginBottom:12}}>طلب جاري</Text>
+          <View style={{backgroundColor:'#F5F5F5', borderRadius:12, padding:16, width:'100%', marginBottom:16}}>
+            <Text style={{fontWeight:'bold', fontSize:16}}>طلب #{currentOrder.id}</Text>
+            <Text>المتجر: {currentOrder.stores?.name || 'غير محدد'}</Text>
+            <Text>المبلغ: {currentOrder.total_amount || 0} دينار</Text>
+            <Text>العنوان: {currentOrder.address || 'غير محدد'}</Text>
+          </View>
+          <TouchableOpacity onPress={handleCompleteOrder} style={{backgroundColor:colors.primary, borderRadius:8, padding:12, alignItems:'center', width:'100%'}}>
+            <Text style={{color:'#fff', fontWeight:'bold'}}>إنهاء الطلب</Text>
           </TouchableOpacity>
         </View>
-        {isBlocked && (
-          <Text style={{color:colors.danger, marginTop:24, fontWeight:'bold', textAlign:'center'}}>
-            تم إيقافك مؤقتًا بسبب تجاوز حد الديون. يرجى تصفير الديون للعودة للعمل.
+      ) : isAvailable ? (
+        // عرض الطلبات المتاحة مباشرة إذا كان السائق متوفر ولا يوجد طلب جاري
+        <>
+          {availableOrders.length === 0 ? (
+            <View style={{flex:1, justifyContent:'center', alignItems:'center'}}>
+              <Ionicons name="list-outline" size={64} color={colors.primary} />
+              <Text style={{fontSize:18, color:'#222', marginTop:16}}>لا يوجد طلبات متاحة حاليًا</Text>
+            </View>
+          ) : (
+            <ScrollView style={{flex:1}} contentContainerStyle={{padding:16}}>
+              {availableOrders.map(order => (
+                <View key={order.id} style={{backgroundColor:'#F5F5F5', borderRadius:12, padding:16, marginBottom:16}}>
+                  <Text style={{fontWeight:'bold', fontSize:16}}>طلب #{order.id}</Text>
+                  <Text>المتجر: {order.stores?.name || 'غير محدد'}</Text>
+                  <Text>المبلغ: {order.total_amount || 0} دينار</Text>
+                  <Text>العنوان: {order.address || 'غير محدد'}</Text>
+                  <TouchableOpacity style={{marginTop:12, backgroundColor:colors.primary, borderRadius:8, padding:10, alignItems:'center'}} onPress={()=>handleAcceptOrder(order)}>
+                    <Text style={{color:'#fff', fontWeight:'bold'}}>قبول الطلب</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </ScrollView>
+          )}
+        </>
+      ) : (
+        // إذا لم يكن متوفر، تظهر رسالة الحالة مع أزرار التحويل
+        <>
+          <Text style={{fontSize:18, color:'#222', textAlign:'center', marginBottom:24, fontWeight:'bold'}}>
+            يرجى تحويل حالتك إلى متوفر لاستقبال طلبات جديدة
           </Text>
-        )}
-        {isOutOfWorkHours && (
-          <Text style={{color:colors.warning, marginTop:24, fontWeight:'bold', textAlign:'center'}}>
-            أنت خارج أوقات العمل المحددة من الإدارة. يرجى الالتزام بجدول الدوام.
-          </Text>
-        )}
-      </View>
+          <View style={{flexDirection:'row', backgroundColor:'#F5F5F5', borderRadius:24, overflow:'hidden', marginTop:8}}>
+            <TouchableOpacity
+              style={{paddingVertical:10, paddingHorizontal:32, backgroundColor: isAvailable ? colors.primary : '#fff'}}
+              onPress={async ()=>{
+                if (!isBlocked) {
+                  setLoading(true);
+                  await supabase.from('drivers').update({ is_active: true }).eq('id', driverId);
+                  setIsOnline(true);
+                  setLoading(false);
+                }
+              }}
+              disabled={isBlocked}
+            >
+              <Text style={{color: isAvailable ? '#fff' : colors.primary, fontWeight:'bold'}}>متوفر</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{paddingVertical:10, paddingHorizontal:32, backgroundColor: !isAvailable ? colors.primary : '#fff'}}
+              onPress={()=>setIsOnline(false)}
+            >
+              <Text style={{color: !isAvailable ? '#fff' : colors.primary, fontWeight:'bold'}}>غير متوفر</Text>
+            </TouchableOpacity>
+          </View>
+          {isBlocked && (
+            <Text style={{color:colors.danger, marginTop:24, fontWeight:'bold', textAlign:'center'}}>
+              تم إيقافك مؤقتًا بسبب تجاوز حد الديون. يرجى تصفير الديون للعودة للعمل.
+            </Text>
+          )}
+        </>
+      )}
     </View>
   );
 }

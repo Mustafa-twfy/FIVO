@@ -53,17 +53,35 @@ export default function StoreInfoScreen({ navigation, route }) {
     if (validateForm()) {
       setLoading(true);
       try {
-        // الانتقال مباشرة إلى شاشة رفع المستندات بدون تحديد الموقع
-        navigation.navigate('StoreDocuments', {
-          formData,
-          storeInfo: {
-            storeName: info.storeName,
-            phone: info.phone,
-            address: info.address,
-          }
-        });
+        // إرسال الطلب مباشرة إلى قاعدة البيانات بدون مستندات
+        const { error } = await supabase
+          .from('registration_requests')
+          .insert([
+            {
+              email: formData.email,
+              password: formData.password,
+              user_type: 'store',
+              name: info.storeName,
+              phone: info.phone,
+              address: info.address,
+              status: 'pending',
+              created_at: new Date().toISOString(),
+            }
+          ]);
+        if (error) {
+          Alert.alert('خطأ', 'فشل في إرسال طلب التسجيل');
+        } else {
+          Alert.alert('نجاح', 'تم إرسال طلب التسجيل بنجاح! سيتم مراجعة طلبك من قبل الإدارة.', [
+            {
+              text: 'حسناً',
+              onPress: () => {
+                navigation.replace('UnifiedPendingApproval', { email: formData.email, user_type: 'store' });
+              }
+            }
+          ]);
+        }
       } catch (error) {
-        Alert.alert('خطأ', 'حدث خطأ أثناء الانتقال لصفحة رفع المستندات');
+        Alert.alert('خطأ', 'حدث خطأ أثناء إرسال الطلب');
       } finally {
         setLoading(false);
       }
@@ -139,7 +157,7 @@ export default function StoreInfoScreen({ navigation, route }) {
             <TouchableOpacity style={styles.nextButton} onPress={handleNext} disabled={loading} activeOpacity={0.7}>
               <LinearGradient colors={['#FF9800', '#F57C00']} style={styles.gradientButton}>
                 <Text style={styles.nextButtonText}>
-                  {loading ? 'جاري الانتقال...' : 'التالي - رفع المستندات'}
+                  {loading ? 'جاري الإرسال...' : 'إرسال الطلب'}
                 </Text>
                 <Ionicons name="arrow-forward" size={20} color="#fff" />
               </LinearGradient>
