@@ -170,11 +170,23 @@ export default function AdminDashboardScreen({ navigation }) {
     }
   };
 
-  // دالة تسجيل الخروج
+  // دالة تسجيل الخروج مع تأكيد
   const handleLogout = async () => {
-    await AsyncStorage.removeItem('userId');
-    await AsyncStorage.removeItem('userType');
-    navigation.replace('Login');
+    Alert.alert(
+      'تسجيل الخروج',
+      'هل أنت متأكد من تسجيل الخروج؟',
+      [
+        { text: 'إلغاء', style: 'cancel' },
+        {
+          text: 'تأكيد',
+          onPress: async () => {
+            await AsyncStorage.removeItem('userId');
+            await AsyncStorage.removeItem('userType');
+            navigation.replace('Login');
+          }
+        }
+      ]
+    );
   };
 
   return (

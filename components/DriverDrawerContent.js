@@ -98,7 +98,6 @@ export default function DriverDrawerContent({ navigation, state }) {
 
   const menuItems = [
     { name: 'DriverDashboard', label: 'الرئيسية', icon: 'home-outline' },
-    { name: 'AvailableOrders', label: 'الطلبات المتاحة', icon: 'list-outline' },
     { name: 'MyOrders', label: 'طلباتي', icon: 'bicycle' },
     { name: 'DriverEarnings', label: 'الأرباح', icon: 'cash-outline' },
     { name: 'DriverProfile', label: 'الملف الشخصي', icon: 'person-outline' },

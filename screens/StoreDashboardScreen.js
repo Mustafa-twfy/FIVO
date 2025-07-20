@@ -193,11 +193,23 @@ export default function StoreDashboardScreen({ navigation }) {
     }
   };
 
-  // دالة تسجيل الخروج
+  // دالة تسجيل الخروج مع تأكيد
   const handleLogout = async () => {
-    await AsyncStorage.removeItem('userId');
-    await AsyncStorage.removeItem('userType');
-    navigation.navigate('Login');
+    Alert.alert(
+      'تسجيل الخروج',
+      'هل أنت متأكد من تسجيل الخروج؟',
+      [
+        { text: 'إلغاء', style: 'cancel' },
+        {
+          text: 'تأكيد',
+          onPress: async () => {
+            await AsyncStorage.removeItem('userId');
+            await AsyncStorage.removeItem('userType');
+            navigation.navigate('Login');
+          }
+        }
+      ]
+    );
   };
 
   const handleSendSupport = () => {
@@ -318,26 +330,6 @@ export default function StoreDashboardScreen({ navigation }) {
 
             <TouchableOpacity
               style={styles.optionCard}
-              onPress={() => handleOptionPress('location')}
-            >
-              <LinearGradient
-                colors={['#607D8B', '#607D8BCC']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.optionGradient}
-              >
-                <View style={styles.optionContent}>
-                  <Ionicons name="location-outline" size={32} color={colors.secondary} />
-                  <Text style={styles.optionTitle}>تحديث الموقع</Text>
-                  <Text style={styles.optionDescription}>تحديث موقع المتجر</Text>
-                </View>
-              </LinearGradient>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.optionsRow}>
-            <TouchableOpacity
-              style={styles.optionCard}
               onPress={() => handleOptionPress('notifications')}
             >
               <LinearGradient
@@ -353,7 +345,9 @@ export default function StoreDashboardScreen({ navigation }) {
                 </View>
               </LinearGradient>
             </TouchableOpacity>
+          </View>
 
+          <View style={styles.optionsRow}>
             <TouchableOpacity
               style={styles.optionCard}
               onPress={() => handleOptionPress('support')}
