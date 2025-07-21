@@ -117,7 +117,9 @@ export default function NewOrderScreen({ navigation }) {
         delivery_fee: 0,
         is_urgent: isUrgent,
         payment_method: 'cash',
-        payment_status: 'pending'
+        payment_status: 'pending',
+        status: 'pending', // إضافة هذا السطر لضمان ظهور الطلب للسائقين
+        driver_id: null // التأكد أنه لا يوجد سائق معين
       });
 
       if (error) {

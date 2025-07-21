@@ -91,6 +91,7 @@ export default function MyOrdersScreen({ navigation }) {
           )
         `)
         .eq('driver_id', driverId)
+        .in('status', ['accepted', 'in_progress']) // عرض فقط الطلبات المقبولة أو الجارية
         .order('created_at', { ascending: false });
 
       if (error) {

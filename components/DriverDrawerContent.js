@@ -19,8 +19,6 @@ export default function DriverDrawerContent({ navigation, state }) {
   const [stats, setStats] = useState({
     totalOrders: 0,
     completedOrders: 0,
-    totalEarnings: 0,
-    todayEarnings: 0,
     debtPoints: 0
   });
   const [loading, setLoading] = useState(true);
@@ -54,7 +52,6 @@ export default function DriverDrawerContent({ navigation, state }) {
       if (orders) {
         const totalOrders = orders.length;
         const completedOrders = orders.filter(order => order.status === 'completed').length;
-        const totalEarnings = orders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
         const today = new Date().toISOString().substring(0, 10);
         const todayEarnings = orders
           .filter(order => (order.actual_delivery_time || '').substring(0, 10) === today)
@@ -63,8 +60,6 @@ export default function DriverDrawerContent({ navigation, state }) {
         setStats({
           totalOrders,
           completedOrders,
-          totalEarnings,
-          todayEarnings,
           debtPoints: driver?.debt_points || 0
         });
       }
@@ -99,7 +94,6 @@ export default function DriverDrawerContent({ navigation, state }) {
   const menuItems = [
     { name: 'DriverDashboard', label: 'الرئيسية', icon: 'home-outline' },
     { name: 'MyOrders', label: 'طلباتي', icon: 'bicycle' },
-    { name: 'DriverEarnings', label: 'الأرباح', icon: 'cash-outline' },
     { name: 'DriverProfile', label: 'الملف الشخصي', icon: 'person-outline' },
     { name: 'FinancialAccounts', label: 'الحسابات المالية', icon: 'card-outline' },
     { name: 'Rewards', label: 'المكافآت', icon: 'gift-outline' },
@@ -183,34 +177,22 @@ export default function DriverDrawerContent({ navigation, state }) {
                   <Text style={styles.statLabel}>مكتملة</Text>
                 </View>
                 
-                <View style={styles.statCard}>
-                  <Ionicons name="cash-outline" size={24} color={colors.warning} />
-                  <Text style={styles.statNumber}>{stats.totalEarnings.toFixed(0)}</Text>
-                  <Text style={styles.statLabel}>إجمالي الأرباح</Text>
-                </View>
-                
-                <View style={styles.statCard}>
-                  <Ionicons name="today-outline" size={24} color={colors.primary} />
-                  <Text style={styles.statNumber}>{stats.todayEarnings.toFixed(0)}</Text>
-                  <Text style={styles.statLabel}>أرباح اليوم</Text>
-                </View>
-              </View>
-
-              {/* نقاط الديون */}
-              <View style={[styles.debtCard, stats.debtPoints > 10 ? styles.debtWarning : null]}>
-                <Ionicons 
-                  name={stats.debtPoints > 10 ? "warning-outline" : "card-outline"} 
-                  size={24} 
-                  color={stats.debtPoints > 10 ? colors.danger : colors.primary} 
-                />
-                <View style={styles.debtInfo}>
-                  <Text style={styles.debtLabel}>نقاط الديون</Text>
-                  <Text style={[styles.debtNumber, stats.debtPoints > 10 ? styles.debtWarningText : null]}>
-                    {stats.debtPoints} نقطة
-                  </Text>
-                  <Text style={styles.debtValue}>
-                    ({stats.debtPoints * 250} دينار)
-                  </Text>
+                {/* نقاط الديون */}
+                <View style={[styles.debtCard, stats.debtPoints > 10 ? styles.debtWarning : null]}>
+                  <Ionicons 
+                    name={stats.debtPoints > 10 ? "warning-outline" : "card-outline"} 
+                    size={24} 
+                    color={stats.debtPoints > 10 ? colors.danger : colors.primary} 
+                  />
+                  <View style={styles.debtInfo}>
+                    <Text style={styles.debtLabel}>نقاط الديون</Text>
+                    <Text style={[styles.debtNumber, stats.debtPoints > 10 ? styles.debtWarningText : null]}>
+                      {stats.debtPoints} نقطة
+                    </Text>
+                    <Text style={styles.debtValue}>
+                      ({stats.debtPoints * 250} دينار)
+                    </Text>
+                  </View>
                 </View>
               </View>
             </View>

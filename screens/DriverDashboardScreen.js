@@ -40,6 +40,11 @@ export default function DriverDashboardScreen({ navigation }) {
   const [maxDebtPoints, setMaxDebtPoints] = useState(20);
   const [settingsLoading, setSettingsLoading] = useState(true);
   const [currentOrder, setCurrentOrder] = useState(null);
+  const [quizModalVisible, setQuizModalVisible] = useState(false);
+  const [quizQuestion, setQuizQuestion] = useState('');
+  const [quizAnswer, setQuizAnswer] = useState('');
+  const [quizCorrectAnswer, setQuizCorrectAnswer] = useState('');
+  const [pendingOrderToAccept, setPendingOrderToAccept] = useState(null);
 
   useEffect(() => {
     const fetchDriverId = async () => {
@@ -247,9 +252,6 @@ export default function DriverDashboardScreen({ navigation }) {
       case 'my_orders':
         navigation.navigate('MyOrders');
         break;
-      case 'earnings':
-        navigation.navigate('DriverEarnings');
-        break;
       case 'profile':
         navigation.navigate('DriverProfile');
         break;
@@ -314,19 +316,20 @@ export default function DriverDashboardScreen({ navigation }) {
   const isBlocked = driverInfo?.is_suspended || (driverInfo?.debt_points >= maxDebtPoints) || isOutOfWorkHours;
   const isAvailable = isOnline && !isBlocked;
 
+  // دالة توليد سؤال رياضي بسيط
+  const generateQuiz = () => {
+    const a = Math.floor(Math.random() * 10) + 1;
+    const b = Math.floor(Math.random() * 10) + 1;
+    setQuizQuestion(`كم حاصل جمع ${a} + ${b} ؟`);
+    setQuizCorrectAnswer((a + b).toString());
+    setQuizAnswer('');
+  };
+
   // دالة قبول الطلب
-  const handleAcceptOrder = async (order) => {
-    try {
-      setLoading(true);
-      // تحديث الطلب في قاعدة البيانات (يمكنك تخصيصها حسب API)
-      await supabase.from('orders').update({ status: 'accepted', driver_id: driverId }).eq('id', order.id);
-      setCurrentOrder(order);
-      setLoading(false);
-      Alert.alert('تم قبول الطلب', 'تم تعيين الطلب لك بنجاح!');
-    } catch (error) {
-      setLoading(false);
-      Alert.alert('خطأ', 'حدث خطأ أثناء قبول الطلب');
-    }
+  const handleAcceptOrder = (order) => {
+    setPendingOrderToAccept(order);
+    generateQuiz();
+    setQuizModalVisible(true);
   };
   // دالة إنهاء الطلب
   const handleCompleteOrder = async () => {
@@ -341,6 +344,28 @@ export default function DriverDashboardScreen({ navigation }) {
         Alert.alert('تم', 'تم إنهاء الطلب بنجاح!');
       }}
     ]);
+  };
+
+  // دالة تنفيذ القبول بعد اجتياز الاختبار
+  const handleQuizSubmit = async () => {
+    if (quizAnswer.trim() === quizCorrectAnswer) {
+      setQuizModalVisible(false);
+      setLoading(true);
+      try {
+        // تحديث الطلب وتعيين السائق
+        await supabase.from('orders').update({ status: 'accepted', driver_id: driverId }).eq('id', pendingOrderToAccept.id);
+        // زيادة نقطة للسائق
+        await supabase.from('drivers').update({ debt_points: (driverInfo?.debt_points || 0) + 1 }).eq('id', driverId);
+        setCurrentOrder(pendingOrderToAccept);
+        setLoading(false);
+        Alert.alert('تم قبول الطلب', 'تم تعيين الطلب لك بنجاح!');
+      } catch (error) {
+        setLoading(false);
+        Alert.alert('خطأ', 'حدث خطأ أثناء قبول الطلب');
+      }
+    } else {
+      Alert.alert('إجابة خاطئة', 'يرجى المحاولة مرة أخرى');
+    }
   };
 
   if (settingsLoading || loading) {
@@ -427,10 +452,12 @@ export default function DriverDashboardScreen({ navigation }) {
               {availableOrders.map(order => (
                 <View key={order.id} style={{backgroundColor:'#F5F5F5', borderRadius:12, padding:16, marginBottom:16}}>
                   <Text style={{fontWeight:'bold', fontSize:16}}>طلب #{order.id}</Text>
-                  <Text>المتجر: {order.stores?.name || 'غير محدد'}</Text>
-                  <Text>المبلغ: {order.total_amount || 0} دينار</Text>
                   <Text>العنوان: {order.address || 'غير محدد'}</Text>
-                  <TouchableOpacity style={{marginTop:12, backgroundColor:colors.primary, borderRadius:8, padding:10, alignItems:'center'}} onPress={()=>handleAcceptOrder(order)}>
+                  <TouchableOpacity 
+                    style={{marginTop:12, backgroundColor:currentOrder ? '#ccc' : colors.primary, borderRadius:8, padding:10, alignItems:'center'}} 
+                    onPress={()=>!currentOrder && handleAcceptOrder(order)}
+                    disabled={!!currentOrder}
+                  >
                     <Text style={{color:'#fff', fontWeight:'bold'}}>قبول الطلب</Text>
                   </TouchableOpacity>
                 </View>
@@ -473,6 +500,32 @@ export default function DriverDashboardScreen({ navigation }) {
           )}
         </>
       )}
+      <Modal
+        visible={quizModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={()=>setQuizModalVisible(false)}
+      >
+        <View style={{flex:1, justifyContent:'center', alignItems:'center', backgroundColor:'rgba(0,0,0,0.3)'}}>
+          <View style={{backgroundColor:'#fff', borderRadius:16, padding:24, width:'80%', alignItems:'center'}}>
+            <Text style={{fontSize:18, fontWeight:'bold', marginBottom:16}}>اختبار بسيط قبل قبول الطلب</Text>
+            <Text style={{fontSize:16, marginBottom:16}}>{quizQuestion}</Text>
+            <TextInput
+              style={{borderWidth:1, borderColor:'#ccc', borderRadius:8, width:'100%', padding:8, marginBottom:16, textAlign:'center'}}
+              placeholder="اكتب الإجابة هنا"
+              value={quizAnswer}
+              onChangeText={setQuizAnswer}
+              keyboardType="numeric"
+            />
+            <TouchableOpacity style={{backgroundColor:colors.primary, borderRadius:8, padding:12, width:'100%', alignItems:'center'}} onPress={handleQuizSubmit}>
+              <Text style={{color:'#fff', fontWeight:'bold'}}>تأكيد الإجابة</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={{marginTop:12}} onPress={()=>setQuizModalVisible(false)}>
+              <Text style={{color:colors.danger}}>إلغاء</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

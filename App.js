@@ -18,7 +18,6 @@ import NewOrderScreen from './screens/NewOrderScreen';
 import DriverDashboardScreen from './screens/DriverDashboardScreen';
 import AvailableOrdersScreen from './screens/AvailableOrdersScreen';
 import MyOrdersScreen from './screens/MyOrdersScreen';
-import DriverEarningsScreen from './screens/DriverEarningsScreen';
 import DriverProfileScreen from './screens/DriverProfileScreen';
 import FinancialAccountsScreen from './screens/FinancialAccountsScreen';
 import RewardsScreen from './screens/RewardsScreen';
@@ -116,7 +115,6 @@ function DriverDrawer() {
       <Drawer.Screen name="DriverDashboard" component={DriverDashboardScreen} options={{drawerLabel: 'الرئيسية'}} />
       <Drawer.Screen name="AvailableOrders" component={AvailableOrdersScreen} options={{drawerLabel: 'الطلبات المتاحة'}} />
       <Drawer.Screen name="MyOrders" component={MyOrdersScreen} options={{drawerLabel: 'طلباتي'}} />
-      <Drawer.Screen name="DriverEarnings" component={DriverEarningsScreen} options={{drawerLabel: 'الأرباح'}} />
       <Drawer.Screen name="DriverProfile" component={DriverProfileScreen} options={{drawerLabel: 'الملف الشخصي'}} />
       <Drawer.Screen name="FinancialAccounts" component={FinancialAccountsScreen} options={{drawerLabel: 'الحسابات المالية'}} />
       <Drawer.Screen name="Rewards" component={RewardsScreen} options={{drawerLabel: 'المكافآت'}} />
@@ -281,7 +279,6 @@ export default function App() {
           <Stack.Screen name="NewOrder" component={NewOrderScreen} />
           <Stack.Screen name="AvailableOrders" component={AvailableOrdersScreen} />
           <Stack.Screen name="MyOrders" component={MyOrdersScreen} />
-          <Stack.Screen name="DriverEarnings" component={DriverEarningsScreen} />
           <Stack.Screen name="DriverProfile" component={DriverProfileScreen} />
           <Stack.Screen name="FinancialAccounts" component={FinancialAccountsScreen} />
           <Stack.Screen name="Rewards" component={RewardsScreen} />
