@@ -112,14 +112,13 @@ export default function NewOrderScreen({ navigation }) {
         delivery_address: address,
         items_description: description,
         description: description,
-        phone: phone,
         total_amount: parseFloat(amount),
         delivery_fee: 0,
         is_urgent: isUrgent,
         payment_method: 'cash',
         payment_status: 'pending',
-        status: 'pending', // إضافة هذا السطر لضمان ظهور الطلب للسائقين
-        driver_id: null // التأكد أنه لا يوجد سائق معين
+        status: 'pending',
+        driver_id: null
       });
 
       if (error) {
@@ -209,15 +208,16 @@ export default function NewOrderScreen({ navigation }) {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>رقم الهاتف *</Text>
+            <Text style={styles.inputLabel}>رقم هاتف الزبون *</Text>
             <TextInput
               style={styles.input}
-              placeholder="05xxxxxxxx"
+              placeholder="07801234567"
               placeholderTextColor="#BDBDBD"
               value={phone}
               onChangeText={setPhone}
               keyboardType="phone-pad"
               textAlign="right"
+              maxLength={11}
             />
           </View>
 

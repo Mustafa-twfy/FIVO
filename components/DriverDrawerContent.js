@@ -41,6 +41,11 @@ export default function DriverDrawerContent({ navigation, state }) {
 
       if (driver) {
         setDriverInfo(driver);
+        setStats({
+          totalOrders: driver.total_orders || 0,
+          completedOrders: driver.completed_orders || 0,
+          debtPoints: driver?.debt_points || 0
+        });
       }
 
       // جلب الطلبات وحساب الإحصائيات

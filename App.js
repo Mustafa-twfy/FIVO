@@ -47,6 +47,7 @@ import UnifiedPendingApprovalScreen from './screens/UnifiedPendingApprovalScreen
 import { supabase } from './supabase';
 import DriverDrawerContent from './components/DriverDrawerContent';
 import { AuthProvider } from './context/AuthContext';
+import AdminNewOrderScreen from './screens/AdminNewOrderScreen';
 
 I18nManager.forceRTL(true);
 
@@ -268,6 +269,7 @@ export default function App() {
           <Stack.Screen name="StoreMap" component={StoreMapScreen} />
           <Stack.Screen name="UpdateStoreLocation" component={UpdateStoreLocationScreen} />
           <Stack.Screen name="UnifiedPendingApproval" component={UnifiedPendingApprovalScreen} />
+          <Stack.Screen name="AdminNewOrderScreen" component={AdminNewOrderScreen} />
           <Stack.Screen name="Driver" component={DriverDrawer} />
           <Stack.Screen name="Store" component={StoreDrawer} />
           <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} />

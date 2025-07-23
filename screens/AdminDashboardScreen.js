@@ -364,6 +364,10 @@ export default function AdminDashboardScreen({ navigation }) {
             <Ionicons name="settings-outline" size={24} color="#9C27B0" />
             <Text style={styles.quickActionText}>الإعدادات</Text>
           </TouchableOpacity>
+          <TouchableOpacity style={styles.quickAction} onPress={() => navigation.navigate('AdminNewOrderScreen')}>
+            <Ionicons name="add-circle-outline" size={24} color="#4CAF50" />
+            <Text style={styles.quickActionText}>إضافة طلب جديد</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
 

@@ -24,10 +24,15 @@ export default function MyOrdersScreen({ navigation }) {
   const [settingsLoading, setSettingsLoading] = useState(true);
   const [itemLoading, setItemLoading] = useState({});
   const [error, setError] = useState(null);
+  const [completedOrdersList, setCompletedOrdersList] = useState([]);
 
   useEffect(() => {
     loadDriverInfo();
     loadMyOrders();
+    // جلب الطلبات المكتملة من سجل السائق
+    if (driverInfo?.completed_orders_list) {
+      setCompletedOrdersList(driverInfo.completed_orders_list);
+    }
     const fetchSettings = async () => {
       setSettingsLoading(true);
       const { data, error } = await systemSettingsAPI.getSystemSettings();
@@ -45,6 +50,12 @@ export default function MyOrdersScreen({ navigation }) {
     }, 15000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (driverInfo?.completed_orders_list) {
+      setCompletedOrdersList(driverInfo.completed_orders_list);
+    }
+  }, [driverInfo]);
 
   const loadDriverInfo = async () => {
     try {
@@ -362,6 +373,21 @@ export default function MyOrdersScreen({ navigation }) {
               )}
             </View>
           )}
+          <View style={styles.completedSection}>
+            <Text style={styles.completedTitle}>الطلبات المكتملة</Text>
+            {completedOrdersList && completedOrdersList.length > 0 ? (
+              completedOrdersList.map((item) => (
+                <View key={item.id} style={styles.completedCard}>
+                  <Text style={styles.completedOrderId}>طلب #{item.id}</Text>
+                  <Text style={styles.completedText}>المبلغ: <Text style={{color:'#2196F3'}}>{item.amount} دينار</Text></Text>
+                  <Text style={styles.completedText}>العنوان: {item.address}</Text>
+                  <Text style={styles.completedText}>التاريخ: {item.date}</Text>
+                </View>
+              ))
+            ) : (
+              <Text style={styles.noCompleted}>لا توجد طلبات مكتملة</Text>
+            )}
+          </View>
         </>
       )}
     </View>
@@ -611,4 +637,10 @@ const styles = StyleSheet.create({
     color: '#FF9800',
     fontWeight: 'bold',
   },
+  completedSection: { padding: 16, backgroundColor: '#fff', borderTopWidth: 1, borderColor: '#eee' },
+  completedTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 8, color: '#222' },
+  completedCard: { backgroundColor: '#fff', borderRadius: 10, padding: 14, marginBottom: 10, width: '100%', shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 1, borderWidth: 1, borderColor: '#eee' },
+  completedOrderId: { fontWeight: 'bold', fontSize: 16, color: '#2196F3', marginBottom: 4 },
+  completedText: { fontSize: 15, color: '#333', marginBottom: 2 },
+  noCompleted: { fontSize: 16, color: '#888', textAlign: 'center', marginTop: 12 },
 }); 

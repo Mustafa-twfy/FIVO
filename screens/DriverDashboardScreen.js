@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { supabase, driversAPI, supportAPI, systemSettingsAPI } from '../supabase';
+import { supabase, driversAPI, supportAPI, systemSettingsAPI, ordersAPI } from '../supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import colors from '../colors';
 import { useAuth } from '../context/AuthContext';
@@ -45,6 +45,8 @@ export default function DriverDashboardScreen({ navigation }) {
   const [quizAnswer, setQuizAnswer] = useState('');
   const [quizCorrectAnswer, setQuizCorrectAnswer] = useState('');
   const [pendingOrderToAccept, setPendingOrderToAccept] = useState(null);
+  const [quizOptions, setQuizOptions] = useState([]); // خيارات الأرقام
+  const [quizTarget, setQuizTarget] = useState(null); // الرقم الثابت
 
   useEffect(() => {
     const fetchDriverId = async () => {
@@ -146,6 +148,14 @@ export default function DriverDashboardScreen({ navigation }) {
       } else {
         setAvailableOrders(ordersData || []);
         setMyOrders(ordersData || []);
+      }
+
+      // في loadDriverData بعد تحميل بيانات السائق:
+      const { data: availableOrdersData, error: availableOrdersError } = await ordersAPI.getAvailableOrders();
+      if (availableOrdersError) {
+        setAvailableOrders([]);
+      } else {
+        setAvailableOrders(availableOrdersData || []);
       }
       
       // حساب الإحصائيات
@@ -316,12 +326,21 @@ export default function DriverDashboardScreen({ navigation }) {
   const isBlocked = driverInfo?.is_suspended || (driverInfo?.debt_points >= maxDebtPoints) || isOutOfWorkHours;
   const isAvailable = isOnline && !isBlocked;
 
-  // دالة توليد سؤال رياضي بسيط
+  // دالة توليد اختبار رقم ثابت مع خيارات
   const generateQuiz = () => {
-    const a = Math.floor(Math.random() * 10) + 1;
-    const b = Math.floor(Math.random() * 10) + 1;
-    setQuizQuestion(`كم حاصل جمع ${a} + ${b} ؟`);
-    setQuizCorrectAnswer((a + b).toString());
+    // توليد رقم ثابت بين 100 و999
+    const target = Math.floor(Math.random() * 900) + 100;
+    // توليد رقمين متشابهين (فرق رقم أو رقمين)
+    let option2 = target + (Math.random() > 0.5 ? 1 : -1) * (Math.floor(Math.random() * 3) + 1);
+    let option3 = target + (Math.random() > 0.5 ? 1 : -1) * (Math.floor(Math.random() * 6) + 2);
+    // التأكد من عدم تكرار الرقم الصحيح
+    if (option2 === target) option2 += 2;
+    if (option3 === target || option3 === option2) option3 += 3;
+    // تجميع الخيارات وترتيبها عشوائيًا
+    let options = [target, option2, option3];
+    options = options.sort(() => Math.random() - 0.5);
+    setQuizTarget(target);
+    setQuizOptions(options);
     setQuizAnswer('');
   };
 
@@ -331,24 +350,55 @@ export default function DriverDashboardScreen({ navigation }) {
     generateQuiz();
     setQuizModalVisible(true);
   };
-  // دالة إنهاء الطلب
-  const handleCompleteOrder = async () => {
+  // دالة إكمال الطلب مع إشعار المتجر
+  const handleFinishOrder = async () => {
     if (!currentOrder) return;
-    Alert.alert('تأكيد', 'هل أنت متأكد من إنهاء الطلب؟', [
-      { text: 'إلغاء', style: 'cancel' },
-      { text: 'إنهاء الطلب', style: 'destructive', onPress: async () => {
-        setLoading(true);
-        await supabase.from('orders').update({ status: 'completed' }).eq('id', currentOrder.id);
-        setCurrentOrder(null);
-        setLoading(false);
-        Alert.alert('تم', 'تم إنهاء الطلب بنجاح!');
-      }}
-    ]);
+    setLoading(true);
+    try {
+      // تحديث حالة الطلب
+      await supabase.from('orders').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', currentOrder.id);
+      // إرسال إشعار للمتجر
+      if (currentOrder.store_id) {
+        await supabase.from('store_notifications').insert({
+          store_id: currentOrder.store_id,
+          title: 'تم إكمال الطلب',
+          message: `تم إكمال طلبك رقم ${currentOrder.id} من قبل السائق.`,
+          type: 'order',
+          created_at: new Date().toISOString()
+        });
+      }
+      // تحديث إحصائيات السائق
+      if (driverId) {
+        const { data: driver } = await supabase.from('drivers').select('total_orders, completed_orders, completed_orders_list').eq('id', driverId).single();
+        const total_orders = (driver?.total_orders || 0) + 1;
+        const completed_orders = (driver?.completed_orders || 0) + 1;
+        // إضافة الطلب المكتمل إلى القائمة
+        let completed_orders_list = Array.isArray(driver?.completed_orders_list) ? [...driver.completed_orders_list] : [];
+        completed_orders_list.unshift({
+          id: currentOrder.id,
+          amount: currentOrder.total_amount,
+          address: currentOrder.address,
+          date: new Date().toLocaleString()
+        });
+        // احتفظ فقط بآخر 100 طلب مكتمل (اختياري)
+        if (completed_orders_list.length > 100) completed_orders_list = completed_orders_list.slice(0, 100);
+        await supabase.from('drivers').update({ total_orders, completed_orders, completed_orders_list }).eq('id', driverId);
+      }
+      // حذف الطلب من قاعدة البيانات
+      await supabase.from('orders').delete().eq('id', currentOrder.id);
+      setCurrentOrder(null);
+      await loadDriverData(driverId); // إعادة تحميل بيانات السائق
+      setLoading(false);
+      Alert.alert('تم', 'تم إكمال الطلب بنجاح، وتم إشعار المتجر وحذف الطلب من قاعدة البيانات!');
+    } catch (error) {
+      setLoading(false);
+      Alert.alert('خطأ', 'حدث خطأ أثناء إكمال الطلب');
+    }
   };
 
   // دالة تنفيذ القبول بعد اجتياز الاختبار
-  const handleQuizSubmit = async () => {
-    if (quizAnswer.trim() === quizCorrectAnswer) {
+  const handleQuizOptionPress = async (selected) => {
+    if (selected === quizTarget) {
       setQuizModalVisible(false);
       setLoading(true);
       try {
@@ -430,13 +480,16 @@ export default function DriverDashboardScreen({ navigation }) {
         <View style={{flex:1, justifyContent:'center', alignItems:'center', padding:16}}>
           <Text style={{fontWeight:'bold', fontSize:18, marginBottom:12}}>طلب جاري</Text>
           <View style={{backgroundColor:'#F5F5F5', borderRadius:12, padding:16, width:'100%', marginBottom:16}}>
-            <Text style={{fontWeight:'bold', fontSize:16}}>طلب #{currentOrder.id}</Text>
             <Text>المتجر: {currentOrder.stores?.name || 'غير محدد'}</Text>
             <Text>المبلغ: {currentOrder.total_amount || 0} دينار</Text>
             <Text>العنوان: {currentOrder.address || 'غير محدد'}</Text>
+            {currentOrder.customer_phone && (
+              <Text>هاتف الزبون: {currentOrder.customer_phone}</Text>
+            )}
           </View>
-          <TouchableOpacity onPress={handleCompleteOrder} style={{backgroundColor:colors.primary, borderRadius:8, padding:12, alignItems:'center', width:'100%'}}>
-            <Text style={{color:'#fff', fontWeight:'bold'}}>إنهاء الطلب</Text>
+          {/* الزر في واجهة الطلب الجاري */}
+          <TouchableOpacity onPress={handleFinishOrder} style={{backgroundColor:colors.primary, borderRadius:8, padding:12, alignItems:'center', width:'100%'}}>
+            <Text style={{color:'#fff', fontWeight:'bold'}}>اكمال الطلب</Text>
           </TouchableOpacity>
         </View>
       ) : isAvailable ? (
@@ -451,7 +504,6 @@ export default function DriverDashboardScreen({ navigation }) {
             <ScrollView style={{flex:1}} contentContainerStyle={{padding:16}}>
               {availableOrders.map(order => (
                 <View key={order.id} style={{backgroundColor:'#F5F5F5', borderRadius:12, padding:16, marginBottom:16}}>
-                  <Text style={{fontWeight:'bold', fontSize:16}}>طلب #{order.id}</Text>
                   <Text>العنوان: {order.address || 'غير محدد'}</Text>
                   <TouchableOpacity 
                     style={{marginTop:12, backgroundColor:currentOrder ? '#ccc' : colors.primary, borderRadius:8, padding:10, alignItems:'center'}} 
@@ -468,12 +520,12 @@ export default function DriverDashboardScreen({ navigation }) {
       ) : (
         // إذا لم يكن متوفر، تظهر رسالة الحالة مع أزرار التحويل
         <>
-          <Text style={{fontSize:18, color:'#222', textAlign:'center', marginBottom:24, fontWeight:'bold'}}>
-            يرجى تحويل حالتك إلى متوفر لاستقبال طلبات جديدة
-          </Text>
-          <View style={{flexDirection:'row', backgroundColor:'#F5F5F5', borderRadius:24, overflow:'hidden', marginTop:8}}>
-            <TouchableOpacity
-              style={{paddingVertical:10, paddingHorizontal:32, backgroundColor: isAvailable ? colors.primary : '#fff'}}
+        <Text style={{fontSize:18, color:'#222', textAlign:'center', marginBottom:24, fontWeight:'bold'}}>
+          يرجى تحويل حالتك إلى متوفر لاستقبال طلبات جديدة
+        </Text>
+        <View style={{flexDirection:'row', backgroundColor:'#F5F5F5', borderRadius:24, overflow:'hidden', marginTop:8}}>
+          <TouchableOpacity
+            style={{paddingVertical:10, paddingHorizontal:32, backgroundColor: isAvailable ? colors.primary : '#fff'}}
               onPress={async ()=>{
                 if (!isBlocked) {
                   setLoading(true);
@@ -482,22 +534,22 @@ export default function DriverDashboardScreen({ navigation }) {
                   setLoading(false);
                 }
               }}
-              disabled={isBlocked}
-            >
-              <Text style={{color: isAvailable ? '#fff' : colors.primary, fontWeight:'bold'}}>متوفر</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={{paddingVertical:10, paddingHorizontal:32, backgroundColor: !isAvailable ? colors.primary : '#fff'}}
-              onPress={()=>setIsOnline(false)}
-            >
-              <Text style={{color: !isAvailable ? '#fff' : colors.primary, fontWeight:'bold'}}>غير متوفر</Text>
-            </TouchableOpacity>
-          </View>
-          {isBlocked && (
-            <Text style={{color:colors.danger, marginTop:24, fontWeight:'bold', textAlign:'center'}}>
-              تم إيقافك مؤقتًا بسبب تجاوز حد الديون. يرجى تصفير الديون للعودة للعمل.
-            </Text>
-          )}
+            disabled={isBlocked}
+          >
+            <Text style={{color: isAvailable ? '#fff' : colors.primary, fontWeight:'bold'}}>متوفر</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={{paddingVertical:10, paddingHorizontal:32, backgroundColor: !isAvailable ? colors.primary : '#fff'}}
+            onPress={()=>setIsOnline(false)}
+          >
+            <Text style={{color: !isAvailable ? '#fff' : colors.primary, fontWeight:'bold'}}>غير متوفر</Text>
+          </TouchableOpacity>
+        </View>
+        {isBlocked && (
+          <Text style={{color:colors.danger, marginTop:24, fontWeight:'bold', textAlign:'center'}}>
+            تم إيقافك مؤقتًا بسبب تجاوز حد الديون. يرجى تصفير الديون للعودة للعمل.
+          </Text>
+        )}
         </>
       )}
       <Modal
@@ -509,18 +561,20 @@ export default function DriverDashboardScreen({ navigation }) {
         <View style={{flex:1, justifyContent:'center', alignItems:'center', backgroundColor:'rgba(0,0,0,0.3)'}}>
           <View style={{backgroundColor:'#fff', borderRadius:16, padding:24, width:'80%', alignItems:'center'}}>
             <Text style={{fontSize:18, fontWeight:'bold', marginBottom:16}}>اختبار بسيط قبل قبول الطلب</Text>
-            <Text style={{fontSize:16, marginBottom:16}}>{quizQuestion}</Text>
-            <TextInput
-              style={{borderWidth:1, borderColor:'#ccc', borderRadius:8, width:'100%', padding:8, marginBottom:16, textAlign:'center'}}
-              placeholder="اكتب الإجابة هنا"
-              value={quizAnswer}
-              onChangeText={setQuizAnswer}
-              keyboardType="numeric"
-            />
-            <TouchableOpacity style={{backgroundColor:colors.primary, borderRadius:8, padding:12, width:'100%', alignItems:'center'}} onPress={handleQuizSubmit}>
-              <Text style={{color:'#fff', fontWeight:'bold'}}>تأكيد الإجابة</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={{marginTop:12}} onPress={()=>setQuizModalVisible(false)}>
+            <Text style={{fontSize:16, marginBottom:16}}>اختر الرقم المطابق للرقم التالي:</Text>
+            <Text style={{fontSize:28, fontWeight:'bold', marginBottom:24, color:colors.primary}}>{quizTarget}</Text>
+            <View style={{flexDirection:'row', justifyContent:'space-between', width:'100%'}}>
+              {quizOptions.map((opt, idx) => (
+                <TouchableOpacity
+                  key={idx}
+                  style={{backgroundColor:'#F5F5F5', borderRadius:8, padding:16, marginHorizontal:6, minWidth:60, alignItems:'center', borderWidth:1, borderColor:'#ccc'}}
+                  onPress={()=>handleQuizOptionPress(opt)}
+                >
+                  <Text style={{fontSize:22, fontWeight:'bold'}}>{opt}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <TouchableOpacity style={{marginTop:24}} onPress={()=>setQuizModalVisible(false)}>
               <Text style={{color:colors.danger}}>إلغاء</Text>
             </TouchableOpacity>
           </View>

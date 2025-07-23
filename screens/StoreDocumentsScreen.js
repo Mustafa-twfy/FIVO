@@ -4,9 +4,9 @@ import { View, Text, StyleSheet } from 'react-native';
 export default function StoreDocumentsScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.infoText}>
+          <Text style={styles.infoText}>
         لم يعد رفع المستندات مطلوبًا للتسجيل كمتجر. إذا وصلت لهذه الصفحة بالخطأ، يرجى العودة.
-      </Text>
+          </Text>
     </View>
   );
 }
