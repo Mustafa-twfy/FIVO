@@ -284,7 +284,7 @@ export default function App() {
           <Stack.Screen name="StoreSupportChat" component={StoreSupportChatScreen} />
           <Stack.Screen name="StoreNotifications" component={StoreNotificationsScreen} />
           <Stack.Screen name="AdminSupport" component={AdminSupportScreen} />
-          <Stack.Screen name="StoreProfile" component={StoreInfoScreen} />
+          <Stack.Screen name="StoreProfile" component={StoreProfileScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </AuthProvider>

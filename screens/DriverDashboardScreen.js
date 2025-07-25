@@ -392,7 +392,7 @@ export default function DriverDashboardScreen({ navigation }) {
   // دالة إكمال الطلب مع إشعار المتجر
   const handleFinishOrder = async () => {
     if (!currentOrder) return;
-    setLoading(true);
+        setLoading(true);
     try {
       // تحديث حالة الطلب
       await supabase.from('orders').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', currentOrder.id);
@@ -425,9 +425,9 @@ export default function DriverDashboardScreen({ navigation }) {
       }
       // حذف الطلب من قاعدة البيانات
       // await supabase.from('orders').delete().eq('id', currentOrder.id); // This line is removed
-      setCurrentOrder(null);
+        setCurrentOrder(null);
       await loadDriverData(driverId); // إعادة تحميل بيانات السائق
-      setLoading(false);
+        setLoading(false);
     } catch (error) {
       setLoading(false);
       Alert.alert('خطأ', 'حدث خطأ أثناء إكمال الطلب');
@@ -519,7 +519,7 @@ export default function DriverDashboardScreen({ navigation }) {
           <Text style={{fontWeight:'bold', fontSize:18, marginBottom:12}}>طلب جاري</Text>
           <View style={{backgroundColor:'#F5F5F5', borderRadius:12, padding:16, width:'100%', marginBottom:16}}>
             {currentOrder.store_id ? (
-              <Text>المتجر: {currentOrder.stores?.name || 'غير محدد'}</Text>
+            <Text>المتجر: {currentOrder.stores?.name || 'غير محدد'}</Text>
             ) : (
               <>
                 <Text>من: {currentOrder.pickup_address || 'غير محدد'}</Text>
@@ -543,14 +543,14 @@ export default function DriverDashboardScreen({ navigation }) {
       ) : isAvailable ? (
         // إذا لم يكن هناك طلب جاري، اعرض الطلبات المتاحة فقط
         availableOrders.length === 0 ? (
-          <View style={{flex:1, justifyContent:'center', alignItems:'center'}}>
-            <Ionicons name="list-outline" size={64} color={colors.primary} />
-            <Text style={{fontSize:18, color:'#222', marginTop:16}}>لا يوجد طلبات متاحة حاليًا</Text>
-          </View>
-        ) : (
-          <ScrollView style={{flex:1}} contentContainerStyle={{padding:16}}>
-            {availableOrders.map(order => (
-              <View key={order.id} style={{backgroundColor:'#F5F5F5', borderRadius:12, padding:16, marginBottom:16}}>
+            <View style={{flex:1, justifyContent:'center', alignItems:'center'}}>
+              <Ionicons name="list-outline" size={64} color={colors.primary} />
+              <Text style={{fontSize:18, color:'#222', marginTop:16}}>لا يوجد طلبات متاحة حاليًا</Text>
+            </View>
+          ) : (
+            <ScrollView style={{flex:1}} contentContainerStyle={{padding:16}}>
+              {availableOrders.map(order => (
+                <View key={order.id} style={{backgroundColor:'#F5F5F5', borderRadius:12, padding:16, marginBottom:16}}>
                 {order.store_id ? (
                   <>
                     <Text>العنوان: {order.address || order.delivery_address || 'غير محدد'}</Text>
@@ -563,16 +563,16 @@ export default function DriverDashboardScreen({ navigation }) {
                     <Text>إلى: {order.delivery_address || 'غير محدد'}</Text>
                   </>
                 )}
-                <TouchableOpacity 
-                  style={{marginTop:12, backgroundColor:currentOrder ? '#ccc' : colors.primary, borderRadius:8, padding:10, alignItems:'center'}} 
-                  onPress={()=>!currentOrder && handleAcceptOrder(order)}
-                  disabled={!!currentOrder}
-                >
-                  <Text style={{color:'#fff', fontWeight:'bold'}}>قبول الطلب</Text>
-                </TouchableOpacity>
-              </View>
-            ))}
-          </ScrollView>
+                  <TouchableOpacity 
+                    style={{marginTop:12, backgroundColor:currentOrder ? '#ccc' : colors.primary, borderRadius:8, padding:10, alignItems:'center'}} 
+                    onPress={()=>!currentOrder && handleAcceptOrder(order)}
+                    disabled={!!currentOrder}
+                  >
+                    <Text style={{color:'#fff', fontWeight:'bold'}}>قبول الطلب</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </ScrollView>
         )
       ) : (
         // إذا لم يكن متوفر، تظهر رسالة الحالة مع أزرار التحويل
@@ -628,14 +628,14 @@ export default function DriverDashboardScreen({ navigation }) {
                   onPress={()=>handleQuizOptionPress(opt)}
                 >
                   <Text style={{fontSize:22, fontWeight:'bold'}}>{opt}</Text>
-                </TouchableOpacity>
+            </TouchableOpacity>
               ))}
             </View>
             <TouchableOpacity style={{marginTop:24}} onPress={()=>setQuizModalVisible(false)}>
               <Text style={{color:colors.danger}}>إلغاء</Text>
             </TouchableOpacity>
           </View>
-        </View>
+      </View>
       </Modal>
     </View>
   );
