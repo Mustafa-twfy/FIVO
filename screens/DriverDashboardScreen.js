@@ -19,6 +19,7 @@ import { supabase, driversAPI, supportAPI, systemSettingsAPI, ordersAPI } from '
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import colors from '../colors';
 import { useAuth } from '../context/AuthContext';
+import isEqual from 'lodash.isequal';
 
 export default function DriverDashboardScreen({ navigation }) {
   const { logout } = useAuth();
@@ -56,12 +57,32 @@ export default function DriverDashboardScreen({ navigation }) {
     };
     fetchDriverId();
 
-    // تحديث بيانات السائق كل 15 ثانية
-    const interval = setInterval(() => {
-      if (driverId) loadDriverData(driverId);
-    }, 15000);
+    // تحديث بيانات السائق كل 5 ثواني مع مقارنة ذكية
+    const interval = setInterval(async () => {
+      if (driverId) {
+        // جلب البيانات الجديدة
+        const { data: currentOrderDb } = await supabase
+          .from('orders')
+          .select('*')
+          .eq('driver_id', driverId)
+          .in('status', ['accepted', 'in_progress'])
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+        if (!isEqual(currentOrder, currentOrderDb)) {
+          setCurrentOrder(currentOrderDb || null);
+        }
+        if (!currentOrderDb) {
+          const { data: availableOrdersData, error: availableOrdersError } = await ordersAPI.getAvailableOrders();
+          if (!availableOrdersError && !isEqual(availableOrders, availableOrdersData)) {
+            setAvailableOrders(availableOrdersData || []);
+          }
+        }
+        // يمكنك إضافة تحديث الإحصائيات بنفس الطريقة إذا أردت
+      }
+    }, 5000);
     return () => clearInterval(interval);
-  }, [driverId]);
+  }, [driverId, currentOrder, availableOrders]);
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -150,12 +171,28 @@ export default function DriverDashboardScreen({ navigation }) {
         setMyOrders(ordersData || []);
       }
 
-      // في loadDriverData بعد تحميل بيانات السائق:
-      const { data: availableOrdersData, error: availableOrdersError } = await ordersAPI.getAvailableOrders();
-      if (availableOrdersError) {
-        setAvailableOrders([]);
+      // جلب الطلب الجاري من قاعدة البيانات
+      const { data: currentOrderDb } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('driver_id', id)
+        .in('status', ['accepted', 'in_progress'])
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (currentOrderDb) {
+        setCurrentOrder(currentOrderDb);
+        setAvailableOrders([]); // لا تعرض الطلبات المتاحة إذا كان هناك طلب جاري
       } else {
-        setAvailableOrders(availableOrdersData || []);
+        setCurrentOrder(null);
+        // جلب الطلبات المتاحة كالمعتاد
+        const { data: availableOrdersData, error: availableOrdersError } = await ordersAPI.getAvailableOrders();
+        if (availableOrdersError) {
+          setAvailableOrders([]);
+        } else {
+          setAvailableOrders(availableOrdersData || []);
+        }
       }
       
       // حساب الإحصائيات
@@ -328,14 +365,16 @@ export default function DriverDashboardScreen({ navigation }) {
 
   // دالة توليد اختبار رقم ثابت مع خيارات
   const generateQuiz = () => {
-    // توليد رقم ثابت بين 100 و999
-    const target = Math.floor(Math.random() * 900) + 100;
-    // توليد رقمين متشابهين (فرق رقم أو رقمين)
-    let option2 = target + (Math.random() > 0.5 ? 1 : -1) * (Math.floor(Math.random() * 3) + 1);
-    let option3 = target + (Math.random() > 0.5 ? 1 : -1) * (Math.floor(Math.random() * 6) + 2);
-    // التأكد من عدم تكرار الرقم الصحيح
-    if (option2 === target) option2 += 2;
-    if (option3 === target || option3 === option2) option3 += 3;
+    // توليد رقم ثابت بين 1 و10 فقط
+    const target = Math.floor(Math.random() * 10) + 1;
+    // توليد رقمين متشابهين (من 1 إلى 10، ولا يساويان الرقم الصحيح)
+    let option2, option3;
+    do {
+      option2 = Math.floor(Math.random() * 10) + 1;
+    } while (option2 === target);
+    do {
+      option3 = Math.floor(Math.random() * 10) + 1;
+    } while (option3 === target || option3 === option2);
     // تجميع الخيارات وترتيبها عشوائيًا
     let options = [target, option2, option3];
     options = options.sort(() => Math.random() - 0.5);
@@ -483,7 +522,6 @@ export default function DriverDashboardScreen({ navigation }) {
               <Text>المتجر: {currentOrder.stores?.name || 'غير محدد'}</Text>
             ) : (
               <>
-                <Text>الزبون: {currentOrder.customer_name || 'غير محدد'}</Text>
                 <Text>من: {currentOrder.pickup_address || 'غير محدد'}</Text>
                 <Text>إلى: {currentOrder.delivery_address || 'غير محدد'}</Text>
               </>
@@ -521,7 +559,6 @@ export default function DriverDashboardScreen({ navigation }) {
                 ) : (
                   // إذا كان الطلب من الأدمن
                   <>
-                    <Text>الزبون: {order.customer_name || 'غير محدد'}</Text>
                     <Text>من: {order.pickup_address || 'غير محدد'}</Text>
                     <Text>إلى: {order.delivery_address || 'غير محدد'}</Text>
                   </>

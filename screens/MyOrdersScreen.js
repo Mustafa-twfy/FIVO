@@ -14,6 +14,7 @@ import { supabase, systemSettingsAPI } from '../supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ErrorMessage from '../components/ErrorMessage';
 import colors from '../colors';
+import isEqual from 'lodash.isequal';
 
 export default function MyOrdersScreen({ navigation }) {
   const [orders, setOrders] = useState([]);
@@ -45,12 +46,44 @@ export default function MyOrdersScreen({ navigation }) {
     };
     fetchSettings();
 
-    // تحديث الطلبات كل 15 ثانية
-    const interval = setInterval(() => {
-      loadMyOrders();
-    }, 15000);
+    // تحديث الطلبات كل 5 ثواني مع مقارنة ذكية
+    const interval = setInterval(async () => {
+      const driverId = await AsyncStorage.getItem('userId');
+      if (!driverId) return;
+      const { data, error } = await supabase
+        .from('orders')
+        .select(`
+          *,
+          stores (
+            id,
+            name,
+            phone,
+            address,
+            description
+          )
+        `)
+        .eq('driver_id', driverId)
+        .in('status', ['accepted', 'in_progress', 'completed'])
+        .order('created_at', { ascending: false });
+      if (!error && !isEqual(orders, data)) {
+        // فلترة الطلبات المكتملة حسب الوقت
+        const now = new Date();
+        const filtered = (data || []).filter(order => {
+          if (order.status === 'completed' && order.completed_at) {
+            const completedAt = new Date(order.completed_at);
+            const diff = now - completedAt;
+            if (diff > 86400000) {
+              supabase.from('orders').delete().eq('id', order.id);
+              return false;
+            }
+          }
+          return true;
+        });
+        setOrders(filtered);
+      }
+    }, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [orders]);
 
   useEffect(() => {
     if (driverInfo?.completed_orders_list) {

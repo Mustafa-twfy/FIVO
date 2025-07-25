@@ -5,6 +5,7 @@ import { driversAPI } from '../supabase';
 import colors from '../colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ErrorMessage from '../components/ErrorMessage';
+import isEqual from 'lodash.isequal';
 
 export default function DriverNotificationsScreen({ navigation }) {
   const [notifications, setNotifications] = useState([]);
@@ -23,7 +24,9 @@ export default function DriverNotificationsScreen({ navigation }) {
         setDriverId(id);
         const { data, error } = await driversAPI.getDriverNotifications(id);
         if (error) throw new Error('تعذر جلب الإشعارات');
-        setNotifications(data || []);
+        if (!isEqual(notifications, data)) {
+          setNotifications(data || []);
+        }
       } catch (error) {
         setError(error.message || 'حدث خطأ غير متوقع في تحميل الإشعارات');
       }
@@ -31,12 +34,10 @@ export default function DriverNotificationsScreen({ navigation }) {
     };
     fetchIdAndNotifications();
 
-    // تحديث الإشعارات كل 15 ثانية
-    const interval = setInterval(() => {
-      fetchIdAndNotifications();
-    }, 15000);
+    // تحديث الإشعارات كل 5 ثواني مع مقارنة ذكية
+    const interval = setInterval(fetchIdAndNotifications, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [notifications]);
 
   if (loading) {
     return (

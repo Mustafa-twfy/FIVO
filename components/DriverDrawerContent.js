@@ -160,89 +160,79 @@ export default function DriverDrawerContent({ navigation, state }) {
           </Text>
         </View>
       )}
-      {/* إذا كان السائق موقوفًا، لا تعرض زر تفعيل العمل */}
-      {!isBlocked && (
-        // باقي عناصر القائمة الجانبية (زر متصل/غير متصل ...)
-        <>
-          <ScrollView style={styles.content}>
-            {/* الإحصائيات */}
-            <View style={styles.statsSection}>
-              <Text style={styles.sectionTitle}>الإحصائيات</Text>
-              
-              <View style={styles.statsGrid}>
-                <View style={styles.statCard}>
-                  <Ionicons name="list-outline" size={24} color={colors.info} />
-                  <Text style={styles.statNumber}>{stats.totalOrders}</Text>
-                  <Text style={styles.statLabel}>إجمالي الطلبات</Text>
-                </View>
-                
-                <View style={styles.statCard}>
-                  <Ionicons name="checkmark-circle-outline" size={24} color={colors.success} />
-                  <Text style={styles.statNumber}>{stats.completedOrders}</Text>
-                  <Text style={styles.statLabel}>مكتملة</Text>
-                </View>
-                
-                {/* نقاط الديون */}
-                <View style={[styles.debtCard, stats.debtPoints > 10 ? styles.debtWarning : null]}>
-                  <Ionicons 
-                    name={stats.debtPoints > 10 ? "warning-outline" : "card-outline"} 
-                    size={24} 
-                    color={stats.debtPoints > 10 ? colors.danger : colors.primary} 
-                  />
-                  <View style={styles.debtInfo}>
-                    <Text style={styles.debtLabel}>نقاط الديون</Text>
-                    <Text style={[styles.debtNumber, stats.debtPoints > 10 ? styles.debtWarningText : null]}>
-                      {stats.debtPoints} نقطة
-                    </Text>
-                    <Text style={styles.debtValue}>
-                      ({stats.debtPoints * 250} دينار)
-                    </Text>
-                  </View>
-                </View>
+
+      {/* قائمة التنقل تظهر دائمًا */}
+      <ScrollView style={styles.content}>
+        {/* الإحصائيات */}
+        <View style={styles.statsSection}>
+          <Text style={styles.sectionTitle}>الإحصائيات</Text>
+          <View style={styles.statsGrid}>
+            <View style={styles.statCard}>
+              <Ionicons name="list-outline" size={24} color={colors.info} />
+              <Text style={styles.statNumber}>{stats.totalOrders}</Text>
+              <Text style={styles.statLabel}>إجمالي الطلبات</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Ionicons name="checkmark-circle-outline" size={24} color={colors.success} />
+              <Text style={styles.statNumber}>{stats.completedOrders}</Text>
+              <Text style={styles.statLabel}>مكتملة</Text>
+            </View>
+            <View style={[styles.debtCard, stats.debtPoints > 10 ? styles.debtWarning : null]}>
+              <Ionicons 
+                name={stats.debtPoints > 10 ? "warning-outline" : "card-outline"} 
+                size={24} 
+                color={stats.debtPoints > 10 ? colors.danger : colors.primary} 
+              />
+              <View style={styles.debtInfo}>
+                <Text style={styles.debtLabel}>نقاط الديون</Text>
+                <Text style={[styles.debtNumber, stats.debtPoints > 10 ? styles.debtWarningText : null]}>
+                  {stats.debtPoints} نقطة
+                </Text>
+                <Text style={styles.debtValue}>
+                  ({stats.debtPoints * 250} دينار)
+                </Text>
               </View>
             </View>
+          </View>
+        </View>
+        {/* قائمة الخيارات */}
+        <View style={styles.menuSection}>
+          <Text style={styles.sectionTitle}>القائمة</Text>
+          {menuItems.map((item, index) => (
+            <TouchableOpacity
+              key={index}
+              style={[
+                styles.menuItem,
+                state.index === index && styles.activeMenuItem
+              ]}
+              onPress={() => navigation.navigate(item.name)}
+            >
+              <Ionicons 
+                name={item.icon} 
+                size={24} 
+                color={state.index === index ? colors.primary : colors.dark} 
+              />
+              <Text style={[
+                styles.menuText,
+                state.index === index && styles.activeMenuText
+              ]}>
+                {item.label}
+              </Text>
+              <Ionicons 
+                name="chevron-forward" 
+                size={20} 
+                color={state.index === index ? colors.primary : colors.dark} 
+              />
+            </TouchableOpacity>
+          ))}
+        </View>
+      </ScrollView>
 
-            {/* قائمة التنقل */}
-            <View style={styles.menuSection}>
-              <Text style={styles.sectionTitle}>القائمة</Text>
-              
-              {menuItems.map((item, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={[
-                    styles.menuItem,
-                    state.index === index && styles.activeMenuItem
-                  ]}
-                  onPress={() => navigation.navigate(item.name)}
-                >
-                  <Ionicons 
-                    name={item.icon} 
-                    size={24} 
-                    color={state.index === index ? colors.primary : colors.dark} 
-                  />
-                  <Text style={[
-                    styles.menuText,
-                    state.index === index && styles.activeMenuText
-                  ]}>
-                    {item.label}
-                  </Text>
-                  <Ionicons 
-                    name="chevron-forward" 
-                    size={20} 
-                    color={state.index === index ? colors.primary : colors.dark} 
-                  />
-                </TouchableOpacity>
-              ))}
-            </View>
-          </ScrollView>
-
-          {/* زر تسجيل الخروج */}
-          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-            <Ionicons name="log-out-outline" size={24} color={colors.danger} />
-            <Text style={styles.logoutText}>تسجيل الخروج</Text>
-          </TouchableOpacity>
-        </>
-      )}
+      {/* زر تسجيل الخروج */}
+      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+        <Ionicons name="log-out-outline" size={24} color={colors.danger} />
+        <Text style={styles.logoutText}>تسجيل الخروج</Text>
+      </TouchableOpacity>
     </View>
   );
 }

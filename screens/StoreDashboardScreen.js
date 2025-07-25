@@ -19,6 +19,7 @@ import { supabase, storesAPI } from '../supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import colors from '../colors';
 import { useAuth } from '../context/AuthContext';
+import isEqual from 'lodash.isequal';
 
 export default function StoreDashboardScreen({ navigation }) {
   const { logout } = useAuth();
@@ -43,12 +44,22 @@ export default function StoreDashboardScreen({ navigation }) {
     };
     fetchStoreId();
 
-    // تحديث بيانات المتجر كل 15 ثانية
-    const interval = setInterval(() => {
-      if (storeId) loadStoreData(storeId);
-    }, 15000);
+    // تحديث بيانات المتجر كل 5 ثواني مع مقارنة ذكية
+    const interval = setInterval(async () => {
+      if (storeId) {
+        const { data: store, error: storeError } = await supabase
+          .from('stores')
+          .select('*')
+          .eq('id', storeId)
+          .single();
+        if (!storeError && !isEqual(storeInfo, store)) {
+          setStoreInfo(store);
+        }
+        // يمكنك إضافة تحديث الطلبات بنفس الطريقة إذا أردت
+      }
+    }, 5000);
     return () => clearInterval(interval);
-  }, [storeId]);
+  }, [storeId, storeInfo]);
 
   const loadStoreData = async (id) => {
     setLoading(true);
