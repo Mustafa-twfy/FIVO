@@ -88,10 +88,8 @@ function AuthStack() {
       <Stack.Screen name="PendingApproval" component={PendingApprovalScreen} />
       <Stack.Screen name="StoreRegistration" component={StoreRegistrationScreen} />
       <Stack.Screen name="StoreInfo" component={StoreInfoScreen} />
-      <Stack.Screen name="StoreLocation" component={StoreLocationScreen} />
       <Stack.Screen name="StoreDocuments" component={StoreDocumentsScreen} />
       <Stack.Screen name="StorePendingApproval" component={StorePendingApprovalScreen} />
-      <Stack.Screen name="StoreMap" component={StoreMapScreen} />
       <Stack.Screen name="UpdateStoreLocation" component={UpdateStoreLocationScreen} />
     </Stack.Navigator>
   );
@@ -262,9 +260,8 @@ export default function App() {
           <Stack.Screen name="DriverVehicle" component={DriverVehicleScreen} />
           <Stack.Screen name="StoreRegistration" component={StoreRegistrationScreen} />
           <Stack.Screen name="StoreInfo" component={StoreInfoScreen} />
-          <Stack.Screen name="StoreLocation" component={StoreLocationScreen} />
           <Stack.Screen name="StoreDocuments" component={StoreDocumentsScreen} />
-          <Stack.Screen name="StoreMap" component={StoreMapScreen} />
+          <Stack.Screen name="StorePendingApproval" component={StorePendingApprovalScreen} />
           <Stack.Screen name="UpdateStoreLocation" component={UpdateStoreLocationScreen} />
           <Stack.Screen name="UnifiedPendingApproval" component={UnifiedPendingApprovalScreen} />
           <Stack.Screen name="AdminNewOrderScreen" component={AdminNewOrderScreen} />
