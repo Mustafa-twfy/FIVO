@@ -53,14 +53,14 @@ export default function DriverDashboardScreen({ navigation }) {
     const fetchDriverId = async () => {
       const id = await AsyncStorage.getItem('userId');
       setDriverId(id);
-      if (id) loadDriverData(id);
+      if (id) loadDriverData(id); // هنا فقط setLoading
     };
     fetchDriverId();
 
-    // تحديث بيانات السائق كل 5 ثواني مع مقارنة ذكية
+    // تحديث بيانات السائق كل 5 ثواني مع مقارنة ذكية (تحديث صامت)
     const interval = setInterval(async () => {
       if (driverId) {
-        // جلب البيانات الجديدة
+        // جلب البيانات الجديدة بدون setLoading
         const { data: currentOrderDb } = await supabase
           .from('orders')
           .select('*')
@@ -78,7 +78,7 @@ export default function DriverDashboardScreen({ navigation }) {
             setAvailableOrders(availableOrdersData || []);
           }
         }
-        // يمكنك إضافة تحديث الإحصائيات بنفس الطريقة إذا أردت
+        // لا يوجد setLoading هنا إطلاقًا
       }
     }, 5000);
     return () => clearInterval(interval);

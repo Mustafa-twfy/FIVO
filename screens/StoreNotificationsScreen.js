@@ -15,8 +15,8 @@ export default function StoreNotificationsScreen({ navigation }) {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchIdAndNotifications = async () => {
-      setLoading(true);
+    const fetchIdAndNotifications = async (silent = false) => {
+      if (!silent) setLoading(true);
       setError(null);
       try {
         const id = await AsyncStorage.getItem('userId');
@@ -30,12 +30,14 @@ export default function StoreNotificationsScreen({ navigation }) {
       } catch (error) {
         setError(error.message || 'حدث خطأ غير متوقع في تحميل الإشعارات');
       }
-      setLoading(false);
+      if (!silent) setLoading(false);
     };
     fetchIdAndNotifications();
 
-    // تحديث الإشعارات كل 5 ثواني مع مقارنة ذكية
-    const interval = setInterval(fetchIdAndNotifications, 5000);
+    // تحديث الإشعارات كل 5 ثواني مع مقارنة ذكية (تحديث صامت)
+    const interval = setInterval(() => {
+      fetchIdAndNotifications(true); // silent
+    }, 5000);
     return () => clearInterval(interval);
   }, [notifications]);
 

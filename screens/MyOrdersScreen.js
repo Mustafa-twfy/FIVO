@@ -46,7 +46,7 @@ export default function MyOrdersScreen({ navigation }) {
     };
     fetchSettings();
 
-    // تحديث الطلبات كل 5 ثواني مع مقارنة ذكية
+    // تحديث الطلبات كل 5 ثواني مع مقارنة ذكية (تحديث صامت)
     const interval = setInterval(async () => {
       const driverId = await AsyncStorage.getItem('userId');
       if (!driverId) return;
@@ -81,6 +81,7 @@ export default function MyOrdersScreen({ navigation }) {
         });
         setOrders(filtered);
       }
+      // لا يوجد setLoading هنا إطلاقًا
     }, 5000);
     return () => clearInterval(interval);
   }, [orders]);

@@ -44,9 +44,10 @@ export default function AvailableOrdersScreen({ navigation }) {
     };
     fetchSettings();
 
-    // تحديث الطلبات كل 15 ثانية
+    // تحديث الطلبات كل 15 ثانية (تحديث صامت)
     const interval = setInterval(() => {
-      loadAvailableOrders();
+      // لا تستخدم setLoading هنا إطلاقًا
+      loadAvailableOrders(false); // أضف باراميتر silent إذا أردت
     }, 15000);
     return () => clearInterval(interval);
   }, []);
@@ -124,17 +125,16 @@ export default function AvailableOrdersScreen({ navigation }) {
     }
   };
 
-  const loadAvailableOrders = async () => {
-    setLoading(true);
-    setError(null);
+  const loadAvailableOrders = async (silent = false) => {
     try {
+      if (!silent) setLoading(true); // فقط عند أول تحميل أو تحديث يدوي
       console.log('=== تحميل الطلبات المتاحة ===');
       
       // التحقق من حالة السائق أولاً
       if (driverInfo && (!driverInfo.is_active || driverInfo.debt_points >= maxDebtPoints)) {
         console.log('السائق غير مؤهل للعمل');
         setOrders([]);
-        setLoading(false);
+        if (!silent) setLoading(false);
         return;
       }
 
@@ -164,8 +164,9 @@ export default function AvailableOrdersScreen({ navigation }) {
       setOrders(enhancedOrders);
     } catch (error) {
       setError(error.message || 'حدث خطأ غير متوقع في تحميل الطلبات');
+    } finally {
+      if (!silent) setLoading(false);
     }
-    setLoading(false);
   };
 
   const onRefresh = async () => {

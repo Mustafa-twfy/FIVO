@@ -40,11 +40,11 @@ export default function StoreDashboardScreen({ navigation }) {
     const fetchStoreId = async () => {
       const id = await AsyncStorage.getItem('userId');
       setStoreId(id);
-      if (id) loadStoreData(id);
+      if (id) loadStoreData(id); // هنا فقط setLoading
     };
     fetchStoreId();
 
-    // تحديث بيانات المتجر كل 5 ثواني مع مقارنة ذكية
+    // تحديث بيانات المتجر كل 5 ثواني مع مقارنة ذكية (تحديث صامت)
     const interval = setInterval(async () => {
       if (storeId) {
         const { data: store, error: storeError } = await supabase
@@ -55,7 +55,7 @@ export default function StoreDashboardScreen({ navigation }) {
         if (!storeError && !isEqual(storeInfo, store)) {
           setStoreInfo(store);
         }
-        // يمكنك إضافة تحديث الطلبات بنفس الطريقة إذا أردت
+        // لا يوجد setLoading هنا إطلاقًا
       }
     }, 5000);
     return () => clearInterval(interval);
