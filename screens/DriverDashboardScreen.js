@@ -479,13 +479,8 @@ export default function DriverDashboardScreen({ navigation }) {
     }
   };
 
-  if (settingsLoading || (loading && !loadingTimeout)) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.loadingText}>جاري تحميل الإعدادات...</Text>
-      </View>
-    );
+  if (settingsLoading || loading) {
+    return null;
   }
   if (loading && loadingTimeout) {
     return (

@@ -44,12 +44,7 @@ export default function SupportChatScreen({ navigation }) {
   };
 
   if (loading) {
-    return (
-      <View style={{flex:1,justifyContent:'center',alignItems:'center'}}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={{marginTop:12}}>جاري تحميل المحادثة...</Text>
-      </View>
-    );
+    return null;
   }
 
   const renderMessageBubble = (item) => (

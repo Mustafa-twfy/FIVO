@@ -101,12 +101,7 @@ export default function BannedUsersScreen({ navigation }) {
   };
 
   if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.loadingText}>جاري تحميل المحظورين...</Text>
-      </View>
-    );
+    return null;
   }
 
   return (

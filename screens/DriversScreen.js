@@ -236,12 +236,7 @@ export default function DriversScreen({ navigation }) {
   };
 
   if (settingsLoading || loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.loadingText}>جاري تحميل الإعدادات...</Text>
-      </View>
-    );
+    return null;
   }
 
   return (

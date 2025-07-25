@@ -318,12 +318,7 @@ export default function RegistrationRequestsScreen({ navigation }) {
   };
 
   if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FF9800" />
-        <Text style={styles.loadingText}>جاري تحميل طلبات التسجيل...</Text>
-      </View>
-    );
+    return null;
   }
 
   return (

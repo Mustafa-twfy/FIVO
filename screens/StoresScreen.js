@@ -202,12 +202,7 @@ export default function StoresScreen({ navigation }) {
   };
 
   if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.loadingText}>جاري تحميل المتاجر...</Text>
-      </View>
-    );
+    return null;
   }
 
   if (showOrders && selectedStore) {

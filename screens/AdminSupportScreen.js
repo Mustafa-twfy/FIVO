@@ -140,12 +140,7 @@ export default function AdminSupportScreen({ navigation }) {
   );
 
   if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FF9800" />
-        <Text style={styles.loadingText}>جاري تحميل المحادثات...</Text>
-      </View>
-    );
+    return null;
   }
 
   return (

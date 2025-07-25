@@ -126,12 +126,7 @@ export default function DriverProfileScreen({ navigation }) {
   const isBlocked = driverInfo?.is_suspended || (driverInfo?.debt_points >= maxDebtPoints);
 
   if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FF9800" />
-        <Text style={styles.loadingText}>جاري تحميل بيانات السائق...</Text>
-      </View>
-    );
+    return null;
   }
 
   return (

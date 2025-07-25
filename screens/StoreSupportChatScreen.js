@@ -44,12 +44,7 @@ export default function StoreSupportChatScreen({ navigation }) {
   };
 
   if (loading) {
-    return (
-      <View style={{flex:1,justifyContent:'center',alignItems:'center'}}>
-        <ActivityIndicator size="large" color="#FF9800" />
-        <Text style={{marginTop:12}}>جاري تحميل المحادثة...</Text>
-      </View>
-    );
+    return null;
   }
 
   const renderMessageBubble = (item) => (

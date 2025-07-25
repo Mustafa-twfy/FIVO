@@ -42,12 +42,7 @@ export default function StoreNotificationsScreen({ navigation }) {
   }, [notifications]);
 
   if (loading) {
-    return (
-      <View style={{flex:1,justifyContent:'center',alignItems:'center'}}>
-        <ActivityIndicator size="large" color="#2196F3" />
-        <Text style={{marginTop:12}}>جاري تحميل الإشعارات...</Text>
-      </View>
-    );
+    return null;
   }
   if (error) {
     return <ErrorMessage message={error} suggestion="يرجى التحقق من اتصالك بالإنترنت أو إعادة المحاولة." />;

@@ -25,12 +25,7 @@ export default function RewardsScreen({ navigation }) {
   };
 
   if (loading) {
-    return (
-      <View style={{flex:1,justifyContent:'center',alignItems:'center'}}>
-        <ActivityIndicator size="large" color="#4CAF50" />
-        <Text style={{marginTop:12}}>جاري تحميل المكافآت...</Text>
-      </View>
-    );
+    return null;
   }
 
   return (
