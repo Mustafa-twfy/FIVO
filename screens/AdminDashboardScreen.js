@@ -192,10 +192,6 @@ export default function AdminDashboardScreen({ navigation }) {
     );
   };
 
-  if (loading) {
-    return null;
-  }
-
   return (
     <View style={styles.container}>
       <View style={styles.header}>

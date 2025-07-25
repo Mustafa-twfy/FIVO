@@ -479,9 +479,7 @@ export default function DriverDashboardScreen({ navigation }) {
     }
   };
 
-  if (settingsLoading || loading) {
-    return null;
-  }
+  // تم حذف شرط التحميل
   if (loading && loadingTimeout) {
     return (
       <View style={styles.loadingContainer}>

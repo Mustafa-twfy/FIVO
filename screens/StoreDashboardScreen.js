@@ -228,10 +228,6 @@ export default function StoreDashboardScreen({ navigation }) {
     // Implementation of handleSendSupport function
   };
 
-  if (loading) {
-    return null;
-  }
-
   return (
     <View style={styles.container}>
       <View style={{backgroundColor: colors.primary, paddingTop: 40, paddingBottom: 20, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'}}>
