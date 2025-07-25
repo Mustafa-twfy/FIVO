@@ -36,7 +36,7 @@ export default function MyOrdersScreen({ navigation }) {
       setCompletedOrdersList(driverInfo.completed_orders_list);
     }
     const fetchSettings = async () => {
-      setSettingsLoading(true);
+      // تحميل الإعدادات في الخلفية بدون إظهار شاشة التحميل
       const { data, error } = await systemSettingsAPI.getSystemSettings();
       if (data) {
         setDebtPointValue(data.debt_point_value);
@@ -46,7 +46,7 @@ export default function MyOrdersScreen({ navigation }) {
     };
     fetchSettings();
 
-    // تحديث الطلبات كل 5 ثواني مع مقارنة ذكية (تحديث صامت)
+    // تحديث الطلبات كل 10 ثواني مع مقارنة ذكية (تحديث صامت)
     const interval = setInterval(async () => {
       const driverId = await AsyncStorage.getItem('userId');
       if (!driverId) return;
@@ -82,7 +82,7 @@ export default function MyOrdersScreen({ navigation }) {
         setOrders(filtered);
       }
       // لا يوجد setLoading هنا إطلاقًا
-    }, 5000);
+    }, 10000);
     return () => clearInterval(interval);
   }, [orders]);
 
@@ -284,7 +284,7 @@ export default function MyOrdersScreen({ navigation }) {
       <View style={styles.orderFooter}>
         <View style={styles.amountInfo}>
           <Text style={styles.amountLabel}>المبلغ:</Text>
-          <Text style={styles.amountValue}>{((item.amount || 0) / 1000).toFixed(2)} ألف دينار</Text>
+          <Text style={styles.amountValue}>{item.total_amount || 0} دينار</Text>
         </View>
         
         {item.status === 'accepted' && (
@@ -336,8 +336,14 @@ export default function MyOrdersScreen({ navigation }) {
   const isOutOfWorkHours = driverInfo && !isWithinWorkHours();
   const isBlocked = driverInfo?.is_suspended || (driverInfo?.debt_points >= maxDebtPoints) || isOutOfWorkHours;
 
-  if (settingsLoading || loading) {
-    return null;
+  // عرض شاشة التحميل فقط إذا لم تكن البيانات متوفرة
+  if (loading && orders.length === 0) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.warning} />
+        <Text style={styles.loadingText}>جاري تحميل طلباتك...</Text>
+      </View>
+    );
   }
   if (error) {
     return <ErrorMessage message={error} suggestion="يرجى التحقق من اتصالك بالإنترنت أو إعادة المحاولة." />;
@@ -356,66 +362,59 @@ export default function MyOrdersScreen({ navigation }) {
         <View style={styles.headerRight} />
       </View>
 
-      <FlatList
-        data={orders}
-        renderItem={renderOrderItem}
-        keyExtractor={(item) => item.id.toString()}
-        contentContainerStyle={styles.listContainer}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={[colors.warning]}
-            tintColor={colors.warning}
-          />
-        }
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Ionicons name="bicycle" size={80} color={colors.text} />
-            <Text style={styles.emptyTitle}>لا توجد طلبات</Text>
-            <Text style={styles.emptySubtitle}>
-              لم تقبل أي طلبات بعد.
+      {driverInfo && (
+        <View style={styles.driverInfoCard}>
+          <Text style={styles.driverName}>{driverInfo.name}</Text>
+          <Text style={styles.driverStatus}>
+            الحالة: {driverInfo.is_active ? 'متصل' : 'غير متصل'}
+          </Text>
+          <Text style={styles.debtInfo}>
+            نقاط الديون: {driverInfo.debt_points || 0} نقطة ({(driverInfo.debt_points || 0) * debtPointValue} دينار)
+          </Text>
+          {driverInfo.debt_points >= maxDebtPoints && (
+            <Text style={styles.warningText}>
+              ⚠️ لا يمكنك العمل - تجاوزت الحد الأقصى للنقاط
             </Text>
-            {/* تم حذف زر الطلبات المتاحة */}
-          </View>
-        }
-      />
+          )}
+        </View>
+      )}
 
       {isOutOfWorkHours ? (
-        <View style={styles.driverInfoCard}>
-          <Text style={styles.driverName}>{driverInfo?.name}</Text>
+        <View style={styles.warningCard}>
           <Text style={styles.warningText}>
             أنت خارج أوقات العمل المحددة من الإدارة. يرجى الالتزام بجدول الدوام.
           </Text>
         </View>
       ) : isBlocked ? (
-        <View style={styles.driverInfoCard}>
-          <Text style={styles.driverName}>{driverInfo?.name}</Text>
+        <View style={styles.warningCard}>
           <Text style={styles.warningText}>
             تم إيقافك مؤقتًا بسبب تجاوز حد الديون. يرجى تصفير الديون للعودة للعمل.
           </Text>
         </View>
       ) : (
-        // باقي محتوى الشاشة: الطلبات الخاصة بي
-        <>
-          {driverInfo && (
-            <View style={styles.driverInfoCard}>
-              <Text style={styles.driverName}>{driverInfo.name}</Text>
-              <Text style={styles.driverStatus}>
-                الحالة: {driverInfo.is_active ? 'متصل' : 'غير متصل'}
+        <FlatList
+          data={orders}
+          renderItem={renderOrderItem}
+          keyExtractor={(item) => item.id.toString()}
+          contentContainerStyle={styles.listContainer}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[colors.warning]}
+              tintColor={colors.warning}
+            />
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Ionicons name="bicycle" size={80} color={colors.text} />
+              <Text style={styles.emptyTitle}>لا توجد طلبات</Text>
+              <Text style={styles.emptySubtitle}>
+                لم تقبل أي طلبات بعد.
               </Text>
-              <Text style={styles.debtInfo}>
-                نقاط الديون: {driverInfo.debt_points || 0} نقطة ({driverInfo.total_debt || 0} دينار)
-              </Text>
-              {driverInfo.debt_points >= maxDebtPoints && (
-                <Text style={styles.warningText}>
-                  ⚠️ لا يمكنك العمل - تجاوزت الحد الأقصى للنقاط
-                </Text>
-              )}
             </View>
-          )}
-          {/* احذف قسم الطلبات المكتملة المنفصل */}
-        </>
+          }
+        />
       )}
     </View>
   );
@@ -672,6 +671,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.warning,
     fontWeight: 'bold',
+  },
+  warningCard: {
+    backgroundColor: '#FFF3E0',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: colors.warning,
   },
   completedSection: { padding: 16, backgroundColor: '#fff', borderTopWidth: 1, borderColor: '#eee' },
   completedTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 8, color: '#222' },

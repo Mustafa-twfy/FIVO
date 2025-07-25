@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, TextInput, Button, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { driversAPI, supportAPI } from '../supabase';
+import { driversAPI, supportAPI, systemSettingsAPI } from '../supabase';
 
 export default function FinancialAccountsScreen({ navigation }) {
   const driverId = 1; // عدل لاحقاً حسب نظام تسجيل الدخول
@@ -17,15 +17,23 @@ export default function FinancialAccountsScreen({ navigation }) {
 
   const fetchDriverDebt = async () => {
     setLoading(true);
-    const { data, error } = await driversAPI.getAllDrivers();
-    if (error || !data) {
-      Alert.alert('خطأ', 'تعذر جلب بيانات السائق');
-      setLoading(false);
-      return;
+    try {
+      // جلب إعدادات النظام أولاً
+      const { data: settings } = await systemSettingsAPI.getSystemSettings();
+      const debtPointValue = settings?.debt_point_value || 250;
+      
+      const { data, error } = await driversAPI.getAllDrivers();
+      if (error || !data) {
+        Alert.alert('خطأ', 'تعذر جلب بيانات السائق');
+        setLoading(false);
+        return;
+      }
+      const driver = data.find(d => d.id === driverId);
+      setDebtPoints(driver?.debt_points || 0);
+      setDebtValue((driver?.debt_points || 0) * debtPointValue);
+    } catch (error) {
+      Alert.alert('خطأ', 'حدث خطأ في جلب البيانات');
     }
-    const driver = data.find(d => d.id === driverId);
-    setDebtPoints(driver?.debt_points || 0);
-    setDebtValue((driver?.debt_points || 0) * 15);
     setLoading(false);
   };
 
@@ -56,10 +64,6 @@ export default function FinancialAccountsScreen({ navigation }) {
     setLoading(false);
   };
 
-  if (loading) {
-    return null;
-  }
-
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -73,10 +77,10 @@ export default function FinancialAccountsScreen({ navigation }) {
       </View>
       <View style={styles.card}>
         <Text style={styles.label}>ديونك الحالية بالنقاط:</Text>
-        <Text style={styles.value}>{debtPoints} نقطة</Text>
+        <Text style={styles.value}>{debtPoints || 0} نقطة</Text>
         <Text style={styles.label}>قيمة الديون:</Text>
-        <Text style={styles.value}>{debtValue} ألف دينار</Text>
-        <Text style={styles.info}>كل نقطة = 15 ألف دينار</Text>
+        <Text style={styles.value}>{debtValue || 0} ألف دينار</Text>
+        <Text style={styles.info}>كل نقطة = 250 دينار</Text>
         <Text style={styles.info}>تزداد النقاط عند أخذ كل طلب جديد.</Text>
         {debtPoints > 0 && (
           <TouchableOpacity style={styles.clearButton} onPress={handleClearDebt}>

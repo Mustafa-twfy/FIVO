@@ -206,7 +206,7 @@ export default function AdminDashboardScreen({ navigation }) {
           </View>
         </View>
         {/* زر تسجيل الخروج */}
-        <TouchableOpacity onPress={handleLogout} style={{marginLeft: 12, padding: 8}}>
+        <TouchableOpacity onPress={handleLogout} style={{marginLeft: 12, padding: 8, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 8}}>
           <Ionicons name="log-out-outline" size={26} color="#fff" />
         </TouchableOpacity>
       </View>
@@ -517,6 +517,7 @@ const styles = StyleSheet.create({
   adminInfo: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
   },
   adminAvatar: {
     width: 60,

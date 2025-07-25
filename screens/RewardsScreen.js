@@ -24,10 +24,6 @@ export default function RewardsScreen({ navigation }) {
     setLoading(false);
   };
 
-  if (loading) {
-    return null;
-  }
-
   return (
     <View style={styles.container}>
       <View style={styles.innerContent}>
@@ -45,7 +41,7 @@ export default function RewardsScreen({ navigation }) {
           renderItem={({ item }) => (
             <View style={styles.rewardCard}>
               <Text style={styles.rewardTitle}>{item.title}</Text>
-              <Text style={styles.rewardAmount}>القيمة: {item.amount} ألف دينار</Text>
+              <Text style={styles.rewardAmount}>القيمة: {item.amount} دينار</Text>
               <Text style={styles.rewardDate}>التاريخ: {item.created_at ? item.created_at.substring(0,10) : ''}</Text>
             </View>
           )}

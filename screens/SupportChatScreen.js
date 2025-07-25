@@ -43,14 +43,13 @@ export default function SupportChatScreen({ navigation }) {
     setSending(false);
   };
 
-  if (loading) {
-    return null;
-  }
-
   const renderMessageBubble = (item) => (
     <View key={item.id} style={[styles.messageBubble, item.sender === 'user' ? styles.myMessage : styles.supportMessage]}>
       <Text style={styles.messageText}>{item.message}</Text>
-      <Text style={styles.messageTime}>{item.created_at ? item.created_at.substring(11,16) : ''} {item.sender === 'user' ? '(أنت)' : '(الإدارة)'}</Text>
+      <Text style={styles.messageTime}>
+        {item.created_at ? new Date(item.created_at).toLocaleTimeString('ar-IQ', {hour: '2-digit', minute: '2-digit'}) : ''} 
+        {item.sender === 'user' ? '(أنت)' : '(الإدارة)'}
+      </Text>
     </View>
   );
 

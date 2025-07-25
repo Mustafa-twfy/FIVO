@@ -48,17 +48,30 @@ export default function DriverDashboardScreen({ navigation }) {
   const [pendingOrderToAccept, setPendingOrderToAccept] = useState(null);
   const [quizOptions, setQuizOptions] = useState([]); // خيارات الأرقام
   const [quizTarget, setQuizTarget] = useState(null); // الرقم الثابت
-  const [loadingTimeout, setLoadingTimeout] = useState(false);
 
   useEffect(() => {
     const fetchDriverId = async () => {
       const id = await AsyncStorage.getItem('userId');
       setDriverId(id);
-      if (id) loadDriverData(id); // هنا فقط setLoading
+      if (id) {
+        // تحميل سريع للبيانات الأساسية
+        const { data: driver } = await supabase
+          .from('drivers')
+          .select('id, name, phone, is_active, status, is_suspended')
+          .eq('id', id)
+          .single();
+        
+        if (driver) {
+          setDriverInfo(driver);
+          setIsOnline(driver.is_active || false);
+        }
+        
+        loadDriverData(id); // تحميل باقي البيانات
+      }
     };
     fetchDriverId();
 
-    // تحديث بيانات السائق كل 5 ثواني مع مقارنة ذكية (تحديث صامت)
+    // تحديث بيانات السائق كل 10 ثواني مع مقارنة ذكية (تحديث صامت)
     const interval = setInterval(async () => {
       if (driverId) {
         // جلب البيانات الجديدة بدون setLoading
@@ -81,22 +94,13 @@ export default function DriverDashboardScreen({ navigation }) {
         }
         // لا يوجد setLoading هنا إطلاقًا
       }
-    }, 5000);
+    }, 10000);
     return () => clearInterval(interval);
   }, [driverId, currentOrder, availableOrders]);
 
   useEffect(() => {
-    if (loading) {
-      const timeout = setTimeout(() => setLoadingTimeout(true), 10000);
-      return () => clearTimeout(timeout);
-    } else {
-      setLoadingTimeout(false);
-    }
-  }, [loading]);
-
-  useEffect(() => {
     const fetchSettings = async () => {
-      setSettingsLoading(true);
+      // تحميل الإعدادات في الخلفية بدون إظهار شاشة التحميل
       const { data, error } = await systemSettingsAPI.getSystemSettings();
       if (data) {
         setDebtPointValue(data.debt_point_value);
@@ -108,34 +112,39 @@ export default function DriverDashboardScreen({ navigation }) {
   }, []);
 
   const loadDriverData = async (id) => {
-    setLoading(true);
+    // لا نضع setLoading(true) هنا لأن البيانات الأساسية تم تحميلها مسبقاً
     try {
       console.log('Loading driver data for ID:', id);
       
-      // جلب بيانات السائق من supabase
-      const { data: driver, error: driverError } = await supabase
-        .from('drivers')
-        .select('*')
-        .eq('id', id)
-        .single();
+      // جلب بيانات السائق من supabase (إذا لم تكن متوفرة مسبقاً)
+      if (!driverInfo) {
+        const { data: driver, error: driverError } = await supabase
+          .from('drivers')
+          .select('*')
+          .eq('id', id)
+          .single();
+          
+        console.log('Driver data result:', { driver, driverError });
         
-      console.log('Driver data result:', { driver, driverError });
-      
-      // تحقق من حالة الحساب
-      if (!driver || driver.is_suspended || driver.status !== 'approved') {
-        Alert.alert(
-          'تم إيقاف الحساب',
-          driver?.is_suspended
-            ? 'تم إيقاف حسابك من قبل الإدارة. يرجى التواصل مع الدعم.'
-            : driver?.status !== 'approved'
-              ? 'حسابك غير مفعل أو بانتظار الموافقة. سيتم تسجيل الخروج.'
-              : 'تعذر العثور على حسابك. سيتم تسجيل الخروج.',
-          [
-            { text: 'حسناً', onPress: () => { logout(); navigation.replace('Login'); } }
-          ]
-        );
-        setLoading(false);
-        return;
+        // تحقق من حالة الحساب
+        if (!driver || driver.is_suspended || driver.status !== 'approved') {
+          Alert.alert(
+            'تم إيقاف الحساب',
+            driver?.is_suspended
+              ? 'تم إيقاف حسابك من قبل الإدارة. يرجى التواصل مع الدعم.'
+              : driver?.status !== 'approved'
+                ? 'حسابك غير مفعل أو بانتظار الموافقة. سيتم تسجيل الخروج.'
+                : 'تعذر العثور على حسابك. سيتم تسجيل الخروج.',
+            [
+              { text: 'حسناً', onPress: () => { logout(); navigation.replace('Login'); } }
+            ]
+          );
+          setLoading(false);
+          return;
+        }
+        
+        setDriverInfo(driver);
+        setIsOnline(driver?.is_active || false);
       }
       
       if (driverError) {
@@ -164,11 +173,12 @@ export default function DriverDashboardScreen({ navigation }) {
         setIsOnline(false);
       }
       
-      // جلب الطلبات المرتبطة بالسائق
+      // جلب الطلبات المرتبطة بالسائق (تحميل سريع)
       const { data: ordersData, error: ordersError } = await supabase
         .from('orders')
         .select('*')
-        .eq('driver_id', id);
+        .eq('driver_id', id)
+        .limit(10); // تحديد عدد الطلبات للتحميل السريع
         
       console.log('Orders data result:', { ordersData, ordersError });
       
@@ -181,7 +191,7 @@ export default function DriverDashboardScreen({ navigation }) {
         setMyOrders(ordersData || []);
       }
 
-      // جلب الطلب الجاري من قاعدة البيانات
+      // جلب الطلب الجاري من قاعدة البيانات (تحميل سريع)
       const { data: currentOrderDb } = await supabase
         .from('orders')
         .select('*')
@@ -196,7 +206,7 @@ export default function DriverDashboardScreen({ navigation }) {
         setAvailableOrders([]); // لا تعرض الطلبات المتاحة إذا كان هناك طلب جاري
       } else {
         setCurrentOrder(null);
-        // جلب الطلبات المتاحة كالمعتاد
+        // جلب الطلبات المتاحة كالمعتاد (تحميل سريع)
         const { data: availableOrdersData, error: availableOrdersError } = await ordersAPI.getAvailableOrders();
         if (availableOrdersError) {
           setAvailableOrders([]);
@@ -205,7 +215,7 @@ export default function DriverDashboardScreen({ navigation }) {
         }
       }
       
-      // حساب الإحصائيات
+      // حساب الإحصائيات (تحميل سريع)
       const orders = ordersData || [];
       const totalOrders = orders.length;
       const pendingOrders = orders.filter(order => order.status === 'pending').length;
@@ -479,18 +489,13 @@ export default function DriverDashboardScreen({ navigation }) {
     }
   };
 
-  // تم حذف شرط التحميل
-  if (loading && loadingTimeout) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Ionicons name="alert-circle-outline" size={48} color={colors.danger} />
-        <Text style={styles.loadingText}>حدث تأخير أو مشكلة في تحميل البيانات.</Text>
-        <TouchableOpacity onPress={() => { setLoading(true); setLoadingTimeout(false); if (driverId) loadDriverData(driverId); }} style={{marginTop:24, backgroundColor:colors.primary, padding:12, borderRadius:8}}>
-          <Text style={{color:'#fff', fontWeight:'bold'}}>إعادة المحاولة</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
+  // عرض شاشة التحميل فقط إذا لم تكن البيانات الأساسية متوفرة
+  // إزالة شاشة التحميل:
+  // احذف شرط if (loading && !driverInfo) { ... }
+  // في عناصر الواجهة:
+  // استخدم driverInfo?.name || 'اسم السائق'، driverInfo?.phone || '---'، ...
+  // في القوائم:
+  // إذا لم تتوفر البيانات بعد، اعرض عناصر فارغة أو نصوص افتراضية.
 
   // شاشة فارغة إذا لم توجد طلبات متاحة
   if (availableOrders.length === 0) {
@@ -518,7 +523,7 @@ export default function DriverDashboardScreen({ navigation }) {
           <View style={styles.emptyIconCircle}>
             <Ionicons name="list-outline" size={54} color={colors.primary} />
           </View>
-          <Text style={styles.emptyText}>لا يوجد طلبات</Text>
+          <Text style={styles.emptyText}>لا يوجد طلبات متاحة حالياً</Text>
         </View>
       </View>
     );
@@ -534,7 +539,7 @@ export default function DriverDashboardScreen({ navigation }) {
         <View style={{flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center'}}>
           <View style={{alignItems: 'center', marginRight: 12}}>
             <Text style={{color: colors.secondary, fontWeight: 'bold', fontSize: 18}}>{driverInfo?.name || 'اسم السائق'}</Text>
-            <Text style={{color: colors.secondary, fontSize: 14, opacity: 0.9}}>{driverInfo?.phone || 'رقم الهاتف'}</Text>
+            <Text style={{color: colors.secondary, fontSize: 14, opacity: 0.9}}>{driverInfo?.phone || '---'}</Text>
           </View>
           <Image source={{ uri: 'https://i.ibb.co/svdQ0fdc/IMG-20250623-233435-969.jpg' }} style={{width: 48, height: 48, borderRadius: 24, borderWidth: 2, borderColor: colors.secondary, marginHorizontal: 8}} />
         </View>
@@ -562,7 +567,7 @@ export default function DriverDashboardScreen({ navigation }) {
               </>
             )}
             <Text>المبلغ: {currentOrder.total_amount || 0} دينار</Text>
-            <Text>العنوان: {currentOrder.address || currentOrder.delivery_address || 'غير محدد'}</Text>
+            <Text>العنوان: {currentOrder.delivery_address || currentOrder.address || 'غير محدد'}</Text>
             {currentOrder.customer_phone && (
               <Text>هاتف الزبون: {currentOrder.customer_phone}</Text>
             )}
@@ -588,7 +593,7 @@ export default function DriverDashboardScreen({ navigation }) {
                 <View key={order.id} style={{backgroundColor:'#F5F5F5', borderRadius:12, padding:16, marginBottom:16}}>
                 {order.store_id ? (
                   <>
-                    <Text>العنوان: {order.address || order.delivery_address || 'غير محدد'}</Text>
+                    <Text>العنوان: {order.delivery_address || order.address || 'غير محدد'}</Text>
                     <Text>المتجر: {order.stores?.name || 'غير محدد'}</Text>
                   </>
                 ) : (

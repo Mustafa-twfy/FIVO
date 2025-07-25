@@ -34,16 +34,13 @@ export default function DriverNotificationsScreen({ navigation }) {
     };
     fetchIdAndNotifications();
 
-    // تحديث الإشعارات كل 5 ثواني مع مقارنة ذكية (تحديث صامت)
+    // تحديث الإشعارات كل 10 ثواني مع مقارنة ذكية (تحديث صامت)
     const interval = setInterval(() => {
       fetchIdAndNotifications(true); // silent
-    }, 5000);
+    }, 10000);
     return () => clearInterval(interval);
   }, [notifications]);
 
-  if (loading) {
-    return null;
-  }
   if (error) {
     return <ErrorMessage message={error} suggestion="يرجى التحقق من اتصالك بالإنترنت أو إعادة المحاولة." />;
   }
@@ -65,7 +62,9 @@ export default function DriverNotificationsScreen({ navigation }) {
             <Ionicons name="notifications-outline" size={24} color="#2196F3" style={{marginBottom:6}} />
             <Text style={styles.notificationTitle}>{item.title}</Text>
             <Text style={styles.notificationBody}>{item.message}</Text>
-            <Text style={styles.notificationDate}>{item.created_at ? item.created_at.substring(0,16).replace('T',' ') : ''}</Text>
+            <Text style={styles.notificationDate}>
+              {item.created_at ? new Date(item.created_at).toLocaleString('ar-IQ') : ''}
+            </Text>
             {itemLoading[item.id] && (
               <ActivityIndicator size="small" color="#2196F3" style={{ marginLeft: 8 }} />
             )}

@@ -47,6 +47,7 @@ import DriverDrawerContent from './components/DriverDrawerContent';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import AdminNewOrderScreen from './screens/AdminNewOrderScreen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import EncryptedStorage from 'react-native-encrypted-storage';
 
 I18nManager.forceRTL(true);
 
@@ -228,11 +229,33 @@ function AppContent() {
   useEffect(() => {
     const checkUserSession = async () => {
       try {
+        // جرب أولاً استعادة الجلسة من EncryptedStorage
+        const sessionStr = await EncryptedStorage.getItem('session');
+        if (sessionStr) {
+          const session = JSON.parse(sessionStr);
+          // تحقق من صلاحية الجلسة
+          if (session.sessionExpiry) {
+            const now = new Date();
+            const expiry = new Date(session.sessionExpiry);
+            if (now < expiry) {
+              // الجلسة صالحة
+              if (session.userType === 'admin') {
+                setInitialRoute('AdminDashboard');
+              } else if (session.userType === 'driver') {
+                setInitialRoute('Driver');
+              } else if (session.userType === 'store') {
+                setInitialRoute('Store');
+              } else {
+                setInitialRoute('Login');
+              }
+              return;
+            }
+          }
+        }
+        // إذا لم توجد جلسة مشفرة أو انتهت صلاحيتها، fallback إلى AsyncStorage
         const userId = await AsyncStorage.getItem('userId');
         const userType = await AsyncStorage.getItem('userType');
-        
         if (userId && userType) {
-          // التحقق من صحة الجلسة
           if (userType === 'admin') {
             setInitialRoute('AdminDashboard');
           } else if (userType === 'driver') {
@@ -240,8 +263,11 @@ function AppContent() {
           } else if (userType === 'store') {
             setInitialRoute('Store');
           }
+        } else {
+          setInitialRoute('Login');
         }
       } catch (error) {
+        setInitialRoute('Login');
         console.error('خطأ في التحقق من الجلسة:', error);
       }
     };

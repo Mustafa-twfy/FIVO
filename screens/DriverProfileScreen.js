@@ -125,10 +125,6 @@ export default function DriverProfileScreen({ navigation }) {
   const maxDebtPoints = 40; // حد الديون الأقصى من إعدادات النظام
   const isBlocked = driverInfo?.is_suspended || (driverInfo?.debt_points >= maxDebtPoints);
 
-  if (loading) {
-    return null;
-  }
-
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -158,7 +154,7 @@ export default function DriverProfileScreen({ navigation }) {
             <Text style={styles.inputLabel}>اسم السائق</Text>
             <TextInput
               style={[styles.input, styles.inputDisabled]}
-              value={formData.name}
+              value={formData.name || '---'}
               placeholder="أدخل اسم السائق"
               editable={false}
             />
@@ -168,7 +164,7 @@ export default function DriverProfileScreen({ navigation }) {
             <Text style={styles.inputLabel}>رقم الهاتف</Text>
             <TextInput
               style={[styles.input, styles.inputDisabled]}
-              value={formData.phone}
+              value={formData.phone || '---'}
               placeholder="أدخل رقم الهاتف"
               keyboardType="phone-pad"
               editable={false}
@@ -179,7 +175,7 @@ export default function DriverProfileScreen({ navigation }) {
             <Text style={styles.inputLabel}>البريد الإلكتروني</Text>
             <TextInput
               style={[styles.input, styles.inputDisabled]}
-              value={formData.email}
+              value={formData.email || '---'}
               placeholder="أدخل البريد الإلكتروني"
               keyboardType="email-address"
               editable={false}
@@ -195,27 +191,17 @@ export default function DriverProfileScreen({ navigation }) {
             <Text style={styles.inputLabel}>نوع المركبة</Text>
             <TextInput
               style={[styles.input, styles.inputDisabled]}
-              value={formData.vehicle_type}
+              value={formData.vehicle_type || '---'}
               placeholder="نوع المركبة"
               editable={false}
             />
           </View>
 
-          <View style={styles.vehicleInfoCard}>
-            <Ionicons name="bicycle" size={24} color="#2196F3" />
-            <Text style={styles.vehicleInfoText}>{formData.vehicle_type || 'غير محدد'}</Text>
-          </View>
-        </View>
-
-        {/* معلومات المركبة */}
-        <View style={styles.infoContainer}>
-          <Text style={styles.sectionTitle}>معلومات المركبة</Text>
-          
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>رقم المركبة</Text>
             <TextInput
               style={[styles.input, styles.inputDisabled]}
-              value={formData.vehicle_number}
+              value={formData.vehicle_number || '---'}
               placeholder="أدخل رقم المركبة"
               editable={false}
             />
@@ -225,10 +211,15 @@ export default function DriverProfileScreen({ navigation }) {
             <Text style={styles.inputLabel}>رقم الرخصة</Text>
             <TextInput
               style={[styles.input, styles.inputDisabled]}
-              value={formData.license_number}
+              value={formData.license_number || '---'}
               placeholder="أدخل رقم الرخصة"
               editable={false}
             />
+          </View>
+
+          <View style={styles.vehicleInfoCard}>
+            <Ionicons name="bicycle" size={24} color="#2196F3" />
+            <Text style={styles.vehicleInfoText}>{formData.vehicle_type || 'غير محدد'}</Text>
           </View>
         </View>
 
@@ -289,7 +280,7 @@ export default function DriverProfileScreen({ navigation }) {
           </View>
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>إجمالي الديون:</Text>
-            <Text style={styles.infoValue}>{driverInfo?.total_debt || 0} دينار</Text>
+            <Text style={styles.infoValue}>{(driverInfo?.debt_points || 0) * 250} دينار</Text>
           </View>
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>الحد الأقصى:</Text>

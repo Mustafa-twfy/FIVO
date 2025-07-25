@@ -34,7 +34,7 @@ export default function AvailableOrdersScreen({ navigation }) {
     loadAvailableOrders();
     loadDriverLocation();
     const fetchSettings = async () => {
-      setSettingsLoading(true);
+      // تحميل الإعدادات في الخلفية بدون إظهار شاشة التحميل
       const { data, error } = await systemSettingsAPI.getSystemSettings();
       if (data) {
         setDebtPointValue(data.debt_point_value);
@@ -44,11 +44,11 @@ export default function AvailableOrdersScreen({ navigation }) {
     };
     fetchSettings();
 
-    // تحديث الطلبات كل 15 ثانية (تحديث صامت)
+    // تحديث الطلبات كل 20 ثانية (تحديث صامت)
     const interval = setInterval(() => {
       // لا تستخدم setLoading هنا إطلاقًا
       loadAvailableOrders(false); // أضف باراميتر silent إذا أردت
-    }, 15000);
+    }, 20000);
     return () => clearInterval(interval);
   }, []);
 
@@ -340,8 +340,14 @@ export default function AvailableOrdersScreen({ navigation }) {
   const isOutOfWorkHours = driverInfo && !isWithinWorkHours();
   const isBlocked = driverInfo?.is_suspended || (driverInfo?.debt_points >= maxDebtPoints) || isOutOfWorkHours;
 
-  if (settingsLoading || loading) {
-    return null;
+  // عرض شاشة التحميل فقط إذا لم تكن البيانات متوفرة
+  if (loading && orders.length === 0) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#FF9800" />
+        <Text style={styles.loadingText}>جاري تحميل الطلبات...</Text>
+      </View>
+    );
   }
   if (error) {
     return <ErrorMessage message={error} suggestion="يرجى التحقق من اتصالك بالإنترنت أو إعادة المحاولة." />;
@@ -359,16 +365,31 @@ export default function AvailableOrdersScreen({ navigation }) {
         </TouchableOpacity>
       </View>
 
-      {isOutOfWorkHours ? (
+      {driverInfo && (
         <View style={styles.driverInfoCard}>
-          <Text style={styles.driverName}>{driverInfo?.name}</Text>
+          <Text style={styles.driverName}>{driverInfo.name}</Text>
+          <Text style={styles.driverStatus}>
+            الحالة: {driverInfo.is_active ? 'متصل' : 'غير متصل'}
+          </Text>
+          <Text style={styles.debtInfo}>
+            نقاط الديون: {driverInfo.debt_points || 0} نقطة ({(driverInfo.debt_points || 0) * debtPointValue} دينار)
+          </Text>
+          {driverInfo.debt_points >= maxDebtPoints && (
+            <Text style={styles.warningText}>
+              ⚠️ لا يمكنك العمل - تجاوزت الحد الأقصى للنقاط
+            </Text>
+          )}
+        </View>
+      )}
+
+      {isOutOfWorkHours ? (
+        <View style={styles.warningCard}>
           <Text style={styles.warningText}>
             أنت خارج أوقات العمل المحددة من الإدارة. يرجى الالتزام بجدول الدوام.
           </Text>
         </View>
       ) : isBlocked ? (
-        <View style={styles.driverInfoCard}>
-          <Text style={styles.driverName}>{driverInfo?.name}</Text>
+        <View style={styles.warningCard}>
           <Text style={styles.warningText}>
             تم إيقافك مؤقتًا بسبب تجاوز حد الديون. يرجى تصفير الديون للعودة للعمل.
           </Text>
@@ -376,23 +397,6 @@ export default function AvailableOrdersScreen({ navigation }) {
       ) : (
         // باقي محتوى الشاشة: الطلبات المتاحة
         <>
-          {driverInfo && (
-            <View style={styles.driverInfoCard}>
-              <Text style={styles.driverName}>{driverInfo.name}</Text>
-              <Text style={styles.driverStatus}>
-                الحالة: {driverInfo.is_active ? 'متصل' : 'غير متصل'}
-              </Text>
-              <Text style={styles.debtInfo}>
-                نقاط الديون: {driverInfo.debt_points || 0} نقطة ({(driverInfo.debt_points || 0) * debtPointValue} دينار)
-              </Text>
-              {driverInfo.debt_points >= maxDebtPoints && (
-                <Text style={styles.warningText}>
-                  ⚠️ لا يمكنك العمل - تجاوزت الحد الأقصى للنقاط
-                </Text>
-              )}
-            </View>
-          )}
-
           {orderSummary && (
             <View style={styles.summaryCard}>
               <Text style={styles.summaryTitle}>ملخص الطلبات المتاحة</Text>
@@ -666,6 +670,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#F44336',
     fontWeight: 'bold',
+  },
+  warningCard: {
+    backgroundColor: '#FFEBEE',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#F44336',
   },
   // الأنماط الجديدة
   priorityInfo: {
