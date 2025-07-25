@@ -8,8 +8,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../supabase';
 import colors from '../colors';
 import { systemSettingsAPI } from '../supabase';
+import { useAuth } from '../context/AuthContext';
 
 export default function AdminDashboardScreen({ navigation }) {
+  const { logout } = useAuth();
   const [stats, setStats] = useState({
     drivers: 0,
     stores: 0,
@@ -182,6 +184,7 @@ export default function AdminDashboardScreen({ navigation }) {
           onPress: async () => {
             await AsyncStorage.removeItem('userId');
             await AsyncStorage.removeItem('userType');
+            logout();
             navigation.replace('Login');
           }
         }

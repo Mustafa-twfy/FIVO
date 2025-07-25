@@ -131,7 +131,7 @@ export default function SplashScreen() {
           ]}
         >
           <Ionicons name="bicycle" size={40} color="#fff" />
-          <Text style={styles.loadingText}>جاري التحميل...</Text>
+          {/* <Text style={styles.loadingText}>جاري التحميل...</Text> */}
         </Animated.View>
       </View>
     </LinearGradient>

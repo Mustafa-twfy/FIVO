@@ -216,7 +216,8 @@ export default function StoreDashboardScreen({ navigation }) {
           onPress: async () => {
             await AsyncStorage.removeItem('userId');
             await AsyncStorage.removeItem('userType');
-            navigation.navigate('Login');
+            logout();
+            navigation.replace('Login');
           }
         }
       ]
@@ -228,12 +229,7 @@ export default function StoreDashboardScreen({ navigation }) {
   };
 
   if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FF9800" />
-        <Text style={styles.loadingText}>جاري تحميل بيانات المتجر...</Text>
-      </View>
-    );
+    return null;
   }
 
   return (

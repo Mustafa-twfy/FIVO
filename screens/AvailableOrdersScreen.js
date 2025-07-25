@@ -341,12 +341,7 @@ export default function AvailableOrdersScreen({ navigation }) {
   const isBlocked = driverInfo?.is_suspended || (driverInfo?.debt_points >= maxDebtPoints) || isOutOfWorkHours;
 
   if (settingsLoading || loading) {
-    return (
-      <View style={{flex:1,justifyContent:'center',alignItems:'center'}}>
-        <ActivityIndicator size="large" color="#2196F3" />
-        <Text style={{marginTop:12}}>جاري تحميل الإعدادات...</Text>
-      </View>
-    );
+    return null;
   }
   if (error) {
     return <ErrorMessage message={error} suggestion="يرجى التحقق من اتصالك بالإنترنت أو إعادة المحاولة." />;

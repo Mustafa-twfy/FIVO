@@ -48,6 +48,7 @@ export default function DriverDashboardScreen({ navigation }) {
   const [pendingOrderToAccept, setPendingOrderToAccept] = useState(null);
   const [quizOptions, setQuizOptions] = useState([]); // خيارات الأرقام
   const [quizTarget, setQuizTarget] = useState(null); // الرقم الثابت
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
 
   useEffect(() => {
     const fetchDriverId = async () => {
@@ -83,6 +84,15 @@ export default function DriverDashboardScreen({ navigation }) {
     }, 5000);
     return () => clearInterval(interval);
   }, [driverId, currentOrder, availableOrders]);
+
+  useEffect(() => {
+    if (loading) {
+      const timeout = setTimeout(() => setLoadingTimeout(true), 10000);
+      return () => clearTimeout(timeout);
+    } else {
+      setLoadingTimeout(false);
+    }
+  }, [loading]);
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -327,9 +337,22 @@ export default function DriverDashboardScreen({ navigation }) {
 
   // دالة تسجيل الخروج
   const handleLogout = async () => {
-    await AsyncStorage.removeItem('userId');
-    await AsyncStorage.removeItem('userType');
-    navigation.replace('Login');
+    Alert.alert(
+      'تسجيل الخروج',
+      'هل أنت متأكد من تسجيل الخروج؟',
+      [
+        { text: 'إلغاء', style: 'cancel' },
+        {
+          text: 'تأكيد',
+          onPress: async () => {
+            await AsyncStorage.removeItem('userId');
+            await AsyncStorage.removeItem('userType');
+            logout();
+            navigation.replace('Login');
+          }
+        }
+      ]
+    );
   };
 
   const handleSendSupport = async () => {
@@ -456,11 +479,22 @@ export default function DriverDashboardScreen({ navigation }) {
     }
   };
 
-  if (settingsLoading || loading) {
+  if (settingsLoading || (loading && !loadingTimeout)) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>جاري تحميل الإعدادات...</Text>
+      </View>
+    );
+  }
+  if (loading && loadingTimeout) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Ionicons name="alert-circle-outline" size={48} color={colors.danger} />
+        <Text style={styles.loadingText}>حدث تأخير أو مشكلة في تحميل البيانات.</Text>
+        <TouchableOpacity onPress={() => { setLoading(true); setLoadingTimeout(false); if (driverId) loadDriverData(driverId); }} style={{marginTop:24, backgroundColor:colors.primary, padding:12, borderRadius:8}}>
+          <Text style={{color:'#fff', fontWeight:'bold'}}>إعادة المحاولة</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -500,11 +534,19 @@ export default function DriverDashboardScreen({ navigation }) {
   return (
     <View style={{flex:1, backgroundColor:'#fff'}}>
       {/* الشريط العلوي */}
-      <View style={{backgroundColor: colors.primary, paddingTop: 40, paddingBottom: 12, paddingHorizontal: 16, flexDirection:'row', alignItems:'center', justifyContent:'space-between'}}>
-        {/* تم حذف الأيقونات من اليمين */}
-        <View />
-        <TouchableOpacity onPress={()=>navigation.openDrawer()}>
-          <Ionicons name="menu" size={28} color="#fff" />
+      <View style={{backgroundColor: colors.primary, paddingTop: 40, paddingBottom: 20, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'}}>
+        <TouchableOpacity onPress={() => navigation.openDrawer()} style={{padding: 8}}>
+          <Ionicons name="menu" size={28} color={colors.secondary} />
+        </TouchableOpacity>
+        <View style={{flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center'}}>
+          <View style={{alignItems: 'center', marginRight: 12}}>
+            <Text style={{color: colors.secondary, fontWeight: 'bold', fontSize: 18}}>{driverInfo?.name || 'اسم السائق'}</Text>
+            <Text style={{color: colors.secondary, fontSize: 14, opacity: 0.9}}>{driverInfo?.phone || 'رقم الهاتف'}</Text>
+          </View>
+          <Image source={{ uri: 'https://i.ibb.co/svdQ0fdc/IMG-20250623-233435-969.jpg' }} style={{width: 48, height: 48, borderRadius: 24, borderWidth: 2, borderColor: colors.secondary, marginHorizontal: 8}} />
+        </View>
+        <TouchableOpacity onPress={handleLogout} style={{padding: 8}}>
+          <Ionicons name="log-out-outline" size={26} color={colors.secondary} />
         </TouchableOpacity>
       </View>
       {/* معلومات السائق */}

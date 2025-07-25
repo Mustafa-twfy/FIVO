@@ -57,12 +57,7 @@ export default function FinancialAccountsScreen({ navigation }) {
   };
 
   if (loading) {
-    return (
-      <View style={{flex:1,justifyContent:'center',alignItems:'center'}}>
-        <ActivityIndicator size="large" color="#FF9800" />
-        <Text style={{marginTop:12}}>جاري تحميل البيانات...</Text>
-      </View>
-    );
+    return null;
   }
 
   return (

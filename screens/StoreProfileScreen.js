@@ -143,12 +143,7 @@ export default function StoreProfileScreen({ navigation }) {
   };
 
   if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FF9800" />
-        <Text style={styles.loadingText}>جاري تحميل بيانات المتجر...</Text>
-      </View>
-    );
+    return null;
   }
 
   return (

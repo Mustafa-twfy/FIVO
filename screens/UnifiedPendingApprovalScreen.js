@@ -133,12 +133,7 @@ export default function UnifiedPendingApprovalScreen({ navigation, route }) {
   };
 
   if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.loadingText}>جاري التحقق من حالة الطلب...</Text>
-      </View>
-    );
+    return null;
   }
 
   return (
