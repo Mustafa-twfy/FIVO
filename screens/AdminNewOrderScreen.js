@@ -10,6 +10,7 @@ export default function AdminNewOrderScreen({ navigation }) {
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
+  const [extraDetails, setExtraDetails] = useState('');
   const [loading, setLoading] = useState(false);
 
   const validate = () => {
@@ -42,6 +43,7 @@ export default function AdminNewOrderScreen({ navigation }) {
         delivery_address: deliveryAddress,
         items_description: description,
         description: description,
+        extra_details: extraDetails,
         total_amount: parseFloat(amount),
         delivery_fee: 0,
         is_urgent: false,
@@ -72,16 +74,20 @@ export default function AdminNewOrderScreen({ navigation }) {
         <TextInput style={styles.input} value={customerPhone} onChangeText={setCustomerPhone} placeholder="07801234567" keyboardType="phone-pad" maxLength={11} textAlign="right" />
       </View>
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>العنوان الذي يُجلب منه الطلب *</Text>
+        <Text style={styles.label}>من العنوان *</Text>
         <TextInput style={styles.input} value={pickupAddress} onChangeText={setPickupAddress} placeholder="مثال: شارع فلسطين، بغداد" textAlign="right" />
       </View>
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>العنوان الذي يُسلّم إليه الطلب *</Text>
+        <Text style={styles.label}>إلى العنوان *</Text>
         <TextInput style={styles.input} value={deliveryAddress} onChangeText={setDeliveryAddress} placeholder="مثال: حي الجامعة، بغداد" textAlign="right" />
       </View>
       <View style={styles.inputGroup}>
         <Text style={styles.label}>وصف الطلب *</Text>
         <TextInput style={[styles.input, {height: 80}]} value={description} onChangeText={setDescription} placeholder="تفاصيل الطلب" multiline textAlign="right" />
+      </View>
+      <View style={styles.inputGroup}>
+        <Text style={styles.label}>تفاصيل إضافية (اختياري)</Text>
+        <TextInput style={[styles.input, {height: 60}]} value={extraDetails} onChangeText={setExtraDetails} placeholder="أي تفاصيل أو ملاحظات إضافية..." multiline textAlign="right" />
       </View>
       <View style={styles.inputGroup}>
         <Text style={styles.label}>المبلغ (دينار) *</Text>

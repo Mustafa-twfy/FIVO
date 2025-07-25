@@ -385,11 +385,10 @@ export default function DriverDashboardScreen({ navigation }) {
         await supabase.from('drivers').update({ total_orders, completed_orders, completed_orders_list }).eq('id', driverId);
       }
       // حذف الطلب من قاعدة البيانات
-      await supabase.from('orders').delete().eq('id', currentOrder.id);
+      // await supabase.from('orders').delete().eq('id', currentOrder.id); // This line is removed
       setCurrentOrder(null);
       await loadDriverData(driverId); // إعادة تحميل بيانات السائق
       setLoading(false);
-      Alert.alert('تم', 'تم إكمال الطلب بنجاح، وتم إشعار المتجر وحذف الطلب من قاعدة البيانات!');
     } catch (error) {
       setLoading(false);
       Alert.alert('خطأ', 'حدث خطأ أثناء إكمال الطلب');
@@ -480,11 +479,22 @@ export default function DriverDashboardScreen({ navigation }) {
         <View style={{flex:1, justifyContent:'center', alignItems:'center', padding:16}}>
           <Text style={{fontWeight:'bold', fontSize:18, marginBottom:12}}>طلب جاري</Text>
           <View style={{backgroundColor:'#F5F5F5', borderRadius:12, padding:16, width:'100%', marginBottom:16}}>
-            <Text>المتجر: {currentOrder.stores?.name || 'غير محدد'}</Text>
+            {currentOrder.store_id ? (
+              <Text>المتجر: {currentOrder.stores?.name || 'غير محدد'}</Text>
+            ) : (
+              <>
+                <Text>الزبون: {currentOrder.customer_name || 'غير محدد'}</Text>
+                <Text>من: {currentOrder.pickup_address || 'غير محدد'}</Text>
+                <Text>إلى: {currentOrder.delivery_address || 'غير محدد'}</Text>
+              </>
+            )}
             <Text>المبلغ: {currentOrder.total_amount || 0} دينار</Text>
-            <Text>العنوان: {currentOrder.address || 'غير محدد'}</Text>
+            <Text>العنوان: {currentOrder.address || currentOrder.delivery_address || 'غير محدد'}</Text>
             {currentOrder.customer_phone && (
               <Text>هاتف الزبون: {currentOrder.customer_phone}</Text>
+            )}
+            {currentOrder.extra_details && (
+              <Text style={{marginTop:8, color:'#555'}}>تفاصيل إضافية: {currentOrder.extra_details}</Text>
             )}
           </View>
           {/* الزر في واجهة الطلب الجاري */}
@@ -493,30 +503,40 @@ export default function DriverDashboardScreen({ navigation }) {
           </TouchableOpacity>
         </View>
       ) : isAvailable ? (
-        // عرض الطلبات المتاحة مباشرة إذا كان السائق متوفر ولا يوجد طلب جاري
-        <>
-          {availableOrders.length === 0 ? (
-            <View style={{flex:1, justifyContent:'center', alignItems:'center'}}>
-              <Ionicons name="list-outline" size={64} color={colors.primary} />
-              <Text style={{fontSize:18, color:'#222', marginTop:16}}>لا يوجد طلبات متاحة حاليًا</Text>
-            </View>
-          ) : (
-            <ScrollView style={{flex:1}} contentContainerStyle={{padding:16}}>
-              {availableOrders.map(order => (
-                <View key={order.id} style={{backgroundColor:'#F5F5F5', borderRadius:12, padding:16, marginBottom:16}}>
-                  <Text>العنوان: {order.address || 'غير محدد'}</Text>
-                  <TouchableOpacity 
-                    style={{marginTop:12, backgroundColor:currentOrder ? '#ccc' : colors.primary, borderRadius:8, padding:10, alignItems:'center'}} 
-                    onPress={()=>!currentOrder && handleAcceptOrder(order)}
-                    disabled={!!currentOrder}
-                  >
-                    <Text style={{color:'#fff', fontWeight:'bold'}}>قبول الطلب</Text>
-                  </TouchableOpacity>
-                </View>
-              ))}
-            </ScrollView>
-          )}
-        </>
+        // إذا لم يكن هناك طلب جاري، اعرض الطلبات المتاحة فقط
+        availableOrders.length === 0 ? (
+          <View style={{flex:1, justifyContent:'center', alignItems:'center'}}>
+            <Ionicons name="list-outline" size={64} color={colors.primary} />
+            <Text style={{fontSize:18, color:'#222', marginTop:16}}>لا يوجد طلبات متاحة حاليًا</Text>
+          </View>
+        ) : (
+          <ScrollView style={{flex:1}} contentContainerStyle={{padding:16}}>
+            {availableOrders.map(order => (
+              <View key={order.id} style={{backgroundColor:'#F5F5F5', borderRadius:12, padding:16, marginBottom:16}}>
+                {order.store_id ? (
+                  <>
+                    <Text>العنوان: {order.address || order.delivery_address || 'غير محدد'}</Text>
+                    <Text>المتجر: {order.stores?.name || 'غير محدد'}</Text>
+                  </>
+                ) : (
+                  // إذا كان الطلب من الأدمن
+                  <>
+                    <Text>الزبون: {order.customer_name || 'غير محدد'}</Text>
+                    <Text>من: {order.pickup_address || 'غير محدد'}</Text>
+                    <Text>إلى: {order.delivery_address || 'غير محدد'}</Text>
+                  </>
+                )}
+                <TouchableOpacity 
+                  style={{marginTop:12, backgroundColor:currentOrder ? '#ccc' : colors.primary, borderRadius:8, padding:10, alignItems:'center'}} 
+                  onPress={()=>!currentOrder && handleAcceptOrder(order)}
+                  disabled={!!currentOrder}
+                >
+                  <Text style={{color:'#fff', fontWeight:'bold'}}>قبول الطلب</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+          </ScrollView>
+        )
       ) : (
         // إذا لم يكن متوفر، تظهر رسالة الحالة مع أزرار التحويل
         <>
