@@ -438,47 +438,121 @@ export default function DriverDashboardScreen({ navigation }) {
   };
   // دالة إكمال الطلب مع إشعار المتجر
   const handleFinishOrder = async () => {
-    if (!currentOrder) return;
-        setLoading(true);
-    try {
-      // تحديث حالة الطلب
-      await supabase.from('orders').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', currentOrder.id);
-      // إرسال إشعار للمتجر
-      if (currentOrder.store_id) {
-        await supabase.from('store_notifications').insert({
-          store_id: currentOrder.store_id,
-          title: 'تم إكمال الطلب',
-          message: `تم إكمال طلبك رقم ${currentOrder.id} من قبل السائق.`,
-          type: 'order',
-          created_at: new Date().toISOString()
-        });
-      }
-      // تحديث إحصائيات السائق
-      if (driverId) {
-        const { data: driver } = await supabase.from('drivers').select('total_orders, completed_orders, completed_orders_list').eq('id', driverId).single();
-        const total_orders = (driver?.total_orders || 0) + 1;
-        const completed_orders = (driver?.completed_orders || 0) + 1;
-        // إضافة الطلب المكتمل إلى القائمة
-        let completed_orders_list = Array.isArray(driver?.completed_orders_list) ? [...driver.completed_orders_list] : [];
-        completed_orders_list.unshift({
-          id: currentOrder.id,
-          amount: currentOrder.total_amount,
-          address: currentOrder.address,
-          date: new Date().toLocaleString()
-        });
-        // احتفظ فقط بآخر 100 طلب مكتمل (اختياري)
-        if (completed_orders_list.length > 100) completed_orders_list = completed_orders_list.slice(0, 100);
-        await supabase.from('drivers').update({ total_orders, completed_orders, completed_orders_list }).eq('id', driverId);
-      }
-      // حذف الطلب من قاعدة البيانات
-      // await supabase.from('orders').delete().eq('id', currentOrder.id); // This line is removed
-        setCurrentOrder(null);
-      await loadDriverData(driverId); // إعادة تحميل بيانات السائق
-        setLoading(false);
-    } catch (error) {
-      setLoading(false);
-      Alert.alert('خطأ', 'حدث خطأ أثناء إكمال الطلب');
+    console.log('=== بداية إكمال الطلب ===');
+    console.log('الطلب الحالي:', currentOrder);
+    
+    if (!currentOrder) {
+      console.log('لا يوجد طلب حالي لإكماله');
+      Alert.alert('خطأ', 'لا يوجد طلب حالي لإكماله');
+      return;
     }
+
+    // تأكيد إكمال الطلب
+    Alert.alert(
+      'تأكيد إكمال الطلب',
+      `هل أنت متأكد من إكمال الطلب رقم #${currentOrder.id}؟`,
+      [
+        { text: 'إلغاء', style: 'cancel' },
+        { 
+          text: 'إكمال الطلب', 
+          onPress: async () => {
+            setLoading(true);
+            try {
+              console.log('تحديث حالة الطلب إلى مكتمل...');
+              
+              // تحديث حالة الطلب
+              const { error: updateError } = await supabase
+                .from('orders')
+                .update({ 
+                  status: 'completed', 
+                  completed_at: new Date().toISOString() 
+                })
+                .eq('id', currentOrder.id);
+
+              if (updateError) {
+                console.error('خطأ في تحديث الطلب:', updateError);
+                throw new Error('فشل في تحديث حالة الطلب: ' + updateError.message);
+              }
+
+              console.log('تم تحديث الطلب بنجاح');
+
+              // إرسال إشعار للمتجر
+              if (currentOrder.store_id) {
+                console.log('إرسال إشعار للمتجر...');
+                await supabase.from('store_notifications').insert({
+                  store_id: currentOrder.store_id,
+                  title: 'تم إكمال الطلب',
+                  message: `تم إكمال طلبك رقم ${currentOrder.id} من قبل السائق.`,
+                  type: 'order',
+                  created_at: new Date().toISOString()
+                });
+              }
+
+              // تحديث إحصائيات السائق
+              if (driverId) {
+                console.log('تحديث إحصائيات السائق...');
+                const { data: driver, error: driverError } = await supabase
+                  .from('drivers')
+                  .select('total_orders, total_earnings, debt_points')
+                  .eq('id', driverId)
+                  .single();
+
+                if (driverError) {
+                  console.error('خطأ في جلب بيانات السائق:', driverError);
+                } else {
+                  const total_orders = (driver?.total_orders || 0) + 1;
+                  const total_earnings = (driver?.total_earnings || 0) + (currentOrder.delivery_fee || 0);
+                  const debt_points = Math.max(0, (driver?.debt_points || 0) - 1); // تقليل نقطة دين
+
+                  await supabase
+                    .from('drivers')
+                    .update({ 
+                      total_orders, 
+                      total_earnings,
+                      debt_points
+                    })
+                    .eq('id', driverId);
+                }
+              }
+
+              console.log('تم إكمال الطلب بنجاح');
+              
+              // إعادة تعيين الطلب الحالي
+              setCurrentOrder(null);
+              
+              // إعادة تحميل بيانات السائق والطلبات المتاحة
+              await loadDriverData(driverId);
+              
+              // إعادة تحميل الطلبات المتاحة
+              const { data: newAvailableOrders } = await supabase
+                .from('orders')
+                .select(`
+                  *,
+                  stores (
+                    id,
+                    name,
+                    phone,
+                    address,
+                    description
+                  )
+                `)
+                .eq('status', 'pending')
+                .order('created_at', { ascending: false });
+              
+              setAvailableOrders(newAvailableOrders || []);
+              
+              Alert.alert('نجح', 'تم إكمال الطلب بنجاح!');
+              
+            } catch (error) {
+              console.error('خطأ في إكمال الطلب:', error);
+              Alert.alert('خطأ', error.message || 'حدث خطأ أثناء إكمال الطلب');
+            } finally {
+              setLoading(false);
+            }
+          }
+        }
+      ]
+    );
   };
 
   // دالة تنفيذ القبول بعد اجتياز الاختبار
@@ -560,8 +634,25 @@ export default function DriverDashboardScreen({ navigation }) {
             )}
           </View>
           {/* الزر في واجهة الطلب الجاري */}
-          <TouchableOpacity onPress={handleFinishOrder} style={{backgroundColor:colors.primary, borderRadius:8, padding:12, alignItems:'center', width:'100%'}}>
-            <Text style={{color:'#fff', fontWeight:'bold'}}>اكمال الطلب</Text>
+          <TouchableOpacity 
+            onPress={handleFinishOrder} 
+            style={{
+              backgroundColor: loading ? '#ccc' : colors.primary, 
+              borderRadius:8, 
+              padding:12, 
+              alignItems:'center', 
+              width:'100%'
+            }}
+            disabled={loading}
+          >
+            {loading ? (
+              <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                <ActivityIndicator size="small" color="#fff" style={{marginRight: 8}} />
+                <Text style={{color:'#fff', fontWeight:'bold'}}>جاري الإكمال...</Text>
+              </View>
+            ) : (
+              <Text style={{color:'#fff', fontWeight:'bold'}}>اكمال الطلب</Text>
+            )}
           </TouchableOpacity>
         </View>
       ) : isAvailable ? (

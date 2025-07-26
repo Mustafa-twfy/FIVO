@@ -120,6 +120,8 @@ export default function MyOrdersScreen({ navigation }) {
     setError(null);
     try {
       const driverId = await AsyncStorage.getItem('userId');
+      console.log('معرف السائق:', driverId);
+      
       if (!driverId) {
         throw new Error('لم يتم العثور على معرف السائق');
       }
@@ -140,30 +142,50 @@ export default function MyOrdersScreen({ navigation }) {
         .eq('status', 'completed')
         .order('created_at', { ascending: false });
 
+      console.log('البيانات الخام من قاعدة البيانات:', data);
+      console.log('خطأ الاستعلام:', error);
+
       if (error) {
         throw new Error('تعذر جلب الطلبات: ' + error.message);
       }
 
       // فلترة الطلبات المكتملة خلال آخر 24 ساعة فقط
       const now = new Date();
+      console.log('الوقت الحالي:', now);
+      
       const filtered = (data || []).filter(order => {
+        console.log('معالجة الطلب:', order.id, 'completed_at:', order.completed_at);
+        
         if (order.status === 'completed' && order.completed_at) {
           const completedAt = new Date(order.completed_at);
           const diff = now - completedAt;
+          console.log('الفرق الزمني (مللي ثانية):', diff);
+          
           // 24 ساعة = 86400000 مللي ثانية
           if (diff > 86400000) {
+            console.log('حذف الطلب القديم:', order.id);
             // حذف الطلب من قاعدة البيانات إذا مضى عليه أكثر من 24 ساعة
             supabase.from('orders').delete().eq('id', order.id);
             return false;
           }
           return true;
         }
+        console.log('الطلب ليس مكتملاً أو لا يحتوي على completed_at:', order.id);
         return false;
       });
 
       console.log('الطلبات المكتملة خلال آخر 24 ساعة:', filtered);
-      setOrders(filtered);
+      
+      // إذا لم توجد طلبات خلال 24 ساعة، اعرض جميع الطلبات المكتملة
+      if (filtered.length === 0) {
+        console.log('لا توجد طلبات خلال 24 ساعة، عرض جميع الطلبات المكتملة');
+        const allCompleted = (data || []).filter(order => order.status === 'completed');
+        setOrders(allCompleted);
+      } else {
+        setOrders(filtered);
+      }
     } catch (error) {
+      console.error('خطأ في تحميل الطلبات:', error);
       setError(error.message || 'حدث خطأ غير متوقع في تحميل الطلبات');
     }
     setLoading(false);
@@ -177,21 +199,28 @@ export default function MyOrdersScreen({ navigation }) {
 
   const completeOrder = async (orderId) => {
     try {
+      console.log('بداية إكمال الطلب:', orderId);
+      
       const currentOrder = orders.find(o => o.id === orderId);
       if (!currentOrder) {
         throw new Error('لم يتم العثور على الطلب');
       }
+
+      console.log('حالة الطلب الحالية:', currentOrder.status);
 
       const driverId = await AsyncStorage.getItem('userId');
       if (currentOrder.driver_id !== parseInt(driverId)) {
         throw new Error('هذا الطلب لا يخصك');
       }
 
+      // السماح بإكمال الطلبات المقبولة فقط
       if (currentOrder.status !== 'accepted') {
-        Alert.alert('خطأ', 'لا يمكن إكمال هذا الطلب');
+        Alert.alert('خطأ', `لا يمكن إكمال هذا الطلب. الحالة الحالية: ${currentOrder.status}`);
         return;
       }
 
+      console.log('تحديث حالة الطلب إلى مكتمل...');
+      
       const { error } = await supabase
         .from('orders')
         .update({ 
@@ -201,11 +230,14 @@ export default function MyOrdersScreen({ navigation }) {
         .eq('id', orderId);
 
       if (error) {
+        console.error('خطأ في تحديث الطلب:', error);
         throw new Error('فشل في إكمال الطلب: ' + error.message);
       }
 
+      console.log('تم تحديث الطلب بنجاح، تحديث إحصائيات السائق...');
+
       const deliveryFee = currentOrder.delivery_fee || 0;
-      await supabase
+      const { error: driverError } = await supabase
         .from('drivers')
         .update({ 
           total_orders: (driverInfo?.total_orders || 0) + 1,
@@ -213,19 +245,30 @@ export default function MyOrdersScreen({ navigation }) {
         })
         .eq('id', driverId);
 
-      // إشعار المتجر بإكمال الطلب
-      await supabase
-        .from('store_notifications')
-        .insert({
-          store_id: currentOrder.store_id,
-          title: 'تم توصيل الطلب',
-          message: `تم توصيل طلبك رقم #${orderId} بنجاح من قبل السائق.`,
-          type: 'order'
-        });
+      if (driverError) {
+        console.error('خطأ في تحديث إحصائيات السائق:', driverError);
+      }
 
+      // إشعار المتجر بإكمال الطلب
+      if (currentOrder.store_id) {
+        await supabase
+          .from('store_notifications')
+          .insert({
+            store_id: currentOrder.store_id,
+            title: 'تم توصيل الطلب',
+            message: `تم توصيل طلبك رقم #${orderId} بنجاح من قبل السائق.`,
+            type: 'order'
+          });
+      }
+
+      console.log('تم إكمال الطلب بنجاح');
       Alert.alert('نجح', 'تم إكمال الطلب بنجاح');
-      loadMyOrders();
+      
+      // إعادة تحميل الطلبات
+      await loadMyOrders();
+      
     } catch (error) {
+      console.error('خطأ في إكمال الطلب:', error);
       Alert.alert('خطأ', error.message || 'حدث خطأ غير متوقع في إكمال الطلب');
     }
   };
