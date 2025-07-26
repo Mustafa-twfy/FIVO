@@ -63,7 +63,9 @@ const insertSampleData = async () => {
         phone: '+966501234567',
         vehicle_type: 'سيارة نقل صغيرة',
         status: 'approved',
-        is_active: true
+        is_active: true,
+        debt_points: 0,
+        is_suspended: false
       },
       {
         email: 'driver2@tawseel.com',
@@ -72,7 +74,20 @@ const insertSampleData = async () => {
         phone: '+966502345678',
         vehicle_type: 'دراجة نارية',
         status: 'approved',
-        is_active: true
+        is_active: true,
+        debt_points: 0,
+        is_suspended: false
+      },
+      {
+        email: 'test@driver.com',
+        password: '123456',
+        name: 'سائق تجريبي',
+        phone: '+966501234567',
+        vehicle_type: 'سيارة نقل صغيرة',
+        status: 'approved',
+        is_active: false,
+        debt_points: 0,
+        is_suspended: false
       }
     ], { onConflict: 'email' });
 

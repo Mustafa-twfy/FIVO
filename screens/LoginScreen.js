@@ -96,12 +96,15 @@ export default function LoginScreen({ navigation }) {
         .single();
       
       console.log('نتيجة البحث في جدول السائقين:', { driver, driverError });
+      console.log('البريد الإلكتروني المدخل:', email);
+      console.log('كلمة المرور المدخلة:', password);
       
       if (driverError && driverError.code !== 'PGRST116') {
         console.error('خطأ في البحث في جدول السائقين:', driverError);
       }
       
       if (driver) {
+        console.log('تم العثور على سائق:', driver);
         await AsyncStorage.setItem('userId', driver.id.toString());
         await AsyncStorage.setItem('userType', 'driver');
         // حساب تاريخ انتهاء الجلسة بعد 7 أيام
@@ -113,6 +116,14 @@ export default function LoginScreen({ navigation }) {
         navigation.replace('Driver', { driverId: driver.id });
         setLoading(false);
         return;
+      } else {
+        console.log('لم يتم العثور على سائق بهذه البيانات');
+        // جلب جميع السائقين للتحقق
+        const { data: allDrivers } = await supabase
+          .from('drivers')
+          .select('email, status, name')
+          .limit(10);
+        console.log('جميع السائقين في قاعدة البيانات:', allDrivers);
       }
 
       console.log('=== التحقق من جدول المتاجر ===');

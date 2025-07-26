@@ -22,7 +22,7 @@ import { useAuth } from '../context/AuthContext';
 import isEqual from 'lodash.isequal';
 
 export default function DriverDashboardScreen({ navigation }) {
-  const { logout } = useAuth();
+  const { logout, user, userType } = useAuth();
   const [driverId, setDriverId] = useState(null);
   const [driverInfo, setDriverInfo] = useState(null);
   const [availableOrders, setAvailableOrders] = useState([]);
@@ -50,26 +50,57 @@ export default function DriverDashboardScreen({ navigation }) {
   const [quizTarget, setQuizTarget] = useState(null); // الرقم الثابت
 
   useEffect(() => {
-    const fetchDriverId = async () => {
-      const id = await AsyncStorage.getItem('userId');
-      setDriverId(id);
-      if (id) {
-        // تحميل سريع للبيانات الأساسية
-        const { data: driver } = await supabase
-          .from('drivers')
-          .select('id, name, phone, is_active, status, is_suspended')
-          .eq('id', id)
-          .single();
+    const initializeDriver = async () => {
+      try {
+        console.log('=== بداية تهيئة بيانات السائق ===');
+        console.log('AuthContext user:', user);
+        console.log('AuthContext userType:', userType);
         
-        if (driver) {
-          setDriverInfo(driver);
-          setIsOnline(driver.is_active || false);
+        // التحقق من نوع المستخدم أولاً
+        if (userType !== 'driver') {
+          console.error('نوع المستخدم غير صحيح:', userType);
+          Alert.alert(
+            'خطأ في نوع المستخدم',
+            'يجب أن تكون سائق للوصول لهذه الشاشة. سيتم تسجيل الخروج.',
+            [
+              { text: 'حسناً', onPress: () => { logout(); navigation.replace('Login'); } }
+            ]
+          );
+          return;
         }
         
-        loadDriverData(id); // تحميل باقي البيانات
+        // استخدام البيانات من AuthContext
+        if (user && user.id) {
+          console.log('استخدام بيانات السائق من AuthContext');
+          setDriverId(user.id);
+          setDriverInfo(user);
+          setIsOnline(user.is_active || false);
+          
+          // تحميل باقي البيانات من قاعدة البيانات
+          await loadDriverData(user.id);
+        } else {
+          console.error('لم يتم العثور على بيانات السائق في AuthContext');
+          Alert.alert(
+            'خطأ في البيانات',
+            'لم يتم العثور على بيانات السائق. سيتم تسجيل الخروج.',
+            [
+              { text: 'حسناً', onPress: () => { logout(); navigation.replace('Login'); } }
+            ]
+          );
+        }
+      } catch (error) {
+        console.error('خطأ في تهيئة السائق:', error);
+        Alert.alert(
+          'خطأ',
+          'حدث خطأ في تحميل بيانات السائق. سيتم تسجيل الخروج.',
+          [
+            { text: 'حسناً', onPress: () => { logout(); navigation.replace('Login'); } }
+          ]
+        );
       }
     };
-    fetchDriverId();
+
+    initializeDriver();
 
     // تحديث بيانات السائق كل 10 ثواني مع مقارنة ذكية (تحديث صامت)
     const interval = setInterval(async () => {
@@ -96,7 +127,7 @@ export default function DriverDashboardScreen({ navigation }) {
       }
     }, 10000);
     return () => clearInterval(interval);
-  }, [driverId, currentOrder, availableOrders]);
+  }, [driverId, currentOrder, availableOrders, user, userType]);
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -112,73 +143,66 @@ export default function DriverDashboardScreen({ navigation }) {
   }, []);
 
   const loadDriverData = async (id) => {
-    // لا نضع setLoading(true) هنا لأن البيانات الأساسية تم تحميلها مسبقاً
     try {
       console.log('Loading driver data for ID:', id);
       
-      // جلب بيانات السائق من supabase (إذا لم تكن متوفرة مسبقاً)
-      if (!driverInfo) {
-        const { data: driver, error: driverError } = await supabase
-          .from('drivers')
-          .select('*')
-          .eq('id', id)
-          .single();
-          
-        console.log('Driver data result:', { driver, driverError });
+      // التحقق من وجود السائق في قاعدة البيانات
+      const { data: driver, error: driverError } = await supabase
+        .from('drivers')
+        .select('*')
+        .eq('id', id)
+        .single();
         
-        // تحقق من حالة الحساب
-        if (!driver || driver.is_suspended || driver.status !== 'approved') {
-          Alert.alert(
-            'تم إيقاف الحساب',
-            driver?.is_suspended
-              ? 'تم إيقاف حسابك من قبل الإدارة. يرجى التواصل مع الدعم.'
-              : driver?.status !== 'approved'
-                ? 'حسابك غير مفعل أو بانتظار الموافقة. سيتم تسجيل الخروج.'
-                : 'تعذر العثور على حسابك. سيتم تسجيل الخروج.',
-            [
-              { text: 'حسناً', onPress: () => { logout(); navigation.replace('Login'); } }
-            ]
-          );
-          setLoading(false);
-          return;
-        }
-        
-        setDriverInfo(driver);
-        setIsOnline(driver?.is_active || false);
+      console.log('Driver data result:', { driver, driverError });
+      
+      // تحقق من حالة الحساب
+      if (!driver) {
+        console.error('لم يتم العثور على السائق في قاعدة البيانات');
+        Alert.alert(
+          'خطأ في البيانات',
+          'لم يتم العثور على حسابك في قاعدة البيانات. سيتم تسجيل الخروج.',
+          [
+            { text: 'حسناً', onPress: () => { logout(); navigation.replace('Login'); } }
+          ]
+        );
+        setLoading(false);
+        return;
       }
       
-      if (driverError) {
-        console.error('Driver error:', driverError);
-        // إذا لم يتم العثور على السائق، استخدم بيانات افتراضية
-        setDriverInfo({
-          id: id,
-          name: 'سائق تجريبي',
-          phone: '+966501234567',
-          email: 'driver@example.com',
-          is_active: false
-        });
-        setIsOnline(false);
-      } else if (driver) {
-        setDriverInfo(driver);
-        setIsOnline(driver?.is_active || false);
-      } else {
-        // بيانات افتراضية
-        setDriverInfo({
-          id: id,
-          name: 'سائق تجريبي',
-          phone: '+966501234567',
-          email: 'driver@example.com',
-          is_active: false
-        });
-        setIsOnline(false);
+      if (driver.is_suspended) {
+        Alert.alert(
+          'تم إيقاف الحساب',
+          'تم إيقاف حسابك من قبل الإدارة. يرجى التواصل مع الدعم.',
+          [
+            { text: 'حسناً', onPress: () => { logout(); navigation.replace('Login'); } }
+          ]
+        );
+        setLoading(false);
+        return;
       }
       
-      // جلب الطلبات المرتبطة بالسائق (تحميل سريع)
+      if (driver.status !== 'approved') {
+        Alert.alert(
+          'حساب غير مفعل',
+          'حسابك غير مفعل أو بانتظار الموافقة. سيتم تسجيل الخروج.',
+          [
+            { text: 'حسناً', onPress: () => { logout(); navigation.replace('Login'); } }
+          ]
+        );
+        setLoading(false);
+        return;
+      }
+      
+      // تحديث بيانات السائق
+      setDriverInfo(driver);
+      setIsOnline(driver.is_active || false);
+      
+      // جلب الطلبات المرتبطة بالسائق
       const { data: ordersData, error: ordersError } = await supabase
         .from('orders')
         .select('*')
         .eq('driver_id', id)
-        .limit(10); // تحديد عدد الطلبات للتحميل السريع
+        .limit(10);
         
       console.log('Orders data result:', { ordersData, ordersError });
       
@@ -187,11 +211,10 @@ export default function DriverDashboardScreen({ navigation }) {
         setAvailableOrders([]);
         setMyOrders([]);
       } else {
-        setAvailableOrders(ordersData || []);
         setMyOrders(ordersData || []);
       }
 
-      // جلب الطلب الجاري من قاعدة البيانات (تحميل سريع)
+      // جلب الطلب الجاري
       const { data: currentOrderDb } = await supabase
         .from('orders')
         .select('*')
@@ -206,7 +229,7 @@ export default function DriverDashboardScreen({ navigation }) {
         setAvailableOrders([]); // لا تعرض الطلبات المتاحة إذا كان هناك طلب جاري
       } else {
         setCurrentOrder(null);
-        // جلب الطلبات المتاحة كالمعتاد (تحميل سريع)
+        // جلب الطلبات المتاحة
         const { data: availableOrdersData, error: availableOrdersError } = await ordersAPI.getAvailableOrders();
         if (availableOrdersError) {
           setAvailableOrders([]);
@@ -215,7 +238,7 @@ export default function DriverDashboardScreen({ navigation }) {
         }
       }
       
-      // حساب الإحصائيات (تحميل سريع)
+      // حساب الإحصائيات
       const orders = ordersData || [];
       const totalOrders = orders.length;
       const pendingOrders = orders.filter(order => order.status === 'pending').length;
@@ -234,24 +257,13 @@ export default function DriverDashboardScreen({ navigation }) {
       
     } catch (error) {
       console.error('Load driver data error:', error);
-      // في حالة الخطأ، استخدم بيانات افتراضية
-      setDriverInfo({
-        id: id,
-        name: 'سائق تجريبي',
-        phone: '+966501234567',
-        email: 'driver@example.com',
-        is_active: false
-      });
-      setIsOnline(false);
-      setAvailableOrders([]);
-      setMyOrders([]);
-      setStats({
-        totalOrders: 0,
-        pendingOrders: 0,
-        completedOrders: 0,
-        totalRevenue: 0,
-        todayEarnings: 0
-      });
+      Alert.alert(
+        'خطأ في الاتصال',
+        'حدث خطأ في الاتصال بقاعدة البيانات. يرجى المحاولة مرة أخرى.',
+        [
+          { text: 'حسناً', onPress: () => { logout(); navigation.replace('Login'); } }
+        ]
+      );
     }
     setLoading(false);
   };
@@ -263,6 +275,8 @@ export default function DriverDashboardScreen({ navigation }) {
         .from('drivers')
         .update({ is_active: value })
         .eq('id', driverInfo?.id);
+      // إعادة تحميل بيانات السائق بعد التحديث
+      await loadDriverData(driverInfo?.id);
     } catch (error) {
       Alert.alert('خطأ', 'فشل في تحديث حالة العمل');
     }
@@ -595,14 +609,13 @@ export default function DriverDashboardScreen({ navigation }) {
         <View style={{flexDirection:'row', backgroundColor:'#F5F5F5', borderRadius:24, overflow:'hidden', marginTop:8}}>
           <TouchableOpacity
             style={{paddingVertical:10, paddingHorizontal:32, backgroundColor: isAvailable ? colors.primary : '#fff'}}
-              onPress={async ()=>{
-                if (!isBlocked) {
-                  setLoading(true);
-                  await supabase.from('drivers').update({ is_active: true }).eq('id', driverId);
-                  setIsOnline(true);
-                  setLoading(false);
-                }
-              }}
+            onPress={async ()=>{
+              if (!isBlocked) {
+                setLoading(true);
+                await toggleOnlineStatus(true);
+                setLoading(false);
+              }
+            }}
             disabled={isBlocked}
           >
             <Text style={{color: isAvailable ? '#fff' : colors.primary, fontWeight:'bold'}}>متوفر</Text>

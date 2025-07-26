@@ -137,14 +137,14 @@ export default function MyOrdersScreen({ navigation }) {
           )
         `)
         .eq('driver_id', driverId)
-        .in('status', ['accepted', 'in_progress', 'completed'])
+        .eq('status', 'completed')
         .order('created_at', { ascending: false });
 
       if (error) {
         throw new Error('تعذر جلب الطلبات: ' + error.message);
       }
 
-      // فلترة الطلبات المكتملة حسب الوقت
+      // فلترة الطلبات المكتملة خلال آخر 24 ساعة فقط
       const now = new Date();
       const filtered = (data || []).filter(order => {
         if (order.status === 'completed' && order.completed_at) {
@@ -156,12 +156,13 @@ export default function MyOrdersScreen({ navigation }) {
             supabase.from('orders').delete().eq('id', order.id);
             return false;
           }
+          return true;
         }
-        return true;
+        return false;
       });
 
+      console.log('الطلبات المكتملة خلال آخر 24 ساعة:', filtered);
       setOrders(filtered);
-      // احذف setCompletedOrdersList وكل قسم الطلبات المكتملة من الواجهة
     } catch (error) {
       setError(error.message || 'حدث خطأ غير متوقع في تحميل الطلبات');
     }
