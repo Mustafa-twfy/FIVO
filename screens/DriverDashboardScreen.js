@@ -497,37 +497,7 @@ export default function DriverDashboardScreen({ navigation }) {
   // في القوائم:
   // إذا لم تتوفر البيانات بعد، اعرض عناصر فارغة أو نصوص افتراضية.
 
-  // شاشة فارغة إذا لم توجد طلبات متاحة
-  if (availableOrders.length === 0) {
-    return (
-      <View style={[styles.container, {justifyContent: 'flex-start', backgroundColor: '#fff'}]}>
-        {/* Header */}
-        <View style={styles.customHeader}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerIcon}>
-            <Ionicons name="arrow-back" size={26} color={colors.primary} />
-          </TouchableOpacity>
-          <View style={styles.profileCircle}>
-            <Ionicons name="person" size={38} color={colors.primary} />
-          </View>
-          <TouchableOpacity onPress={() => navigation.openDrawer()} style={styles.headerIcon}>
-            <Ionicons name="menu" size={28} color={colors.primary} />
-          </TouchableOpacity>
-        </View>
-        {/* حالة السائق */}
-        <View style={styles.statusRow}>
-          <Text style={styles.statusLabel}>{isOnline ? 'متاح' : 'غير متاح'}</Text>
-          <View style={[styles.statusDot, {backgroundColor: isOnline ? '#4CAF50' : '#bbb'}]} />
-        </View>
-        {/* محتوى فارغ */}
-        <View style={styles.emptyContent}>
-          <View style={styles.emptyIconCircle}>
-            <Ionicons name="list-outline" size={54} color={colors.primary} />
-          </View>
-          <Text style={styles.emptyText}>لا يوجد طلبات متاحة حالياً</Text>
-        </View>
-      </View>
-    );
-  }
+
 
   return (
     <View style={{flex:1, backgroundColor:'#fff'}}>
@@ -582,13 +552,14 @@ export default function DriverDashboardScreen({ navigation }) {
         </View>
       ) : isAvailable ? (
         // إذا لم يكن هناك طلب جاري، اعرض الطلبات المتاحة فقط
-        availableOrders.length === 0 ? (
-            <View style={{flex:1, justifyContent:'center', alignItems:'center'}}>
+        <ScrollView style={{flex:1}} contentContainerStyle={{padding:16}}>
+          {availableOrders.length === 0 ? (
+            <View style={{flex:1, justifyContent:'center', alignItems:'center', minHeight: 400}}>
               <Ionicons name="list-outline" size={64} color={colors.primary} />
               <Text style={{fontSize:18, color:'#222', marginTop:16}}>لا يوجد طلبات متاحة حاليًا</Text>
             </View>
           ) : (
-            <ScrollView style={{flex:1}} contentContainerStyle={{padding:16}}>
+            <>
               {availableOrders.map(order => (
                 <View key={order.id} style={{backgroundColor:'#F5F5F5', borderRadius:12, padding:16, marginBottom:16}}>
                 {order.store_id ? (
@@ -612,8 +583,9 @@ export default function DriverDashboardScreen({ navigation }) {
                   </TouchableOpacity>
                 </View>
               ))}
-            </ScrollView>
-        )
+            </>
+          )}
+        </ScrollView>
       ) : (
         // إذا لم يكن متوفر، تظهر رسالة الحالة مع أزرار التحويل
         <>
@@ -880,70 +852,5 @@ const styles = StyleSheet.create({
     marginTop: 12,
     lineHeight: 22,
   },
-  customHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 24,
-    paddingTop: 40,
-    paddingBottom: 8,
-    backgroundColor: '#fff',
-  },
-  headerIcon: {
-    padding: 6,
-  },
-  profileCircle: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#fff',
-    borderWidth: 2,
-    borderColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 0,
-  },
-  statusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 0,
-    marginBottom: 16,
-  },
-  statusLabel: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#444',
-    marginRight: 8,
-  },
-  statusDot: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    marginLeft: 2,
-    borderWidth: 2,
-    borderColor: '#fff',
-  },
-  emptyContent: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 40,
-  },
-  emptyIconCircle: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    backgroundColor: '#e0f7fa',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 18,
-  },
-  emptyText: {
-    fontSize: 22,
-    color: colors.primary,
-    fontWeight: 'bold',
-    marginTop: 8,
-    textAlign: 'center',
-  },
+
 }); 

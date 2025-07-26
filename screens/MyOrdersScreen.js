@@ -336,8 +336,8 @@ export default function MyOrdersScreen({ navigation }) {
   const isOutOfWorkHours = driverInfo && !isWithinWorkHours();
   const isBlocked = driverInfo?.is_suspended || (driverInfo?.debt_points >= maxDebtPoints) || isOutOfWorkHours;
 
-  // عرض شاشة التحميل فقط إذا لم تكن البيانات متوفرة
-  if (loading && orders.length === 0) {
+  // عرض شاشة التحميل فقط إذا كان التحميل جارياً
+  if (loading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.warning} />

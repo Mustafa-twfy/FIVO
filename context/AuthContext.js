@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import EncryptedStorage from 'react-native-encrypted-storage';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert } from 'react-native';
 
 // السياق الرئيسي للجلسة
@@ -21,6 +22,13 @@ export const AuthProvider = ({ children }) => {
       userType: type,
       sessionExpiry: expiryDate || null
     }));
+    // حفظ البيانات في AsyncStorage أيضاً للتوافق
+    try {
+      await AsyncStorage.setItem('userId', userData.id?.toString() || '');
+      await AsyncStorage.setItem('userType', type);
+    } catch (e) {
+      console.error('خطأ في حفظ AsyncStorage:', e);
+    }
   };
 
   // تسجيل الخروج
@@ -29,6 +37,13 @@ export const AuthProvider = ({ children }) => {
     setUserType(null);
     setSessionExpiry(null);
     await EncryptedStorage.removeItem('session');
+    // حذف البيانات من AsyncStorage أيضاً للتوافق
+    try {
+      await AsyncStorage.removeItem('userId');
+      await AsyncStorage.removeItem('userType');
+    } catch (e) {
+      console.error('خطأ في حذف AsyncStorage:', e);
+    }
   };
 
   // تحقق من صلاحية الجلسة
@@ -55,12 +70,27 @@ export const AuthProvider = ({ children }) => {
         const sessionStr = await EncryptedStorage.getItem('session');
         if (sessionStr) {
           const session = JSON.parse(sessionStr);
-          setUser(session.user);
-          setUserType(session.userType);
-          setSessionExpiry(session.sessionExpiry);
+          // تحقق من صلاحية الجلسة قبل تحميلها
+          if (session.sessionExpiry) {
+            const now = new Date();
+            const expiry = new Date(session.sessionExpiry);
+            if (now < expiry) {
+              // الجلسة صالحة
+              setUser(session.user);
+              setUserType(session.userType);
+              setSessionExpiry(session.sessionExpiry);
+            } else {
+              // الجلسة منتهية الصلاحية - احذفها
+              await EncryptedStorage.removeItem('session');
+            }
+          } else {
+            // لا يوجد تاريخ انتهاء - احذف الجلسة
+            await EncryptedStorage.removeItem('session');
+          }
         }
       } catch (e) {
         // تجاهل أي خطأ في التحميل
+        console.error('خطأ في تحميل الجلسة:', e);
       }
     };
     loadSession();

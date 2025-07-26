@@ -224,12 +224,29 @@ function AppContent() {
   const [databaseInitialized, setDatabaseInitialized] = useState(false);
   const [initialRoute, setInitialRoute] = useState('Login');
   const scheme = useColorScheme();
-  const { login } = useAuth();
+  const { login, user, userType } = useAuth();
   
   useEffect(() => {
     const checkUserSession = async () => {
       try {
-        // جرب أولاً استعادة الجلسة من EncryptedStorage
+        // انتظر قليلاً حتى يتم تحميل AuthContext
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // استخدم البيانات من AuthContext أولاً
+        if (user && userType) {
+          if (userType === 'admin') {
+            setInitialRoute('AdminDashboard');
+          } else if (userType === 'driver') {
+            setInitialRoute('Driver');
+          } else if (userType === 'store') {
+            setInitialRoute('Store');
+          } else {
+            setInitialRoute('Login');
+          }
+          return;
+        }
+        
+        // إذا لم توجد بيانات في AuthContext، جرب استعادة الجلسة من EncryptedStorage
         const sessionStr = await EncryptedStorage.getItem('session');
         if (sessionStr) {
           const session = JSON.parse(sessionStr);
@@ -238,7 +255,8 @@ function AppContent() {
             const now = new Date();
             const expiry = new Date(session.sessionExpiry);
             if (now < expiry) {
-              // الجلسة صالحة
+              // الجلسة صالحة - استخدم login لتحميل البيانات في AuthContext
+              await login(session.user, session.userType, session.sessionExpiry);
               if (session.userType === 'admin') {
                 setInitialRoute('AdminDashboard');
               } else if (session.userType === 'driver') {
@@ -252,6 +270,7 @@ function AppContent() {
             }
           }
         }
+        
         // إذا لم توجد جلسة مشفرة أو انتهت صلاحيتها، fallback إلى AsyncStorage
         const userId = await AsyncStorage.getItem('userId');
         const userType = await AsyncStorage.getItem('userType');
@@ -299,6 +318,19 @@ function AppContent() {
 
     return () => clearTimeout(splashTimeout);
   }, []);
+  
+  // مراقبة تغييرات user و userType في AuthContext
+  useEffect(() => {
+    if (user && userType && !showSplash) {
+      if (userType === 'admin') {
+        setInitialRoute('AdminDashboard');
+      } else if (userType === 'driver') {
+        setInitialRoute('Driver');
+      } else if (userType === 'store') {
+        setInitialRoute('Store');
+      }
+    }
+  }, [user, userType, showSplash]);
   
   if (showSplash) return <SplashScreen />;
   
