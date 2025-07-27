@@ -772,7 +772,7 @@ export default function DriverDashboardScreen({ navigation }) {
                       flexDirection: 'row',
                       justifyContent: 'center'
                     }} 
-                    onPress={() => !currentOrder && !acceptLoading && handleAcceptOrder(order.id)}
+                    onPress={() => !currentOrder && !acceptLoading && handleAcceptOrder(order)}
                     disabled={!!currentOrder || acceptLoading}
                   >
                     {acceptLoading ? (
