@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  FlatList, 
-  TouchableOpacity, 
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
   Alert,
   ActivityIndicator,
-  RefreshControl 
+  RefreshControl
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase, systemSettingsAPI } from '../supabase';
@@ -31,12 +31,8 @@ export default function MyOrdersScreen({ navigation }) {
   useEffect(() => {
     loadDriverInfo();
     loadMyOrders();
-    // جلب الطلبات المكتملة من سجل السائق
-    if (driverInfo?.completed_orders_list) {
-      setCompletedOrdersList(driverInfo.completed_orders_list);
-    }
+
     const fetchSettings = async () => {
-      // تحميل الإعدادات في الخلفية بدون إظهار شاشة التحميل
       const { data, error } = await systemSettingsAPI.getSystemSettings();
       if (data) {
         setDebtPointValue(data.debt_point_value);
@@ -45,46 +41,7 @@ export default function MyOrdersScreen({ navigation }) {
       setSettingsLoading(false);
     };
     fetchSettings();
-
-    // تحديث الطلبات كل 10 ثواني مع مقارنة ذكية (تحديث صامت)
-    const interval = setInterval(async () => {
-      const driverId = await AsyncStorage.getItem('userId');
-      if (!driverId) return;
-      const { data, error } = await supabase
-        .from('orders')
-        .select(`
-          *,
-          stores (
-            id,
-            name,
-            phone,
-            address,
-            description
-          )
-        `)
-        .eq('driver_id', driverId)
-        .in('status', ['accepted', 'in_progress', 'completed'])
-        .order('created_at', { ascending: false });
-      if (!error && !isEqual(orders, data)) {
-        // فلترة الطلبات المكتملة حسب الوقت
-        const now = new Date();
-        const filtered = (data || []).filter(order => {
-          if (order.status === 'completed' && order.completed_at) {
-            const completedAt = new Date(order.completed_at);
-            const diff = now - completedAt;
-            if (diff > 86400000) {
-              supabase.from('orders').delete().eq('id', order.id);
-              return false;
-            }
-          }
-          return true;
-        });
-        setOrders(filtered);
-      }
-      // لا يوجد setLoading هنا إطلاقًا
-    }, 10000);
-    return () => clearInterval(interval);
-  }, [orders]);
+  }, []);
 
   useEffect(() => {
     if (driverInfo?.completed_orders_list) {
@@ -92,12 +49,44 @@ export default function MyOrdersScreen({ navigation }) {
     }
   }, [driverInfo]);
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      silentUpdateOrders();
+    }, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const silentUpdateOrders = useCallback(async () => {
+    const driverId = await AsyncStorage.getItem('userId');
+    if (!driverId) return;
+    const { data, error } = await supabase
+      .from('orders')
+      .select(`*, stores ( id, name, phone, address, description )`)
+      .eq('driver_id', driverId)
+      .eq('status', 'completed')
+      .order('created_at', { ascending: false });
+
+    if (!error && !isEqual(orders, data)) {
+      const now = new Date();
+      const filtered = (data || []).filter(order => {
+        if (order.status === 'completed' && order.actual_delivery_time) {
+          const completedAt = new Date(order.actual_delivery_time);
+          const diff = now - completedAt;
+          if (diff > 86400000) {
+            supabase.from('orders').delete().eq('id', order.id);
+            return false;
+          }
+        }
+        return true;
+      });
+      setOrders(filtered);
+    }
+  }, [orders]);
+
   const loadDriverInfo = async () => {
     try {
       const driverId = await AsyncStorage.getItem('userId');
-      if (!driverId) {
-        return;
-      }
+      if (!driverId) return;
 
       const { data, error } = await supabase
         .from('drivers')
@@ -105,10 +94,7 @@ export default function MyOrdersScreen({ navigation }) {
         .eq('id', driverId)
         .single();
 
-      if (error) {
-        throw error;
-      }
-
+      if (error) throw error;
       setDriverInfo(data);
     } catch (error) {
       Alert.alert('خطأ', 'فشل في تحميل معلومات السائق');
@@ -120,72 +106,38 @@ export default function MyOrdersScreen({ navigation }) {
     setError(null);
     try {
       const driverId = await AsyncStorage.getItem('userId');
-      console.log('معرف السائق:', driverId);
-      
-      if (!driverId) {
-        throw new Error('لم يتم العثور على معرف السائق');
-      }
+      if (!driverId) throw new Error('لم يتم العثور على معرف السائق');
 
       const { data, error } = await supabase
         .from('orders')
-        .select(`
-          *,
-          stores (
-            id,
-            name,
-            phone,
-            address,
-            description
-          )
-        `)
+        .select(`*, stores ( id, name, phone, address, description )`)
         .eq('driver_id', driverId)
         .eq('status', 'completed')
         .order('created_at', { ascending: false });
 
-      console.log('البيانات الخام من قاعدة البيانات:', data);
-      console.log('خطأ الاستعلام:', error);
+      if (error) throw new Error('تعذر جلب الطلبات: ' + error.message);
 
-      if (error) {
-        throw new Error('تعذر جلب الطلبات: ' + error.message);
-      }
-
-      // فلترة الطلبات المكتملة خلال آخر 24 ساعة فقط
       const now = new Date();
-      console.log('الوقت الحالي:', now);
-      
       const filtered = (data || []).filter(order => {
-        console.log('معالجة الطلب:', order.id, 'completed_at:', order.completed_at);
-        
-        if (order.status === 'completed' && order.completed_at) {
-          const completedAt = new Date(order.completed_at);
+        if (order.status === 'completed' && order.actual_delivery_time) {
+          const completedAt = new Date(order.actual_delivery_time);
           const diff = now - completedAt;
-          console.log('الفرق الزمني (مللي ثانية):', diff);
-          
-          // 24 ساعة = 86400000 مللي ثانية
           if (diff > 86400000) {
-            console.log('حذف الطلب القديم:', order.id);
-            // حذف الطلب من قاعدة البيانات إذا مضى عليه أكثر من 24 ساعة
             supabase.from('orders').delete().eq('id', order.id);
             return false;
           }
           return true;
         }
-        console.log('الطلب ليس مكتملاً أو لا يحتوي على completed_at:', order.id);
         return false;
       });
 
-      console.log('الطلبات المكتملة خلال آخر 24 ساعة:', filtered);
-      
-      // إذا لم توجد طلبات خلال 24 ساعة، اعرض جميع الطلبات المكتملة
       if (filtered.length === 0) {
-        console.log('لا توجد طلبات خلال 24 ساعة، عرض جميع الطلبات المكتملة');
         const allCompleted = (data || []).filter(order => order.status === 'completed');
         setOrders(allCompleted);
       } else {
         setOrders(filtered);
       }
     } catch (error) {
-      console.error('خطأ في تحميل الطلبات:', error);
       setError(error.message || 'حدث خطأ غير متوقع في تحميل الطلبات');
     }
     setLoading(false);
@@ -225,7 +177,7 @@ export default function MyOrdersScreen({ navigation }) {
         .from('orders')
         .update({ 
           status: 'completed',
-          completed_at: new Date().toISOString()
+          actual_delivery_time: new Date().toISOString()
         })
         .eq('id', orderId);
 
