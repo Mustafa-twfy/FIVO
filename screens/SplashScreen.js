@@ -78,7 +78,7 @@ export default function SplashScreen() {
 
   return (
     <LinearGradient 
-      colors={['#FF9800', '#00C897']} 
+      colors={colors.successGradient} 
       style={styles.container} 
       start={{x: 0, y: 0}} 
       end={{x: 1, y: 1}}
@@ -130,7 +130,7 @@ export default function SplashScreen() {
             }
           ]}
         >
-          <Ionicons name="bicycle" size={40} color="#fff" />
+          <Ionicons name="bicycle" size={40} color={colors.textOnPrimary} />
           {/* <Text style={styles.loadingText}>جاري التحميل...</Text> */}
         </Animated.View>
       </View>
@@ -158,13 +158,13 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: '#fff',
+    backgroundColor: colors.secondary,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 20,
-    shadowColor: '#000',
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.3,
     shadowRadius: 16,
     elevation: 8,
   },
@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
   appName: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#fff',
+    color: colors.textOnPrimary,
     marginBottom: 8,
     textShadowColor: 'rgba(0, 0, 0, 0.3)',
     textShadowOffset: { width: 0, height: 2 },
@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
   },
   tagline: {
     fontSize: 16,
-    color: '#fff',
+    color: colors.textOnPrimary,
     opacity: 0.9,
     textAlign: 'center',
     textShadowColor: 'rgba(0, 0, 0, 0.2)',
@@ -203,18 +203,17 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
     marginHorizontal: 6,
-    transition: 'all 0.3s ease',
   },
   activeDot: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.textOnPrimary,
     width: 16,
     height: 16,
     borderRadius: 8,
-    shadowColor: '#fff',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.6,
     shadowRadius: 8,
     elevation: 4,
   },
@@ -223,7 +222,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 14,
-    color: '#fff',
+    color: colors.textOnPrimary,
     marginTop: 12,
     opacity: 0.8,
     fontWeight: '500',

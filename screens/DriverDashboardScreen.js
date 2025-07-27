@@ -75,12 +75,14 @@ export default function DriverDashboardScreen({ navigation }) {
         // استخدام البيانات من AuthContext
         if (user && user.id) {
           console.log('استخدام بيانات السائق من AuthContext');
-          setDriverId(user.id);
+          const driverIdNumber = parseInt(user.id);
+          console.log('معرف السائق (رقم):', driverIdNumber);
+          setDriverId(driverIdNumber);
           setDriverInfo(user);
           setIsOnline(user.is_active || false);
           
           // تحميل باقي البيانات من قاعدة البيانات
-          await loadDriverData(user.id);
+          await loadDriverData(driverIdNumber);
         } else {
           console.error('لم يتم العثور على بيانات السائق في AuthContext');
           Alert.alert(
@@ -112,7 +114,7 @@ export default function DriverDashboardScreen({ navigation }) {
         const { data: currentOrderDb } = await supabase
           .from('orders')
           .select('*')
-          .eq('driver_id', driverId)
+          .eq('driver_id', parseInt(driverId))
           .in('status', ['accepted', 'in_progress'])
           .order('created_at', { ascending: false })
           .limit(1)
@@ -147,7 +149,14 @@ export default function DriverDashboardScreen({ navigation }) {
 
   const loadDriverData = async (id) => {
     try {
-      console.log('Loading driver data for ID:', id);
+      console.log('Loading driver data for ID:', id, 'Type:', typeof id);
+      
+      // التحقق من أن المعرف صحيح
+      if (!id || isNaN(id)) {
+        console.error('معرف السائق غير صحيح:', id);
+        Alert.alert('خطأ', 'معرف السائق غير صحيح. يرجى إعادة تسجيل الدخول.');
+        return;
+      }
       
       // التحقق من وجود السائق في قاعدة البيانات
       const { data: driver, error: driverError } = await supabase
@@ -204,7 +213,7 @@ export default function DriverDashboardScreen({ navigation }) {
       const { data: ordersData, error: ordersError } = await supabase
         .from('orders')
         .select('*')
-        .eq('driver_id', id)
+        .eq('driver_id', parseInt(id))
         .limit(10);
         
       console.log('Orders data result:', { ordersData, ordersError });
@@ -221,7 +230,7 @@ export default function DriverDashboardScreen({ navigation }) {
       const { data: currentOrderDb } = await supabase
         .from('orders')
         .select('*')
-        .eq('driver_id', id)
+        .eq('driver_id', parseInt(id))
         .in('status', ['accepted', 'in_progress'])
         .order('created_at', { ascending: false })
         .limit(1)
@@ -286,25 +295,44 @@ export default function DriverDashboardScreen({ navigation }) {
   };
 
   const acceptOrder = async (orderId) => {
+    // التحقق من وجود البيانات المطلوبة
+    if (!driverId) {
+      Alert.alert('خطأ', 'لم يتم العثور على معرف السائق. يرجى إعادة تسجيل الدخول.');
+      return;
+    }
+
+    if (!orderId) {
+      Alert.alert('خطأ', 'لم يتم العثور على معرف الطلب.');
+      return;
+    }
+
     setAcceptLoading(true);
     try {
+      console.log('قبول الطلب المباشر:', {
+        driverId: driverId,
+        orderId: orderId,
+        driverInfo: driverInfo
+      });
+
       const { error } = await supabase
         .from('orders')
         .update({ 
           status: 'accepted',
-          driver_id: driverInfo?.id,
+          driver_id: parseInt(driverId), // تأكيد أنه رقم صحيح
           accepted_at: new Date().toISOString()
         })
         .eq('id', orderId)
         .eq('status', 'pending'); // ✅ تأكيد أن الطلب لم يُقبل بعد
 
       if (error) {
+        console.error('خطأ في قبول الطلب المباشر:', error);
         Alert.alert('خطأ', 'فشل في قبول الطلب: ' + error.message);
       } else {
         Alert.alert('نجح', 'تم قبول الطلب بنجاح');
         await loadDriverData(driverId); // إعادة تحميل البيانات
       }
     } catch (error) {
+      console.error('خطأ في قبول الطلب المباشر:', error);
       Alert.alert('خطأ', 'حدث خطأ غير متوقع: ' + error.message);
     } finally {
       setAcceptLoading(false);
@@ -571,21 +599,39 @@ export default function DriverDashboardScreen({ navigation }) {
   // دالة تنفيذ القبول بعد اجتياز الاختبار
   const handleQuizOptionPress = async (selected) => {
     if (selected === quizTarget) {
+      // التحقق من وجود البيانات المطلوبة
+      if (!driverId) {
+        Alert.alert('خطأ', 'لم يتم العثور على معرف السائق. يرجى إعادة تسجيل الدخول.');
+        return;
+      }
+
+      if (!pendingOrderToAccept?.id) {
+        Alert.alert('خطأ', 'لم يتم العثور على بيانات الطلب.');
+        return;
+      }
+
       setQuizModalVisible(false);
       setQuizLoading(true);
       try {
+        console.log('قبول الطلب:', {
+          driverId: driverId,
+          orderId: pendingOrderToAccept.id,
+          driverInfo: driverInfo
+        });
+
         // تحديث الطلب وتعيين السائق مع Race Condition Fix
         const { error: orderError } = await supabase
           .from('orders')
           .update({ 
             status: 'accepted', 
-            driver_id: driverId,
+            driver_id: parseInt(driverId), // تأكيد أنه رقم صحيح
             accepted_at: new Date().toISOString()
           })
           .eq('id', pendingOrderToAccept.id)
           .eq('status', 'pending'); // ✅ تأكيد أن الطلب لم يُقبل بعد
 
         if (orderError) {
+          console.error('خطأ في تحديث الطلب:', orderError);
           throw new Error('فشل في قبول الطلب: ' + orderError.message);
         }
 
@@ -593,7 +639,7 @@ export default function DriverDashboardScreen({ navigation }) {
         const { error: driverError } = await supabase
           .from('drivers')
           .update({ debt_points: (driverInfo?.debt_points || 0) + 1 })
-          .eq('id', driverId);
+          .eq('id', parseInt(driverId)); // تأكيد أنه رقم صحيح
 
         if (driverError) {
           console.error('خطأ في تحديث نقاط السائق:', driverError);
@@ -602,6 +648,7 @@ export default function DriverDashboardScreen({ navigation }) {
         setCurrentOrder(pendingOrderToAccept);
         Alert.alert('تم قبول الطلب', 'تم تعيين الطلب لك بنجاح!');
       } catch (error) {
+        console.error('خطأ في قبول الطلب:', error);
         Alert.alert('خطأ', 'حدث خطأ أثناء قبول الطلب: ' + error.message);
       } finally {
         setQuizLoading(false);
