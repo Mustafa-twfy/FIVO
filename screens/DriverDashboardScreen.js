@@ -48,6 +48,9 @@ export default function DriverDashboardScreen({ navigation }) {
   const [pendingOrderToAccept, setPendingOrderToAccept] = useState(null);
   const [quizOptions, setQuizOptions] = useState([]); // خيارات الأرقام
   const [quizTarget, setQuizTarget] = useState(null); // الرقم الثابت
+  const [supportLoading, setSupportLoading] = useState(false);
+  const [quizLoading, setQuizLoading] = useState(false);
+  const [acceptLoading, setAcceptLoading] = useState(false);
 
   useEffect(() => {
     const initializeDriver = async () => {
@@ -283,6 +286,7 @@ export default function DriverDashboardScreen({ navigation }) {
   };
 
   const acceptOrder = async (orderId) => {
+    setAcceptLoading(true);
     try {
       const { error } = await supabase
         .from('orders')
@@ -291,16 +295,19 @@ export default function DriverDashboardScreen({ navigation }) {
           driver_id: driverInfo?.id,
           accepted_at: new Date().toISOString()
         })
-        .eq('id', orderId);
+        .eq('id', orderId)
+        .eq('status', 'pending'); // ✅ تأكيد أن الطلب لم يُقبل بعد
 
       if (error) {
-        Alert.alert('خطأ', 'فشل في قبول الطلب');
+        Alert.alert('خطأ', 'فشل في قبول الطلب: ' + error.message);
       } else {
         Alert.alert('نجح', 'تم قبول الطلب بنجاح');
-        loadDriverData(driverId); // إعادة تحميل البيانات
+        await loadDriverData(driverId); // إعادة تحميل البيانات
       }
     } catch (error) {
-      Alert.alert('خطأ', 'حدث خطأ غير متوقع');
+      Alert.alert('خطأ', 'حدث خطأ غير متوقع: ' + error.message);
+    } finally {
+      setAcceptLoading(false);
     }
   };
 
@@ -310,7 +317,7 @@ export default function DriverDashboardScreen({ navigation }) {
         .from('orders')
         .update({ 
           status: 'completed',
-          completed_at: new Date().toISOString()
+          actual_delivery_time: new Date().toISOString()
         })
         .eq('id', orderId);
 
@@ -381,16 +388,16 @@ export default function DriverDashboardScreen({ navigation }) {
 
   const handleSendSupport = async () => {
     if (!supportMessage.trim()) return;
-    setLoading(true);
+    setSupportLoading(true);
     const { error } = await supportAPI.sendSupportMessage('driver', driverId, supportMessage.trim(), 'user');
     if (!error) {
       Alert.alert('تم الإرسال', 'تم إرسال رسالتك للدعم الفني بنجاح');
       setSupportMessage('');
       setSupportModalVisible(false);
     } else {
-      Alert.alert('خطأ', 'تعذر إرسال الرسالة');
+      Alert.alert('خطأ', 'تعذر إرسال الرسالة: ' + (error.message || 'خطأ غير معروف'));
     }
-    setLoading(false);
+    setSupportLoading(false);
   };
 
   // دالة للتحقق من الوقت الحالي ضمن أوقات الدوام
@@ -447,6 +454,12 @@ export default function DriverDashboardScreen({ navigation }) {
       return;
     }
 
+    if (currentOrder.status !== 'accepted') {
+      console.log('حالة الطلب غير صحيحة:', currentOrder.status);
+      Alert.alert('خطأ', `لا يمكن إكمال هذا الطلب. الحالة الحالية: ${currentOrder.status}`);
+      return;
+    }
+
     // تأكيد إكمال الطلب
     Alert.alert(
       'تأكيد إكمال الطلب',
@@ -465,13 +478,13 @@ export default function DriverDashboardScreen({ navigation }) {
                 .from('orders')
                 .update({ 
                   status: 'completed', 
-                  completed_at: new Date().toISOString() 
+                  actual_delivery_time: new Date().toISOString() 
                 })
                 .eq('id', currentOrder.id);
 
               if (updateError) {
                 console.error('خطأ في تحديث الطلب:', updateError);
-                throw new Error('فشل في تحديث حالة الطلب: ' + updateError.message);
+                throw new Error('فشل في تحديث حالة الطلب: ' + updateError.message + ' - ' + JSON.stringify(updateError));
               }
 
               console.log('تم تحديث الطلب بنجاح');
@@ -559,18 +572,39 @@ export default function DriverDashboardScreen({ navigation }) {
   const handleQuizOptionPress = async (selected) => {
     if (selected === quizTarget) {
       setQuizModalVisible(false);
-      setLoading(true);
+      setQuizLoading(true);
       try {
-        // تحديث الطلب وتعيين السائق
-        await supabase.from('orders').update({ status: 'accepted', driver_id: driverId }).eq('id', pendingOrderToAccept.id);
+        // تحديث الطلب وتعيين السائق مع Race Condition Fix
+        const { error: orderError } = await supabase
+          .from('orders')
+          .update({ 
+            status: 'accepted', 
+            driver_id: driverId,
+            accepted_at: new Date().toISOString()
+          })
+          .eq('id', pendingOrderToAccept.id)
+          .eq('status', 'pending'); // ✅ تأكيد أن الطلب لم يُقبل بعد
+
+        if (orderError) {
+          throw new Error('فشل في قبول الطلب: ' + orderError.message);
+        }
+
         // زيادة نقطة للسائق
-        await supabase.from('drivers').update({ debt_points: (driverInfo?.debt_points || 0) + 1 }).eq('id', driverId);
+        const { error: driverError } = await supabase
+          .from('drivers')
+          .update({ debt_points: (driverInfo?.debt_points || 0) + 1 })
+          .eq('id', driverId);
+
+        if (driverError) {
+          console.error('خطأ في تحديث نقاط السائق:', driverError);
+        }
+
         setCurrentOrder(pendingOrderToAccept);
-        setLoading(false);
         Alert.alert('تم قبول الطلب', 'تم تعيين الطلب لك بنجاح!');
       } catch (error) {
-        setLoading(false);
-        Alert.alert('خطأ', 'حدث خطأ أثناء قبول الطلب');
+        Alert.alert('خطأ', 'حدث خطأ أثناء قبول الطلب: ' + error.message);
+      } finally {
+        setQuizLoading(false);
       }
     } else {
       Alert.alert('إجابة خاطئة', 'يرجى المحاولة مرة أخرى');
@@ -608,7 +642,9 @@ export default function DriverDashboardScreen({ navigation }) {
       {/* معلومات السائق */}
       <View style={{backgroundColor:'#fff', flexDirection:'row', alignItems:'center', justifyContent:'space-between', paddingHorizontal:16, paddingVertical:8, borderBottomWidth:1, borderColor:'#F5F5F5'}}>
         <Text style={{color:colors.primary, fontWeight:'bold'}}>غير متصل</Text>
-        <Text style={{color:'#222'}}>الحالة - {isAvailable ? 'متوفر' : 'غير متوفر'}</Text>
+        <Text style={{color: isAvailable ? colors.success : colors.danger, fontWeight: 'bold'}}>
+          {isAvailable ? '✅ متوفر' : '⛔ غير متوفر'}
+        </Text>
       </View>
       {/* محتوى الشاشة */}
       {currentOrder ? (
@@ -680,11 +716,26 @@ export default function DriverDashboardScreen({ navigation }) {
                   </>
                 )}
                   <TouchableOpacity 
-                    style={{marginTop:12, backgroundColor:currentOrder ? '#ccc' : colors.primary, borderRadius:8, padding:10, alignItems:'center'}} 
-                    onPress={()=>!currentOrder && handleAcceptOrder(order)}
-                    disabled={!!currentOrder}
+                    style={{
+                      marginTop:12, 
+                      backgroundColor: (currentOrder || acceptLoading) ? '#ccc' : colors.primary, 
+                      borderRadius:8, 
+                      padding:10, 
+                      alignItems:'center',
+                      flexDirection: 'row',
+                      justifyContent: 'center'
+                    }} 
+                    onPress={() => !currentOrder && !acceptLoading && handleAcceptOrder(order.id)}
+                    disabled={!!currentOrder || acceptLoading}
                   >
-                    <Text style={{color:'#fff', fontWeight:'bold'}}>قبول الطلب</Text>
+                    {acceptLoading ? (
+                      <>
+                        <ActivityIndicator size="small" color="#fff" style={{marginRight: 8}} />
+                        <Text style={{color:'#fff', fontWeight:'bold'}}>جاري القبول...</Text>
+                      </>
+                    ) : (
+                      <Text style={{color:'#fff', fontWeight:'bold'}}>قبول الطلب</Text>
+                    )}
                   </TouchableOpacity>
                 </View>
               ))}
@@ -719,9 +770,16 @@ export default function DriverDashboardScreen({ navigation }) {
           </TouchableOpacity>
         </View>
         {isBlocked && (
-          <Text style={{color:colors.danger, marginTop:24, fontWeight:'bold', textAlign:'center'}}>
-            تم إيقافك مؤقتًا بسبب تجاوز حد الديون. يرجى تصفير الديون للعودة للعمل.
-          </Text>
+          <>
+            <Text style={{color:colors.danger, marginTop:24, fontWeight:'bold', textAlign:'center'}}>
+              تم إيقافك مؤقتًا بسبب تجاوز حد الديون. يرجى تصفير الديون للعودة للعمل.
+            </Text>
+            {!isWithinWorkHours() && (
+              <Text style={{color:'#888', textAlign:'center', marginTop:8}}>
+                خارج أوقات العمل: من {driverInfo?.work_start_time} إلى {driverInfo?.work_end_time}
+              </Text>
+            )}
+          </>
         )}
         </>
       )}
@@ -734,17 +792,27 @@ export default function DriverDashboardScreen({ navigation }) {
         <View style={{flex:1, justifyContent:'center', alignItems:'center', backgroundColor:'rgba(0,0,0,0.3)'}}>
           <View style={{backgroundColor:'#fff', borderRadius:16, padding:24, width:'80%', alignItems:'center'}}>
             <Text style={{fontSize:18, fontWeight:'bold', marginBottom:16}}>اختبار بسيط قبل قبول الطلب</Text>
-            <Text style={{fontSize:16, marginBottom:16}}>اختر الرقم المطابق للرقم التالي:</Text>
-            <Text style={{fontSize:28, fontWeight:'bold', marginBottom:24, color:colors.primary}}>{quizTarget}</Text>
+            <Text style={{fontSize:18, marginBottom:12}}>اختر الرقم التالي من الخيارات:</Text>
+            <Text style={{fontSize:32, fontWeight:'bold', marginBottom:24, color:colors.primary}}>{quizTarget}</Text>
             <View style={{flexDirection:'row', justifyContent:'space-between', width:'100%'}}>
               {quizOptions.map((opt, idx) => (
                 <TouchableOpacity
                   key={idx}
-                  style={{backgroundColor:'#F5F5F5', borderRadius:8, padding:16, marginHorizontal:6, minWidth:60, alignItems:'center', borderWidth:1, borderColor:'#ccc'}}
-                  onPress={()=>handleQuizOptionPress(opt)}
+                  style={{
+                    backgroundColor: quizLoading ? '#ccc' : '#F5F5F5', 
+                    borderRadius:8, 
+                    padding:16, 
+                    marginHorizontal:6, 
+                    minWidth:60, 
+                    alignItems:'center', 
+                    borderWidth:1, 
+                    borderColor:'#ccc'
+                  }}
+                  onPress={() => !quizLoading && handleQuizOptionPress(opt)}
+                  disabled={quizLoading}
                 >
-                  <Text style={{fontSize:22, fontWeight:'bold'}}>{opt}</Text>
-            </TouchableOpacity>
+                  <Text style={{fontSize:22, fontWeight:'bold', color: quizLoading ? '#888' : '#333'}}>{opt}</Text>
+                </TouchableOpacity>
               ))}
             </View>
             <TouchableOpacity style={{marginTop:24}} onPress={()=>setQuizModalVisible(false)}>

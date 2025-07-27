@@ -37,16 +37,20 @@ export default function SupportChatScreen({ navigation }) {
     if (!error) {
       setInput('');
       loadSupportMessages(driverId);
+      // رسالة نجاح صامتة
+      console.log('تم إرسال الرسالة بنجاح');
     } else {
-      Alert.alert('خطأ', 'تعذر إرسال الرسالة');
+      Alert.alert('خطأ', 'تعذر إرسال الرسالة: ' + (error.message || 'خطأ غير معروف'));
     }
     setSending(false);
   };
 
   const renderMessageBubble = (item) => (
     <View key={item.id} style={[styles.messageBubble, item.sender === 'user' ? styles.myMessage : styles.supportMessage]}>
-      <Text style={styles.messageText}>{item.message}</Text>
-      <Text style={styles.messageTime}>
+      <Text style={[styles.messageText, item.sender === 'user' ? styles.myMessageText : styles.supportMessageText]}>
+        {item.message}
+      </Text>
+      <Text style={[styles.messageTime, item.sender === 'user' ? styles.myMessageTime : styles.supportMessageTime]}>
         {item.created_at ? new Date(item.created_at).toLocaleTimeString('ar-IQ', {hour: '2-digit', minute: '2-digit'}) : ''} 
         {item.sender === 'user' ? '(أنت)' : '(الإدارة)'}
       </Text>
@@ -78,8 +82,19 @@ export default function SupportChatScreen({ navigation }) {
           onChangeText={setInput}
           editable={!sending}
         />
-        <TouchableOpacity style={styles.sendButton} onPress={sendMessage} disabled={sending}>
-          <Ionicons name="send" size={24} color={colors.secondary} />
+        <TouchableOpacity 
+          style={[
+            styles.sendButton, 
+            (!input.trim() || sending) && styles.sendButtonDisabled
+          ]} 
+          onPress={sendMessage} 
+          disabled={!input.trim() || sending}
+        >
+          <Ionicons 
+            name="send" 
+            size={24} 
+            color={(!input.trim() || sending) ? colors.border : colors.textOnPrimary} 
+          />
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
@@ -92,9 +107,14 @@ const styles = StyleSheet.create({
   messageBubble: { maxWidth: '80%', marginBottom: 12, padding: 12, borderRadius: 12 },
   myMessage: { backgroundColor: '#2196F3', alignSelf: 'flex-end', borderTopRightRadius: 2 },
   supportMessage: { backgroundColor: colors.secondary, alignSelf: 'flex-start', borderTopLeftRadius: 2 },
-  messageText: { fontSize: 16, color: '#fff' },
-  messageTime: { fontSize: 12, color: colors.dark, marginTop: 4, textAlign: 'left' },
+  messageText: { fontSize: 16 },
+  myMessageText: { color: '#fff' },
+  supportMessageText: { color: '#333' },
+  messageTime: { fontSize: 12, marginTop: 4, textAlign: 'left' },
+  myMessageTime: { color: 'rgba(255,255,255,0.7)' },
+  supportMessageTime: { color: colors.dark },
   inputContainer: { flexDirection: 'row', alignItems: 'center', padding: 12, borderTopWidth: 1, borderColor: '#eee', backgroundColor: colors.secondary, position: 'absolute', bottom: 0, left: 0, right: 0 },
   input: { flex: 1, height: 44, borderWidth: 1, borderColor: '#eee', borderRadius: 22, paddingHorizontal: 16, fontSize: 16, backgroundColor: '#fafafa' },
-  sendButton: { marginLeft: 8, backgroundColor: colors.gradient, borderRadius: 22, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  sendButton: { marginLeft: 8, backgroundColor: colors.primary, borderRadius: 22, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  sendButtonDisabled: { backgroundColor: colors.border },
 }); 
