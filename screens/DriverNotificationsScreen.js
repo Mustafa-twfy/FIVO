@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, Alert, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { driversAPI } from '../supabase';
+import { driversAPI, supabase } from '../supabase';
 import colors from '../colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ErrorMessage from '../components/ErrorMessage';
@@ -26,6 +26,20 @@ export default function DriverNotificationsScreen({ navigation }) {
         if (error) throw new Error('تعذر جلب الإشعارات');
         if (!isEqual(notifications, data)) {
           setNotifications(data || []);
+          
+          // تحديث الإشعارات غير المقروءة إلى مقروءة
+          if (data && data.length > 0) {
+            const unreadNotifications = data.filter(n => !n.is_read);
+            if (unreadNotifications.length > 0) {
+              const { error: updateError } = await supabase
+                .from('notifications')
+                .update({ is_read: true })
+                .in('id', unreadNotifications.map(n => n.id));
+              if (updateError) {
+                console.error('خطأ في تحديث حالة الإشعارات:', updateError);
+              }
+            }
+          }
         }
       } catch (error) {
         setError(error.message || 'حدث خطأ غير متوقع في تحميل الإشعارات');

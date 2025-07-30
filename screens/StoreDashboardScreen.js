@@ -35,6 +35,7 @@ export default function StoreDashboardScreen({ navigation }) {
   });
   const [supportModalVisible, setSupportModalVisible] = useState(false);
   const [supportMessage, setSupportMessage] = useState('');
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
 
   useEffect(() => {
     const fetchStoreId = async () => {
@@ -55,7 +56,16 @@ export default function StoreDashboardScreen({ navigation }) {
         if (!storeError && !isEqual(storeInfo, store)) {
           setStoreInfo(store);
         }
-        // لا يوجد setLoading هنا إطلاقًا
+        
+        // جلب عدد الإشعارات غير المقروءة
+        const { data: notifications, error: notificationsError } = await supabase
+          .from('store_notifications')
+          .select('*')
+          .eq('store_id', storeId)
+          .eq('is_read', false);
+        if (!notificationsError) {
+          setUnreadNotifications(notifications?.length || 0);
+        }
       }
     }, 5000);
     return () => clearInterval(interval);
@@ -96,8 +106,18 @@ export default function StoreDashboardScreen({ navigation }) {
         setOrders(ordersData || []);
       }
       
-      // حساب الإحصائيات
-      const orders = ordersData || [];
+              // حساب الإحصائيات
+        const orders = ordersData || [];
+        
+        // جلب عدد الإشعارات غير المقروءة
+        const { data: notifications, error: notificationsError } = await supabase
+          .from('store_notifications')
+          .select('*')
+          .eq('store_id', id)
+          .eq('is_read', false);
+        if (!notificationsError) {
+          setUnreadNotifications(notifications?.length || 0);
+        }
       const totalOrders = orders.length;
       const pendingOrders = orders.filter(order => order.status === 'pending').length;
       const completedOrders = orders.filter(order => order.status === 'completed').length;
@@ -342,7 +362,32 @@ export default function StoreDashboardScreen({ navigation }) {
                 style={styles.optionGradient}
               >
                 <View style={styles.optionContent}>
-                  <Ionicons name="notifications-outline" size={32} color={colors.secondary} />
+                  <View style={{ position: 'relative' }}>
+                    <Ionicons name="notifications-outline" size={32} color={colors.secondary} />
+                    {unreadNotifications > 0 && (
+                      <View style={{
+                        position: 'absolute',
+                        top: -5,
+                        right: -5,
+                        backgroundColor: '#FF4444',
+                        borderRadius: 10,
+                        minWidth: 20,
+                        height: 20,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        borderWidth: 2,
+                        borderColor: colors.secondary
+                      }}>
+                        <Text style={{
+                          color: colors.secondary,
+                          fontSize: 12,
+                          fontWeight: 'bold'
+                        }}>
+                          {unreadNotifications > 99 ? '99+' : unreadNotifications}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
                   <Text style={styles.optionTitle}>الإشعارات</Text>
                   <Text style={styles.optionDescription}>عرض الإشعارات والرسائل</Text>
                 </View>

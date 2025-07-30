@@ -22,6 +22,7 @@ export default function NewOrderScreen({ navigation }) {
   const [isUrgent, setIsUrgent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [storeInfo, setStoreInfo] = useState(null);
+  const [storeLocationUrl, setStoreLocationUrl] = useState('');
 
   useEffect(() => {
     loadStoreInfo();
@@ -39,6 +40,7 @@ export default function NewOrderScreen({ navigation }) {
         
         if (!error && data) {
           setStoreInfo(data);
+          setStoreLocationUrl(data.location_url || '');
         }
       }
     } catch (error) {
@@ -118,7 +120,8 @@ export default function NewOrderScreen({ navigation }) {
         payment_method: 'cash',
         payment_status: 'pending',
         status: 'pending',
-        driver_id: null
+        driver_id: null,
+        store_location_url: storeLocationUrl
       });
 
       if (error) {

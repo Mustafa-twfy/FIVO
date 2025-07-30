@@ -7,7 +7,8 @@ import {
   TouchableOpacity, 
   Alert,
   ActivityIndicator,
-  RefreshControl 
+  RefreshControl,
+  Linking
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase, systemSettingsAPI, ordersAPI } from '../supabase';
@@ -283,6 +284,20 @@ export default function AvailableOrdersScreen({ navigation }) {
           </View>
         )}
       </View>
+      
+      {item.store_location_url && (
+        <TouchableOpacity 
+          style={styles.locationButton}
+          onPress={() => {
+            // فتح الرابط في المتصفح
+            Linking.openURL(item.store_location_url);
+          }}
+        >
+          <Ionicons name="map-outline" size={20} color="#2196F3" />
+          <Text style={styles.locationButtonText}>عرض موقع المتجر</Text>
+          <Ionicons name="open-outline" size={16} color="#2196F3" />
+        </TouchableOpacity>
+      )}
 
       <View style={styles.orderDetails}>
         <Text style={styles.detailsTitle}>تفاصيل الطلب:</Text>
@@ -709,6 +724,22 @@ const styles = StyleSheet.create({
   categoryText: {
     color: '#1976D2',
     fontSize: 12,
+    fontWeight: 'bold',
+  },
+  locationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#E3F2FD',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    marginBottom: 12,
+    gap: 8,
+  },
+  locationButtonText: {
+    color: '#2196F3',
+    fontSize: 14,
     fontWeight: 'bold',
   },
   orderMetrics: {

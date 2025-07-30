@@ -100,7 +100,8 @@ const insertSampleData = async () => {
         phone: '+966504567890',
         address: 'شارع الملك فهد، الرياض',
         category: 'مطاعم',
-        is_active: true
+        is_active: true,
+        location_url: 'https://maps.google.com/?q=شارع+الملك+فهد+الرياض'
       },
       {
         email: 'store2@tawseel.com',
@@ -109,7 +110,8 @@ const insertSampleData = async () => {
         phone: '+966505678901',
         address: 'شارع التحلية، جدة',
         category: 'صيدليات',
-        is_active: true
+        is_active: true,
+        location_url: 'https://maps.google.com/?q=شارع+التحلية+جدة'
       }
     ], { onConflict: 'email' });
 
@@ -126,6 +128,7 @@ export const driversAPI = {
     const { data, error } = await supabase
       .from('drivers')
       .select('*')
+      .eq('status', 'approved')
       .order('created_at', { ascending: false });
     return { data, error };
   },
@@ -285,15 +288,21 @@ export const driversAPI = {
 
   // إرسال إشعار للسائق
   sendNotification: async (driverId, title, message) => {
-    const { data, error } = await supabase
-      .from('notifications')
-      .insert({
-        driver_id: driverId,
-        title: title,
-        message: message,
-        created_at: new Date().toISOString()
-      });
-    return { data, error };
+    try {
+      const { data, error } = await supabase
+        .from('notifications')
+        .insert({
+          driver_id: driverId,
+          title: title,
+          message: message,
+          is_read: false,
+          created_at: new Date().toISOString()
+        });
+      return { data, error };
+    } catch (error) {
+      console.error('خطأ في إرسال إشعار للسائق:', error);
+      return { data: null, error };
+    }
   },
 
   // جلب مكافآت السائق
@@ -392,6 +401,7 @@ export const storesAPI = {
     const { data, error } = await supabase
       .from('stores')
       .select('*')
+      .eq('is_active', true)
       .order('created_at', { ascending: false });
     return { data, error };
   },
@@ -417,15 +427,21 @@ export const storesAPI = {
 
   // إرسال إشعار للمتجر
   sendStoreNotification: async (storeId, title, message) => {
-    const { data, error } = await supabase
-      .from('store_notifications')
-      .insert({
-        store_id: storeId,
-        title: title,
-        message: message,
-        created_at: new Date().toISOString()
-      });
-    return { data, error };
+    try {
+      const { data, error } = await supabase
+        .from('store_notifications')
+        .insert({
+          store_id: storeId,
+          title: title,
+          message: message,
+          is_read: false,
+          created_at: new Date().toISOString()
+        });
+      return { data, error };
+    } catch (error) {
+      console.error('خطأ في إرسال إشعار للمتجر:', error);
+      return { data: null, error };
+    }
   },
 
   // إرسال رسالة دعم فني للمتجر

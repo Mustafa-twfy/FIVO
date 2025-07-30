@@ -17,7 +17,8 @@ export default function StoreInfoScreen({ navigation, route }) {
   const [info, setInfo] = useState({
     storeName: '',
     address: '',
-    phone: ''
+    phone: '',
+    locationUrl: ''
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -45,6 +46,13 @@ export default function StoreInfoScreen({ navigation, route }) {
       newErrors.phone = 'رقم الهاتف غير صحيح';
       valid = false;
     }
+    if (!info.locationUrl.trim()) {
+      newErrors.locationUrl = 'يرجى إدخال رابط موقع المتجر من Google Maps';
+      valid = false;
+    } else if (!info.locationUrl.includes('maps.google.com') && !info.locationUrl.includes('goo.gl/maps')) {
+      newErrors.locationUrl = 'يرجى إدخال رابط صحيح من Google Maps';
+      valid = false;
+    }
     setErrors(newErrors);
     return valid;
   };
@@ -64,6 +72,7 @@ export default function StoreInfoScreen({ navigation, route }) {
               name: info.storeName,
               phone: info.phone,
               address: info.address,
+              location_url: info.locationUrl,
               status: 'pending',
               created_at: new Date().toISOString(),
             }
@@ -153,6 +162,27 @@ export default function StoreInfoScreen({ navigation, route }) {
                 />
               </View>
               {errors.phone && <Text style={styles.errorText}>{errors.phone}</Text>}
+            </View>
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>رابط موقع المتجر من Google Maps</Text>
+              <View style={styles.inputContainer}>
+                <Ionicons name="map-outline" size={20} color="#666" style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="https://maps.google.com/..."
+                  value={info.locationUrl}
+                  onChangeText={(value) => handleInputChange('locationUrl', value)}
+                  keyboardType="url"
+                  autoCapitalize="none"
+                />
+              </View>
+              {errors.locationUrl && <Text style={styles.errorText}>{errors.locationUrl}</Text>}
+              <View style={styles.infoCard}>
+                <Ionicons name="information-circle-outline" size={20} color="#2196F3" />
+                <Text style={styles.infoText}>
+                  اذهب إلى Google Maps، ابحث عن موقع متجرك، انقر على "مشاركة" ثم انسخ الرابط
+                </Text>
+              </View>
             </View>
             <TouchableOpacity style={styles.nextButton} onPress={handleNext} disabled={loading} activeOpacity={0.7}>
               <LinearGradient colors={['#FF9800', '#F57C00']} style={styles.gradientButton}>

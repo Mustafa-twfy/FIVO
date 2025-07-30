@@ -41,7 +41,31 @@ export default function StoresScreen({ navigation }) {
         .from('stores')
         .select('*');
       if (error) throw new Error('تعذر جلب المتاجر');
-      setStores(data || []);
+      
+      // جلب عدد الإشعارات غير المقروءة لكل متجر
+      const storesWithNotifications = await Promise.all(
+        (data || []).map(async (store) => {
+          try {
+            const { count: unreadCount, error: notificationsError } = await supabase
+              .from('store_notifications')
+              .select('*', { count: 'exact', head: true })
+              .eq('store_id', store.id)
+              .eq('is_read', false);
+              
+            if (notificationsError) {
+              console.error(`Error fetching notifications for store ${store.id}:`, notificationsError);
+              return { ...store, unread_notifications: 0 };
+            }
+            
+            return { ...store, unread_notifications: unreadCount || 0 };
+          } catch (error) {
+            console.error(`Error processing store ${store.id}:`, error);
+            return { ...store, unread_notifications: 0 };
+          }
+        })
+      );
+      
+      setStores(storesWithNotifications);
     } catch (error) {
       Alert.alert('خطأ', error.message || 'فشل في تحميل المتاجر');
     }
@@ -332,7 +356,32 @@ export default function StoresScreen({ navigation }) {
                   style={styles.actionButton} 
                   onPress={() => openModal(store, 'notification')}
                 >
-                  <Ionicons name="notifications-outline" size={20} color={colors.secondary} />
+                  <View style={{position: 'relative'}}>
+                    <Ionicons name="notifications-outline" size={20} color={colors.secondary} />
+                    {store.unread_notifications > 0 && (
+                      <View style={{
+                        position: 'absolute',
+                        top: -3,
+                        right: -3,
+                        backgroundColor: '#FF4444',
+                        borderRadius: 8,
+                        minWidth: 14,
+                        height: 14,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        borderWidth: 1,
+                        borderColor: colors.secondary
+                      }}>
+                        <Text style={{
+                          color: colors.secondary,
+                          fontSize: 8,
+                          fontWeight: 'bold'
+                        }}>
+                          {store.unread_notifications > 9 ? '9+' : store.unread_notifications}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
                   <Text style={styles.actionText}>إشعار</Text>
                 </TouchableOpacity>
 

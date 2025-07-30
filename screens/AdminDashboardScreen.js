@@ -25,6 +25,7 @@ export default function AdminDashboardScreen({ navigation }) {
   const [notificationMessage, setNotificationMessage] = useState('');
   const [notificationTarget, setNotificationTarget] = useState('all'); // 'drivers' | 'stores' | 'all'
   const [sendingNotification, setSendingNotification] = useState(false);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [settingsModalVisible, setSettingsModalVisible] = useState(false);
   const [debtPointValue, setDebtPointValue] = useState('');
   const [maxDebtPoints, setMaxDebtPoints] = useState('');
@@ -87,12 +88,43 @@ export default function AdminDashboardScreen({ navigation }) {
         console.error('Support count error:', error);
       }
       
+      // جلب عدد الإشعارات غير المقروءة للسائقين والمتاجر
+      let totalUnreadNotifications = 0;
+      try {
+        // جلب الإشعارات غير المقروءة للسائقين
+        const { count: driverNotifications, error: driverNotificationsError } = await supabase
+          .from('notifications')
+          .select('*', { count: 'exact', head: true })
+          .eq('is_read', false);
+          
+        if (driverNotificationsError) {
+          console.error('Driver notifications count error:', driverNotificationsError);
+        }
+        
+        // جلب الإشعارات غير المقروءة للمتاجر
+        const { count: storeNotifications, error: storeNotificationsError } = await supabase
+          .from('store_notifications')
+          .select('*', { count: 'exact', head: true })
+          .eq('is_read', false);
+          
+        if (storeNotificationsError) {
+          console.error('Store notifications count error:', storeNotificationsError);
+        }
+        
+        totalUnreadNotifications = (driverNotifications || 0) + (storeNotifications || 0);
+        setUnreadNotifications(totalUnreadNotifications);
+      } catch (error) {
+        console.error('Notifications count error:', error);
+        setUnreadNotifications(0);
+      }
+      
       console.log('Stats loaded:', {
         drivers: driversCount || 0,
         stores: storesCount || 0,
         orders: ordersCount || 0,
         requests: registrationRequests.length,
-        supportMessages: supportCount
+        supportMessages: supportCount,
+        unreadNotifications: totalUnreadNotifications
       });
       
       setStats({
@@ -352,7 +384,32 @@ export default function AdminDashboardScreen({ navigation }) {
         
         <View style={styles.quickActionsGrid}>
           <TouchableOpacity style={styles.quickAction} onPress={() => setNotificationModalVisible(true)}>
-            <Ionicons name="notifications-outline" size={24} color="#2196F3" />
+            <View style={{position: 'relative'}}>
+              <Ionicons name="notifications-outline" size={24} color="#2196F3" />
+              {unreadNotifications > 0 && (
+                <View style={{
+                  position: 'absolute',
+                  top: -5,
+                  right: -5,
+                  backgroundColor: '#FF4444',
+                  borderRadius: 10,
+                  minWidth: 18,
+                  height: 18,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  borderWidth: 2,
+                  borderColor: '#fff'
+                }}>
+                  <Text style={{
+                    color: '#fff',
+                    fontSize: 10,
+                    fontWeight: 'bold'
+                  }}>
+                    {unreadNotifications > 99 ? '99+' : unreadNotifications}
+                  </Text>
+                </View>
+              )}
+            </View>
             <Text style={styles.quickActionText}>إشعار عام</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.quickAction} onPress={() => {
@@ -416,29 +473,56 @@ export default function AdminDashboardScreen({ navigation }) {
                 setSendingNotification(true);
                 try{
                   let errors = [];
+                  let successCount = 0;
+                  
                   if(notificationTarget==='drivers'||notificationTarget==='all'){
-                    const {data:drivers} = await driversAPI.getAllDrivers();
-                    for(const driver of drivers||[]){
-                      const {error} = await driversAPI.sendNotification(driver.id,notificationTitle,notificationMessage);
-                      if(error) errors.push(error.message);
+                    const {data:drivers, error: driversError} = await driversAPI.getAllDrivers();
+                    if(driversError) {
+                      errors.push('خطأ في جلب السائقين: ' + driversError.message);
+                    } else if(drivers && drivers.length > 0) {
+                      for(const driver of drivers){
+                        const {error} = await driversAPI.sendNotification(driver.id,notificationTitle,notificationMessage);
+                        if(error) {
+                          errors.push(`خطأ في إرسال إشعار للسائق ${driver.name || driver.id}: ${error.message}`);
+                        } else {
+                          successCount++;
+                        }
+                      }
+                    } else {
+                      errors.push('لا يوجد سائقين مفعلين');
                     }
                   }
+                  
                   if(notificationTarget==='stores'||notificationTarget==='all'){
-                    const {data:stores} = await storesAPI.getAllStores();
-                    for(const store of stores||[]){
-                      const {error} = await storesAPI.sendStoreNotification(store.id,notificationTitle,notificationMessage);
-                      if(error) errors.push(error.message);
+                    const {data:stores, error: storesError} = await storesAPI.getAllStores();
+                    if(storesError) {
+                      errors.push('خطأ في جلب المتاجر: ' + storesError.message);
+                    } else if(stores && stores.length > 0) {
+                      for(const store of stores){
+                        const {error} = await storesAPI.sendStoreNotification(store.id,notificationTitle,notificationMessage);
+                        if(error) {
+                          errors.push(`خطأ في إرسال إشعار للمتجر ${store.name || store.id}: ${error.message}`);
+                        } else {
+                          successCount++;
+                        }
+                      }
+                    } else {
+                      errors.push('لا يوجد متاجر مفعلة');
                     }
                   }
-                  if(errors.length===0){
-                    Alert.alert('تم الإرسال','تم إرسال الإشعار بنجاح');
+                  
+                  if(successCount > 0){
+                    Alert.alert('تم الإرسال',`تم إرسال الإشعار بنجاح إلى ${successCount} مستخدم${successCount > 1 ? 'ين' : ''}`);
                     setNotificationModalVisible(false);
                     setNotificationTitle('');setNotificationMessage('');setNotificationTarget('all');
+                    // تحديث الإحصائيات بعد إرسال الإشعارات
+                    loadStats();
                   }else{
-                    Alert.alert('تنبيه','تم الإرسال مع بعض الأخطاء: '+errors.join('\n'));
+                    Alert.alert('تنبيه','فشل في إرسال الإشعار: '+errors.join('\n'));
                   }
                 }catch(e){
-                  Alert.alert('خطأ','حدث خطأ أثناء الإرسال');
+                  console.error('خطأ في إرسال الإشعارات:', e);
+                  Alert.alert('خطأ','حدث خطأ أثناء الإرسال: ' + e.message);
                 }
                 setSendingNotification(false);
               }}

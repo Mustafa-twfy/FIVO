@@ -55,7 +55,31 @@ export default function DriversScreen({ navigation }) {
         .from('drivers')
         .select('*');
       if (error) throw new Error('تعذر جلب السائقين');
-      setDrivers(data || []);
+      
+      // جلب عدد الإشعارات غير المقروءة لكل سائق
+      const driversWithNotifications = await Promise.all(
+        (data || []).map(async (driver) => {
+          try {
+            const { count: unreadCount, error: notificationsError } = await supabase
+              .from('notifications')
+              .select('*', { count: 'exact', head: true })
+              .eq('driver_id', driver.id)
+              .eq('is_read', false);
+              
+            if (notificationsError) {
+              console.error(`Error fetching notifications for driver ${driver.id}:`, notificationsError);
+              return { ...driver, unread_notifications: 0 };
+            }
+            
+            return { ...driver, unread_notifications: unreadCount || 0 };
+          } catch (error) {
+            console.error(`Error processing driver ${driver.id}:`, error);
+            return { ...driver, unread_notifications: 0 };
+          }
+        })
+      );
+      
+      setDrivers(driversWithNotifications);
     } catch (error) {
       Alert.alert('خطأ', error.message || 'فشل في تحميل السائقين');
     }
@@ -378,7 +402,32 @@ export default function DriversScreen({ navigation }) {
                   style={styles.actionButton} 
                   onPress={() => openModal(driver, 'notification')}
                 >
-                  <Ionicons name="notifications-outline" size={20} color={colors.primary} />
+                  <View style={{position: 'relative'}}>
+                    <Ionicons name="notifications-outline" size={20} color={colors.primary} />
+                    {driver.unread_notifications > 0 && (
+                      <View style={{
+                        position: 'absolute',
+                        top: -3,
+                        right: -3,
+                        backgroundColor: '#FF4444',
+                        borderRadius: 8,
+                        minWidth: 14,
+                        height: 14,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        borderWidth: 1,
+                        borderColor: colors.primary
+                      }}>
+                        <Text style={{
+                          color: colors.primary,
+                          fontSize: 8,
+                          fontWeight: 'bold'
+                        }}>
+                          {driver.unread_notifications > 9 ? '9+' : driver.unread_notifications}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
                   <Text style={styles.actionText}>إشعار</Text>
                 </TouchableOpacity>
 

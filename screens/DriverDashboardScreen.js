@@ -11,7 +11,8 @@ import {
   Switch,
   Modal,
   TextInput,
-  Button
+  Button,
+  Linking
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -51,6 +52,7 @@ export default function DriverDashboardScreen({ navigation }) {
   const [supportLoading, setSupportLoading] = useState(false);
   const [quizLoading, setQuizLoading] = useState(false);
   const [acceptLoading, setAcceptLoading] = useState(false);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
 
   useEffect(() => {
     const initializeDriver = async () => {
@@ -81,8 +83,18 @@ export default function DriverDashboardScreen({ navigation }) {
           setDriverInfo(user);
           setIsOnline(user.is_active || false);
           
-          // تحميل باقي البيانات من قاعدة البيانات
-          await loadDriverData(driverIdNumber);
+                  // تحميل باقي البيانات من قاعدة البيانات
+        await loadDriverData(driverIdNumber);
+        
+        // جلب عدد الإشعارات غير المقروءة
+        const { data: notifications, error: notificationsError } = await supabase
+          .from('notifications')
+          .select('*')
+          .eq('driver_id', driverIdNumber)
+          .eq('is_read', false);
+        if (!notificationsError) {
+          setUnreadNotifications(notifications?.length || 0);
+        }
         } else {
           console.error('لم يتم العثور على بيانات السائق في AuthContext');
           Alert.alert(
@@ -127,6 +139,16 @@ export default function DriverDashboardScreen({ navigation }) {
           if (!availableOrdersError && !isEqual(availableOrders, availableOrdersData)) {
             setAvailableOrders(availableOrdersData || []);
           }
+        }
+        
+        // تحديث عدد الإشعارات غير المقروءة
+        const { data: notifications, error: notificationsError } = await supabase
+          .from('notifications')
+          .select('*')
+          .eq('driver_id', driverId)
+          .eq('is_read', false);
+        if (!notificationsError) {
+          setUnreadNotifications(notifications?.length || 0);
         }
         // لا يوجد setLoading هنا إطلاقًا
       }
@@ -682,9 +704,39 @@ export default function DriverDashboardScreen({ navigation }) {
           </View>
           <Image source={{ uri: 'https://i.ibb.co/svdQ0fdc/IMG-20250623-233435-969.jpg' }} style={{width: 48, height: 48, borderRadius: 24, borderWidth: 2, borderColor: colors.secondary, marginHorizontal: 8}} />
         </View>
-        <TouchableOpacity onPress={handleLogout} style={{padding: 8}}>
-          <Ionicons name="log-out-outline" size={26} color={colors.secondary} />
-        </TouchableOpacity>
+        <View style={{flexDirection: 'row', alignItems: 'center'}}>
+          <TouchableOpacity onPress={() => navigation.navigate('DriverNotifications')} style={{padding: 8, marginRight: 8}}>
+            <View style={{position: 'relative'}}>
+              <Ionicons name="notifications-outline" size={26} color={colors.secondary} />
+              {unreadNotifications > 0 && (
+                <View style={{
+                  position: 'absolute',
+                  top: -5,
+                  right: -5,
+                  backgroundColor: '#FF4444',
+                  borderRadius: 10,
+                  minWidth: 18,
+                  height: 18,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  borderWidth: 2,
+                  borderColor: colors.secondary
+                }}>
+                  <Text style={{
+                    color: colors.secondary,
+                    fontSize: 10,
+                    fontWeight: 'bold'
+                  }}>
+                    {unreadNotifications > 99 ? '99+' : unreadNotifications}
+                  </Text>
+                </View>
+              )}
+            </View>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleLogout} style={{padding: 8}}>
+            <Ionicons name="log-out-outline" size={26} color={colors.secondary} />
+          </TouchableOpacity>
+        </View>
       </View>
       {/* معلومات السائق */}
       <View style={{backgroundColor:'#fff', flexDirection:'row', alignItems:'center', justifyContent:'space-between', paddingHorizontal:16, paddingVertical:8, borderBottomWidth:1, borderColor:'#F5F5F5'}}>
@@ -714,6 +766,29 @@ export default function DriverDashboardScreen({ navigation }) {
             )}
             {currentOrder.extra_details && (
               <Text style={{marginTop:8, color:'#555'}}>تفاصيل إضافية: {currentOrder.extra_details}</Text>
+            )}
+            {currentOrder.store_location_url && (
+              <TouchableOpacity 
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  backgroundColor: '#E3F2FD',
+                  paddingVertical: 8,
+                  paddingHorizontal: 12,
+                  borderRadius: 8,
+                  marginTop: 8,
+                  justifyContent: 'center',
+                  gap: 8
+                }}
+                onPress={() => {
+                  // فتح الرابط في المتصفح
+                  Linking.openURL(currentOrder.store_location_url);
+                }}
+              >
+                <Ionicons name="map-outline" size={20} color="#2196F3" />
+                <Text style={{color: '#2196F3', fontWeight: 'bold'}}>عرض موقع المتجر</Text>
+                <Ionicons name="open-outline" size={16} color="#2196F3" />
+              </TouchableOpacity>
             )}
           </View>
           {/* الزر في واجهة الطلب الجاري */}
