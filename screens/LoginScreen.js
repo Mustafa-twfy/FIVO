@@ -207,7 +207,7 @@ export default function LoginScreen({ navigation }) {
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.logoContainer}>
           <Ionicons name="bicycle" size={80} color={colors.primary} />
-          <Text style={styles.logoText}>Fivo</Text>
+          <Text style={styles.logoText}>سمسم</Text>
           <Text style={styles.subtitle}>خدمة التوصيل الأسرع والأفضل</Text>
         </View>
 

@@ -111,7 +111,7 @@ export default function DriverVehicleScreen({ navigation, route }) {
         <View style={styles.formContainer}>
           <View style={styles.logoContainer}>
             <Ionicons name="bicycle" size={80} color="#FF9800" />
-            <Text style={styles.logoText}>توصيل بلس</Text>
+            <Text style={styles.logoText}>سمسم</Text>
             <Text style={styles.subtitle}>بيانات السائق والمركبة</Text>
           </View>
 

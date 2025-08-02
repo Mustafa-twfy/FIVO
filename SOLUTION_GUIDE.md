@@ -59,7 +59,7 @@ SELECT email, name, status, is_active, is_suspended FROM drivers;
 
 ### 3. **اختبار تسجيل الدخول**
 استخدم هذه البيانات للتجربة:
-- **البريد الإلكتروني**: `driver1@tawseel.com`
+- **البريد الإلكتروني**: `driver1@simsim.com`
 - **كلمة المرور**: `password123`
 
 ### 4. **فحص console logs**
@@ -72,13 +72,13 @@ SELECT email, name, status, is_active, is_suspended FROM drivers;
 
 ### السائقين:
 1. **أحمد محمد**
-   - البريد: `driver1@tawseel.com`
+   - البريد: `driver1@simsim.com`
    - كلمة المرور: `password123`
    - الحالة: `approved`
    - نشط: `true`
 
 2. **محمد علي**
-   - البريد: `driver2@tawseel.com`
+   - البريد: `driver2@simsim.com`
    - كلمة المرور: `password123`
    - الحالة: `approved`
    - نشط: `true`

@@ -284,13 +284,23 @@ export default function MyOrdersScreen({ navigation }) {
         </View>
         
         {item.status === 'accepted' && (
-          <TouchableOpacity 
-            style={styles.completeButton}
-            onPress={() => completeOrder(item.id)}
-          >
-            <Ionicons name="checkmark-circle-outline" size={20} color={colors.textOnPrimary} />
-            <Text style={styles.completeButtonText}>إكمال الطلب</Text>
-          </TouchableOpacity>
+          <View style={styles.acceptedButtons}>
+            <TouchableOpacity 
+              style={styles.storeProfileButton}
+              onPress={() => navigation.navigate('StoreProfile', { storeId: item.store_id, storeName: item.stores?.name })}
+            >
+              <Ionicons name="business-outline" size={18} color={colors.info} />
+              <Text style={styles.storeProfileButtonText}>ملف المتجر</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.completeButton}
+              onPress={() => completeOrder(item.id)}
+            >
+              <Ionicons name="checkmark-circle-outline" size={20} color={colors.textOnPrimary} />
+              <Text style={styles.completeButtonText}>إكمال الطلب</Text>
+            </TouchableOpacity>
+          </View>
         )}
 
         {item.status === 'completed' && (
@@ -544,6 +554,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
+  acceptedButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   amountInfo: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -568,6 +583,22 @@ const styles = StyleSheet.create({
   },
   completeButtonText: {
     color: colors.textOnPrimary,
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginLeft: 4,
+  },
+  storeProfileButton: {
+    backgroundColor: colors.secondary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.info,
+  },
+  storeProfileButtonText: {
+    color: colors.info,
     fontSize: 14,
     fontWeight: 'bold',
     marginLeft: 4,

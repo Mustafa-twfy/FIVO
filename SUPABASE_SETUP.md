@@ -49,12 +49,12 @@ npm start
 ## بيانات تسجيل الدخول التجريبية:
 
 ### السائقين:
-- Email: driver1@tawseel.com, Password: password123
-- Email: driver2@tawseel.com, Password: password123
+- Email: driver1@simsim.com, Password: password123
+- Email: driver2@simsim.com, Password: password123
 
 ### المتاجر:
-- Email: store1@tawseel.com, Password: password123
-- Email: store2@tawseel.com, Password: password123
+- Email: store1@simsim.com, Password: password123
+- Email: store2@simsim.com, Password: password123
 
 ### طلب تسجيل معلق:
 - Email: nmcmilli07@gmail.com, Password: password123 

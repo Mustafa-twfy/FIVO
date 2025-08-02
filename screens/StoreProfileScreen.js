@@ -17,11 +17,13 @@ import { supabase } from '../supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import colors from '../colors';
 
-export default function StoreProfileScreen({ navigation }) {
+export default function StoreProfileScreen({ navigation, route }) {
+  const { storeId, storeName } = route.params || {};
   const [storeInfo, setStoreInfo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [isReadOnly, setIsReadOnly] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -39,17 +41,26 @@ export default function StoreProfileScreen({ navigation }) {
   const loadStoreInfo = async () => {
     setLoading(true);
     try {
-      const storeId = await AsyncStorage.getItem('userId');
-      if (!storeId) {
-        Alert.alert('خطأ', 'لم يتم العثور على معرف المتجر');
-        navigation.goBack();
-        return;
+      let targetStoreId = storeId;
+      
+      // إذا لم يتم تمرير storeId، استخدم userId من AsyncStorage (للمتجر نفسه)
+      if (!targetStoreId) {
+        targetStoreId = await AsyncStorage.getItem('userId');
+        if (!targetStoreId) {
+          Alert.alert('خطأ', 'لم يتم العثور على معرف المتجر');
+          navigation.goBack();
+          return;
+        }
+      } else {
+        // إذا تم تمرير storeId، فهذا يعني أن السائق يريد رؤية ملف المتجر
+        setIsReadOnly(true);
+        setIsEditing(false);
       }
 
       const { data: store, error } = await supabase
         .from('stores')
         .select('*')
-        .eq('id', storeId)
+        .eq('id', targetStoreId)
         .single();
 
       if (error) {
@@ -155,17 +166,21 @@ export default function StoreProfileScreen({ navigation }) {
         >
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>الملف الشخصي</Text>
-        <TouchableOpacity 
-          style={styles.editButton}
-          onPress={() => setIsEditing(!isEditing)}
-        >
-          <Ionicons 
-            name={isEditing ? "close" : "create-outline"} 
-            size={24} 
-            color="#fff" 
-          />
-        </TouchableOpacity>
+        <Text style={styles.headerTitle}>
+          {isReadOnly ? (storeName || 'ملف المتجر') : 'الملف الشخصي'}
+        </Text>
+        {!isReadOnly && (
+          <TouchableOpacity 
+            style={styles.editButton}
+            onPress={() => setIsEditing(!isEditing)}
+          >
+            <Ionicons 
+              name={isEditing ? "close" : "create-outline"} 
+              size={24} 
+              color="#fff" 
+            />
+          </TouchableOpacity>
+        )}
       </View>
 
       <ScrollView style={styles.content}>
@@ -188,23 +203,23 @@ export default function StoreProfileScreen({ navigation }) {
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>اسم المتجر *</Text>
             <TextInput
-              style={[styles.input, !isEditing && styles.inputDisabled]}
+              style={[styles.input, (!isEditing || isReadOnly) && styles.inputDisabled]}
               value={formData.name}
               placeholder="أدخل اسم المتجر"
               onChangeText={(text) => handleInputChange('name', text)}
-              editable={isEditing}
+              editable={isEditing && !isReadOnly}
             />
           </View>
 
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>رقم الهاتف *</Text>
             <TextInput
-              style={[styles.input, !isEditing && styles.inputDisabled]}
+              style={[styles.input, (!isEditing || isReadOnly) && styles.inputDisabled]}
               value={formData.phone}
               placeholder="أدخل رقم الهاتف"
               keyboardType="phone-pad"
               onChangeText={(text) => handleInputChange('phone', text)}
-              editable={isEditing}
+              editable={isEditing && !isReadOnly}
             />
           </View>
 
@@ -223,37 +238,37 @@ export default function StoreProfileScreen({ navigation }) {
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>العنوان *</Text>
             <TextInput
-              style={[styles.input, !isEditing && styles.inputDisabled]}
+              style={[styles.input, (!isEditing || isReadOnly) && styles.inputDisabled]}
               value={formData.address}
               placeholder="أدخل عنوان المتجر"
               multiline
               numberOfLines={2}
               onChangeText={(text) => handleInputChange('address', text)}
-              editable={isEditing}
+              editable={isEditing && !isReadOnly}
             />
           </View>
 
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>نوع المتجر</Text>
             <TextInput
-              style={[styles.input, !isEditing && styles.inputDisabled]}
+              style={[styles.input, (!isEditing || isReadOnly) && styles.inputDisabled]}
               value={formData.category}
               placeholder="مثال: مطعم، صيدلية، محل ملابس"
               onChangeText={(text) => handleInputChange('category', text)}
-              editable={isEditing}
+              editable={isEditing && !isReadOnly}
             />
           </View>
 
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>وصف المتجر</Text>
             <TextInput
-              style={[styles.input, styles.textArea, !isEditing && styles.inputDisabled]}
+              style={[styles.input, styles.textArea, (!isEditing || isReadOnly) && styles.inputDisabled]}
               value={formData.description}
               placeholder="وصف مختصر عن المتجر والخدمات المقدمة"
               multiline
               numberOfLines={3}
               onChangeText={(text) => handleInputChange('description', text)}
-              editable={isEditing}
+              editable={isEditing && !isReadOnly}
             />
           </View>
         </View>
@@ -277,7 +292,7 @@ export default function StoreProfileScreen({ navigation }) {
               onValueChange={toggleActiveStatus}
               trackColor={{ false: '#767577', true: '#4CAF50' }}
               thumbColor={formData.is_active ? '#fff' : '#f4f3f4'}
-              disabled={!isEditing}
+              disabled={!isEditing || isReadOnly}
             />
           </View>
         </View>
@@ -319,7 +334,7 @@ export default function StoreProfileScreen({ navigation }) {
         </View>
 
         {/* أزرار الإجراءات */}
-        {isEditing && (
+        {isEditing && !isReadOnly && (
           <View style={styles.actionsContainer}>
             <TouchableOpacity 
               style={styles.cancelButton}

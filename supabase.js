@@ -57,7 +57,7 @@ const insertSampleData = async () => {
     // إدخال سائقين تجريبيين
     await supabase.from('drivers').upsert([
       {
-        email: 'driver1@tawseel.com',
+        email: 'driver1@simsim.com',
         password: 'password123',
         name: 'أحمد محمد',
         phone: '+966501234567',
@@ -68,7 +68,7 @@ const insertSampleData = async () => {
         is_suspended: false
       },
       {
-        email: 'driver2@tawseel.com',
+        email: 'driver2@simsim.com',
         password: 'password123',
         name: 'محمد علي',
         phone: '+966502345678',
@@ -94,7 +94,7 @@ const insertSampleData = async () => {
     // إدخال متاجر تجريبية
     await supabase.from('stores').upsert([
       {
-        email: 'store1@tawseel.com',
+        email: 'store1@simsim.com',
         password: 'password123',
         name: 'مطعم الشرق',
         phone: '+966504567890',
@@ -104,7 +104,7 @@ const insertSampleData = async () => {
         location_url: 'https://maps.google.com/?q=شارع+الملك+فهد+الرياض'
       },
       {
-        email: 'store2@tawseel.com',
+        email: 'store2@simsim.com',
         password: 'password123',
         name: 'صيدلية النور',
         phone: '+966505678901',
