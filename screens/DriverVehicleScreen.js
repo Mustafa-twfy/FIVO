@@ -9,11 +9,13 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from 'react-native';
 import { supabase } from '../supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import colors from '../colors';
+import simsimLogo from '../assets/simsim-logo.png';
 
 export default function DriverVehicleScreen({ navigation, route }) {
   const { formData, documents } = route.params;
@@ -110,7 +112,7 @@ export default function DriverVehicleScreen({ navigation, route }) {
 
         <View style={styles.formContainer}>
           <View style={styles.logoContainer}>
-            <Ionicons name="bicycle" size={80} color="#FF9800" />
+            <Image source={simsimLogo} style={{ width: 80, height: 80, resizeMode: 'contain', marginBottom: 10 }} />
             <Text style={styles.logoText}>سمسم</Text>
             <Text style={styles.subtitle}>بيانات السائق والمركبة</Text>
           </View>

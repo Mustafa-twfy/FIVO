@@ -285,12 +285,12 @@ export default function AvailableOrdersScreen({ navigation }) {
         )}
       </View>
       
-      {item.store_location_url && (
+      {item.stores?.location_url && (
         <TouchableOpacity 
           style={styles.locationButton}
           onPress={() => {
             // فتح الرابط في المتصفح
-            Linking.openURL(item.store_location_url);
+            Linking.openURL(item.stores.location_url);
           }}
         >
           <Ionicons name="map-outline" size={20} color="#2196F3" />

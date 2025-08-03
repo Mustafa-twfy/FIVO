@@ -20,6 +20,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import colors from '../colors';
 import { useAuth } from '../context/AuthContext';
 import isEqual from 'lodash.isequal';
+import storeIcon from '../assets/store-icon.png';
 
 export default function StoreDashboardScreen({ navigation }) {
   const { logout } = useAuth();
@@ -259,7 +260,7 @@ export default function StoreDashboardScreen({ navigation }) {
             <Text style={{color: colors.secondary, fontWeight: 'bold', fontSize: 18}}>{storeInfo?.name || 'اسم المتجر'}</Text>
             <Text style={{color: colors.secondary, fontSize: 14, opacity: 0.9}}>{storeInfo?.phone || 'رقم الهاتف'}</Text>
           </View>
-          <Image source={{ uri: 'https://i.ibb.co/svdQ0fdc/IMG-20250623-233435-969.jpg' }} style={{width: 48, height: 48, borderRadius: 24, borderWidth: 2, borderColor: colors.secondary, marginHorizontal: 8}} />
+          <Image source={storeIcon} style={{width: 48, height: 48, borderRadius: 24, borderWidth: 2, borderColor: colors.secondary, marginHorizontal: 8}} />
         </View>
         {/* زر تسجيل الخروج */}
         <TouchableOpacity onPress={handleLogout} style={{marginLeft: 12, padding: 8}}>

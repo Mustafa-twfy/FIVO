@@ -16,6 +16,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import colors from '../colors';
+import storeIcon from '../assets/store-icon.png';
 
 export default function StoreProfileScreen({ navigation, route }) {
   const { storeId, storeName } = route.params || {};
@@ -187,7 +188,7 @@ export default function StoreProfileScreen({ navigation, route }) {
         {/* صورة الملف الشخصي */}
         <View style={styles.profileImageContainer}>
           <Image 
-            source={{ uri: 'https://i.ibb.co/svdQ0fdc/IMG-20250623-233435-969.jpg' }} 
+            source={storeIcon} 
             style={styles.profileImage} 
           />
           <View style={styles.storeTypeBadge}>

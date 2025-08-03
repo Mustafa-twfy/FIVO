@@ -767,7 +767,7 @@ export default function DriverDashboardScreen({ navigation }) {
             {currentOrder.extra_details && (
               <Text style={{marginTop:8, color:'#555'}}>تفاصيل إضافية: {currentOrder.extra_details}</Text>
             )}
-            {currentOrder.store_location_url && (
+            {currentOrder.stores?.location_url && (
               <TouchableOpacity 
                 style={{
                   flexDirection: 'row',
@@ -782,7 +782,7 @@ export default function DriverDashboardScreen({ navigation }) {
                 }}
                 onPress={() => {
                   // فتح الرابط في المتصفح
-                  Linking.openURL(currentOrder.store_location_url);
+                  Linking.openURL(currentOrder.stores.location_url);
                 }}
               >
                 <Ionicons name="map-outline" size={20} color="#2196F3" />

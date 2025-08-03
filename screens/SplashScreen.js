@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Dimensions, Animated, Easing } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, Animated, Easing, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import simsimLogo from '../assets/simsim-logo.png';
 
 export default function SplashScreen() {
   const textOpacity = useRef(new Animated.Value(0)).current;
@@ -51,6 +52,7 @@ export default function SplashScreen() {
             }
           ]}
         >
+          <Image source={simsimLogo} style={styles.logo} />
           <Text style={styles.appName}>سمسم</Text>
         </Animated.View>
       </View>
@@ -72,6 +74,12 @@ const styles = StyleSheet.create({
   },
   textContainer: {
     alignItems: 'center',
+  },
+  logo: {
+    width: 150,
+    height: 150,
+    resizeMode: 'contain',
+    marginBottom: 20,
   },
   appName: {
     fontSize: 48,

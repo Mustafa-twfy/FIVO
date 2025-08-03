@@ -7,13 +7,15 @@ import {
   Alert, 
   ScrollView,
   ActivityIndicator,
-  Platform
+  Platform,
+  Image
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
 import { supabase } from '../supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import storeIcon from '../assets/store-icon.png';
 
 // استيراد الخريطة فقط على الأجهزة المحمولة
 let MapView, Marker;
@@ -261,7 +263,7 @@ export default function UpdateStoreLocationScreen({ navigation }) {
 
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.logoContainer}>
-          <Ionicons name="location" size={80} color="#FF9800" />
+          <Image source={storeIcon} style={{ width: 80, height: 80, resizeMode: 'contain', marginBottom: 10 }} />
           <Text style={styles.logoText}>تحديث الموقع</Text>
           <Text style={styles.subtitle}>حدد موقع متجرك الجديد</Text>
         </View>

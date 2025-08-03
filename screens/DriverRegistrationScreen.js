@@ -8,12 +8,14 @@ import {
   Alert,
   ScrollView,
   KeyboardAvoidingView,
-  Platform 
+  Platform,
+  Image
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../supabase';
 import colors from '../colors';
+import driverIcon from '../assets/driver-icon.png';
 
 export default function DriverRegistrationScreen({ navigation }) {
   const [formData, setFormData] = useState({
@@ -180,7 +182,7 @@ export default function DriverRegistrationScreen({ navigation }) {
 
         <View style={styles.content}>
           <View style={styles.logoContainer}>
-            <Ionicons name="bicycle" size={80} color={colors.primary} />
+            <Image source={driverIcon} style={{ width: 80, height: 80, resizeMode: 'contain', marginBottom: 10 }} />
             <Text style={styles.logoText}>Fivo</Text>
             <Text style={styles.subtitle}>انضم إلينا ككابتن</Text>
           </View>

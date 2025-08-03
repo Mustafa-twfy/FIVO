@@ -17,6 +17,7 @@ import { driversAPI } from '../supabase';
 import { supabase } from '../supabase';
 import colors from '../colors';
 import { systemSettingsAPI } from '../supabase';
+import driverIcon from '../assets/driver-icon.png';
 
 export default function DriversScreen({ navigation }) {
   const [drivers, setDrivers] = useState([]);
@@ -269,7 +270,10 @@ export default function DriversScreen({ navigation }) {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={colors.secondary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>إدارة السائقين</Text>
+                 <View style={styles.headerContent}>
+           <Image source={driverIcon} style={styles.headerLogo} />
+           <Text style={styles.headerTitle}>إدارة السائقين</Text>
+         </View>
         <View style={styles.headerButtons}>
           <TouchableOpacity 
             onPress={() => {
@@ -308,11 +312,11 @@ export default function DriversScreen({ navigation }) {
       </View>
 
       <ScrollView style={styles.scrollView}>
-        {drivers.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Ionicons name="people-outline" size={64} color={colors.dark} />
-            <Text style={styles.emptyText}>لا يوجد سائقين مسجلين</Text>
-          </View>
+                 {drivers.length === 0 ? (
+           <View style={styles.emptyContainer}>
+             <Image source={driverIcon} style={styles.emptyIcon} />
+             <Text style={styles.emptyText}>لا يوجد سائقين مسجلين</Text>
+           </View>
         ) : (
           drivers.map((driver) => (
             <View key={driver.id} style={[styles.driverCard, driver.is_suspended && styles.suspendedCard]}>
@@ -603,6 +607,19 @@ const styles = StyleSheet.create({
   backButton: {
     padding: 8,
   },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    justifyContent: 'center',
+  },
+  headerLogo: {
+    width: 50,
+    height: 50,
+    resizeMode: 'contain',
+    marginRight: 12,
+    borderRadius: 25,
+  },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
@@ -632,6 +649,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.dark,
     marginTop: 16,
+  },
+  emptyIcon: {
+    width: 80,
+    height: 80,
+    resizeMode: 'contain',
+    marginBottom: 16,
   },
   driverCard: {
     backgroundColor: colors.secondary,

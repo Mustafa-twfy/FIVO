@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import colors from '../colors';
 import { useAuth } from '../context/AuthContext';
+import simsimLogo from '../assets/simsim-logo.png';
 
 export default function LoginScreen({ navigation }) {
   const { login } = useAuth();
@@ -206,7 +207,7 @@ export default function LoginScreen({ navigation }) {
     >
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.logoContainer}>
-          <Ionicons name="bicycle" size={80} color={colors.primary} />
+          <Image source={simsimLogo} style={{ width: 120, height: 120, resizeMode: 'contain', marginBottom: 15 }} />
           <Text style={styles.logoText}>سمسم</Text>
           <Text style={styles.subtitle}>خدمة التوصيل الأسرع والأفضل</Text>
         </View>

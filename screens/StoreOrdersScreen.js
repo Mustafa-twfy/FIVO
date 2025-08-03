@@ -18,6 +18,7 @@ import { supabase, ordersAPI } from '../supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import colors from '../colors';
 import ErrorMessage from '../components/ErrorMessage';
+import storeIcon from '../assets/store-icon.png';
 
 export default function StoreOrdersScreen({ navigation }) {
   const [orders, setOrders] = useState([]);
@@ -213,7 +214,10 @@ export default function StoreOrdersScreen({ navigation }) {
         <TouchableOpacity onPress={() => navigation.navigate('AdminDashboardScreen')} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={colors.secondary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>إدارة الطلبات</Text>
+        <View style={styles.headerContent}>
+          <Image source={storeIcon} style={styles.headerLogo} />
+          <Text style={styles.headerTitle}>إدارة الطلبات</Text>
+        </View>
         <TouchableOpacity onPress={loadOrders} style={styles.refreshButton}>
           <Ionicons name="refresh" size={24} color={colors.secondary} />
         </TouchableOpacity>
@@ -317,6 +321,8 @@ export default function StoreOrdersScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.secondary },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 50, paddingBottom: 20, paddingHorizontal: 16, backgroundColor: colors.secondary },
+  headerContent: { flexDirection: 'row', alignItems: 'center', flex: 1, justifyContent: 'center' },
+  headerLogo: { width: 40, height: 40, resizeMode: 'contain', marginRight: 8, borderRadius: 20 },
   headerTitle: { fontSize: 22, fontWeight: 'bold', color: colors.primary },
   content: { flex: 1, padding: 20, backgroundColor: colors.secondary },
   loadingContainer: {

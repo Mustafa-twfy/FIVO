@@ -687,7 +687,8 @@ export const ordersAPI = {
           phone,
           address,
           category,
-          location
+          location,
+          location_url
         )
       `)
       .eq('status', 'pending')
@@ -753,7 +754,8 @@ export const ordersAPI = {
           name,
           phone,
           address,
-          category
+          category,
+          location_url
         )
       `)
       .eq('driver_id', driverId);
