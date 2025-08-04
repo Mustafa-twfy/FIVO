@@ -10,7 +10,7 @@ import {
   RefreshControl
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { supabase, systemSettingsAPI } from '../supabase';
+import { supabase, systemSettingsAPI, ordersAPI } from '../supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ErrorMessage from '../components/ErrorMessage';
 import colors from '../colors';
@@ -173,13 +173,8 @@ export default function MyOrdersScreen({ navigation }) {
 
       console.log('تحديث حالة الطلب إلى مكتمل...');
       
-      const { error } = await supabase
-        .from('orders')
-        .update({ 
-          status: 'completed',
-          actual_delivery_time: new Date().toISOString()
-        })
-        .eq('id', orderId);
+      // استخدام دالة ordersAPI.completeOrder المحسنة التي تحسب النقاط تلقائياً
+      const { data, error } = await ordersAPI.completeOrder(orderId);
 
       if (error) {
         console.error('خطأ في تحديث الطلب:', error);
@@ -213,10 +208,11 @@ export default function MyOrdersScreen({ navigation }) {
           });
       }
 
-      console.log('تم إكمال الطلب بنجاح');
-      Alert.alert('نجح', 'تم إكمال الطلب بنجاح');
+      console.log('تم إكمال الطلب بنجاح مع حساب النقاط التلقائي');
+      Alert.alert('نجح', 'تم إكمال الطلب بنجاح! تم حساب النقاط تلقائياً.');
       
-      // إعادة تحميل الطلبات
+      // إعادة تحميل بيانات السائق والطلبات
+      await loadDriverInfo();
       await loadMyOrders();
       
     } catch (error) {

@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../supabase';
 import colors from '../colors';
-import storeIcon from '../assets/store-icon.png';
+const storeIcon = { uri: 'https://i.ibb.co/Myy7sCzX/Picsart-25-07-31-16-12-30-512.jpg' };
 
 export default function StoreRegistrationScreen({ navigation }) {
   const [formData, setFormData] = useState({
@@ -150,8 +150,8 @@ export default function StoreRegistrationScreen({ navigation }) {
         </View>
         <View style={styles.content}>
           <View style={styles.logoContainer}>
-                         <Image source={storeIcon} style={{ width: 100, height: 100, resizeMode: 'contain', marginBottom: 10, borderRadius: 50, borderWidth: 2, borderColor: '#fff', backgroundColor: '#fff' }} />
-            <Text style={styles.logoText}>Fivo</Text>
+                         <Image source={storeIcon} style={{ width: 100, height: 100, resizeMode: 'contain', marginBottom: 10 }} />
+            <Text style={styles.logoText}>سمسم</Text>
             <Text style={styles.subtitle}>انضم إلينا كمتجر</Text>
           </View>
           <View style={styles.formContainer}>

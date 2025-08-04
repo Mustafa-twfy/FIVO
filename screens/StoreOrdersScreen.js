@@ -18,7 +18,7 @@ import { supabase, ordersAPI } from '../supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import colors from '../colors';
 import ErrorMessage from '../components/ErrorMessage';
-import storeIcon from '../assets/store-icon.png';
+const storeIcon = { uri: 'https://i.ibb.co/Myy7sCzX/Picsart-25-07-31-16-12-30-512.jpg' };
 
 export default function StoreOrdersScreen({ navigation }) {
   const [orders, setOrders] = useState([]);

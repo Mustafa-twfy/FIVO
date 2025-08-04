@@ -168,30 +168,101 @@ export const driversAPI = {
 
   // تصفية ديون السائق مع رفع الإيقاف إذا كان موقوفًا
   clearDriverDebt: async (driverId) => {
-    // تصفير النقاط
-    const { data, error } = await supabase
-      .from('drivers')
-      .update({ debt_points: 0 })
-      .eq('id', driverId);
-    // إرسال إشعار عند النجاح
-    if (!error) {
-      await driversAPI.sendNotification(
-        driverId,
-        'تصفير نقاط الديون',
-        'تم تصفير جميع نقاط الديون الخاصة بك. مجموع نقاطك الآن: 0 نقطة (0 دينار).'
-      );
-      // رفع الإيقاف إذا كان موقوفًا
+    try {
+      // جلب إعدادات النظام
+      const { data: settings } = await systemSettingsAPI.getSystemSettings();
+      const maxDebtPoints = settings?.max_debt_points || 20;
+      
+      // تصفير النقاط
+      const { data, error } = await supabase
+        .from('drivers')
+        .update({ debt_points: 0 })
+        .eq('id', driverId);
+      
+      if (!error) {
+        // إرسال إشعار عند النجاح
+        await driversAPI.sendNotification(
+          driverId,
+          'تصفير نقاط الديون',
+          'تم تصفير جميع نقاط الديون الخاصة بك. مجموع نقاطك الآن: 0 نقطة (0 دينار).'
+        );
+        
+        // رفع الإيقاف إذا كان موقوفًا
+        const { data: driver } = await supabase
+          .from('drivers')
+          .select('is_suspended')
+          .eq('id', driverId)
+          .single();
+          
+        if (driver?.is_suspended) {
+          await driversAPI.unsuspendDriver(driverId);
+          await driversAPI.sendNotification(
+            driverId, 
+            'تم رفع الإيقاف', 
+            'تم رفع الإيقاف عنك بعد تصفير الديون. يمكنك العودة للعمل.'
+          );
+        }
+      }
+      return { data, error };
+    } catch (error) {
+      console.error('خطأ في تصفير الديون:', error);
+      return { data: null, error };
+    }
+  },
+
+  // تقليل نقاط السائق مع رفع الإيقاف التلقائي
+  reduceDriverDebt: async (driverId, reducePoints) => {
+    try {
+      // جلب النقاط الحالية
       const { data: driver } = await supabase
         .from('drivers')
-        .select('is_suspended')
+        .select('debt_points, is_suspended')
         .eq('id', driverId)
         .single();
-      if (driver?.is_suspended) {
-        await driversAPI.unsuspendDriver(driverId);
-        await driversAPI.sendNotification(driverId, 'تم رفع الإيقاف', 'تم رفع الإيقاف عنك بعد تصفير الديون. يمكنك العودة للعمل.');
+      
+      if (!driver) {
+        return { data: null, error: 'السائق غير موجود' };
       }
+
+      // جلب إعدادات النظام
+      const { data: settings } = await systemSettingsAPI.getSystemSettings();
+      const maxDebtPoints = settings?.max_debt_points || 20;
+      const debtPointValue = settings?.debt_point_value || 250;
+      
+      // حساب النقاط الجديدة
+      const currentPoints = driver.debt_points || 0;
+      const newPoints = Math.max(0, currentPoints - reducePoints);
+      
+      // تحديث النقاط
+      const { data, error } = await supabase
+        .from('drivers')
+        .update({ debt_points: newPoints })
+        .eq('id', driverId);
+      
+      if (!error) {
+        // إرسال إشعار للسائق
+        await driversAPI.sendNotification(
+          driverId,
+          'تقليل نقاط الديون',
+          `تم تقليل نقاط الديون بمقدار ${reducePoints} نقطة. نقاطك الحالية: ${newPoints} نقطة (${newPoints * debtPointValue} دينار)`
+        );
+        
+        // رفع الإيقاف إذا أصبح أقل من الحد الأقصى وكان موقوفًا
+        if (newPoints < maxDebtPoints && driver.is_suspended) {
+          await driversAPI.unsuspendDriver(driverId);
+          await driversAPI.sendNotification(
+            driverId,
+            'تم رفع الإيقاف',
+            'تم رفع الإيقاف عنك بعد تقليل الديون. يمكنك العودة للعمل.'
+          );
+        }
+      }
+      
+      return { data, error };
+    } catch (error) {
+      console.error('خطأ في تقليل الديون:', error);
+      return { data: null, error };
     }
-    return { data, error };
   },
 
   // تحديث وقت الدوام
@@ -713,19 +784,85 @@ export const ordersAPI = {
     return { data, error };
   },
 
-  // إكمال طلب
+  // إكمال طلب مع حساب النقاط التلقائي
   completeOrder: async (orderId) => {
-    const { data, error } = await supabase
-      .from('orders')
-      .update({
-        status: 'completed',
-        actual_delivery_time: new Date().toISOString()
-      })
-      .eq('id', orderId)
-      .eq('status', 'accepted')
-      .select()
-      .single();
-    return { data, error };
+    try {
+      // جلب بيانات الطلب والسائق
+      const { data: order, error: orderError } = await supabase
+        .from('orders')
+        .select('*, drivers(id, debt_points, is_suspended)')
+        .eq('id', orderId)
+        .eq('status', 'accepted')
+        .single();
+      
+      if (orderError) {
+        return { data: null, error: orderError };
+      }
+
+      // تحديث حالة الطلب
+      const { data: updateData, error: updateError } = await supabase
+        .from('orders')
+        .update({
+          status: 'completed',
+          actual_delivery_time: new Date().toISOString()
+        })
+        .eq('id', orderId)
+        .eq('status', 'accepted')
+        .select()
+        .single();
+
+      if (updateError) {
+        return { data: null, error: updateError };
+      }
+
+      // حساب النقاط التلقائي إذا كان السائق موجود
+      if (order.driver_id && order.drivers) {
+        const driver = order.drivers;
+        const currentPoints = driver.debt_points || 0;
+        
+        // جلب إعدادات النظام
+        const { data: settings } = await systemSettingsAPI.getSystemSettings();
+        const debtPointValue = settings?.debt_point_value || 250;
+        const maxDebtPoints = settings?.max_debt_points || 20;
+        
+        // حساب النقاط الجديدة (مثال: كل طلب يضيف نقطة واحدة)
+        const newPoints = currentPoints + 1;
+        
+        // تحديث نقاط السائق
+        const { error: pointsError } = await supabase
+          .from('drivers')
+          .update({ debt_points: newPoints })
+          .eq('id', order.driver_id);
+
+        if (!pointsError) {
+          // إرسال إشعار للسائق
+          await driversAPI.sendNotification(
+            order.driver_id,
+            'تم إكمال الطلب',
+            `تم إكمال الطلب بنجاح! نقاطك الحالية: ${newPoints} نقطة (${newPoints * debtPointValue} دينار)`
+          );
+
+          // التحقق من تجاوز الحد الأقصى
+          if (newPoints >= maxDebtPoints && !driver.is_suspended) {
+            // إيقاف السائق تلقائياً
+            await driversAPI.suspendDriver(
+              order.driver_id, 
+              'تم إيقافك مؤقتًا بسبب تجاوز حد الديون. يرجى تصفير الديون للعودة للعمل.'
+            );
+            await driversAPI.sendNotification(
+              order.driver_id,
+              'إيقاف مؤقت',
+              `تم إيقافك مؤقتًا بسبب تجاوز حد الديون (${maxDebtPoints} نقطة). نقاطك الحالية: ${newPoints} نقطة.`
+            );
+          }
+        }
+      }
+
+      return { data: updateData, error: null };
+    } catch (error) {
+      console.error('خطأ في إكمال الطلب:', error);
+      return { data: null, error };
+    }
   },
 
   // إلغاء طلب

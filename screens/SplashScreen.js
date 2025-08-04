@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Dimensions, Animated, Easing, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import simsimLogo from '../assets/simsim-logo.png';
+const simsimLogo = { uri: 'https://i.ibb.co/Myy7sCzX/Picsart-25-07-31-16-12-30-512.jpg' };
 
 export default function SplashScreen() {
   const textOpacity = useRef(new Animated.Value(0)).current;

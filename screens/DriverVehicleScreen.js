@@ -15,7 +15,7 @@ import { supabase } from '../supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import colors from '../colors';
-import simsimLogo from '../assets/simsim-logo.png';
+const simsimLogo = { uri: 'https://i.ibb.co/Myy7sCzX/Picsart-25-07-31-16-12-30-512.jpg' };
 
 export default function DriverVehicleScreen({ navigation, route }) {
   const { formData, documents } = route.params;

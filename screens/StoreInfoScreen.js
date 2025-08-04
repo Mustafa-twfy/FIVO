@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../supabase';
 import colors from '../colors';
-import storeIcon from '../assets/store-icon.png';
+const storeIcon = { uri: 'https://i.ibb.co/Myy7sCzX/Picsart-25-07-31-16-12-30-512.jpg' };
 
 export default function StoreInfoScreen({ navigation, route }) {
   const { formData } = route.params || {};
@@ -111,7 +111,7 @@ export default function StoreInfoScreen({ navigation, route }) {
         <View style={styles.content}>
           <View style={styles.logoContainer}>
             <Image source={storeIcon} style={{ width: 80, height: 80, resizeMode: 'contain', marginBottom: 10 }} />
-            <Text style={styles.logoText}>Fivo</Text>
+            <Text style={styles.logoText}>سمسم</Text>
             <Text style={styles.subtitle}>معلومات المتجر</Text>
           </View>
           <View style={styles.formContainer}>

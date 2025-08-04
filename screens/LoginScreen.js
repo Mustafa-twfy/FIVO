@@ -16,7 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import colors from '../colors';
 import { useAuth } from '../context/AuthContext';
-import simsimLogo from '../assets/simsim-logo.png';
+const simsimLogo = { uri: 'https://i.ibb.co/Myy7sCzX/Picsart-25-07-31-16-12-30-512.jpg' };
 
 export default function LoginScreen({ navigation }) {
   const { login } = useAuth();

@@ -183,7 +183,7 @@ export default function DriverRegistrationScreen({ navigation }) {
         <View style={styles.content}>
           <View style={styles.logoContainer}>
             <Image source={driverIcon} style={{ width: 80, height: 80, resizeMode: 'contain', marginBottom: 10 }} />
-            <Text style={styles.logoText}>Fivo</Text>
+            <Text style={styles.logoText}>سمسم</Text>
             <Text style={styles.subtitle}>انضم إلينا ككابتن</Text>
           </View>
 

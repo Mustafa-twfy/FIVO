@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Alert, Modal, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { adminSupportAPI } from '../supabase';
+import { adminSupportAPI, driversAPI, storesAPI } from '../supabase';
 import { registrationRequestsAPI } from '../supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../supabase';
@@ -415,9 +415,19 @@ export default function AdminDashboardScreen({ navigation }) {
           <TouchableOpacity style={styles.quickAction} onPress={() => {
             setSettingsModalVisible(true);
             setLoadingSettings(true);
-            systemSettingsAPI.getSystemSettings().then(({data}) => {
-              setDebtPointValue(data?.debt_point_value?.toString()||'');
-              setMaxDebtPoints(data?.max_debt_points?.toString()||'');
+            systemSettingsAPI.getSystemSettings().then(({data, error}) => {
+              if (error) {
+                console.error('خطأ في تحميل الإعدادات:', error);
+                Alert.alert('خطأ', 'فشل في تحميل الإعدادات. تأكد من وجود جدول system_settings في قاعدة البيانات.');
+                setLoadingSettings(false);
+                return;
+              }
+              setDebtPointValue(data?.debt_point_value?.toString()||'250');
+              setMaxDebtPoints(data?.max_debt_points?.toString()||'20');
+              setLoadingSettings(false);
+            }).catch(error => {
+              console.error('خطأ في تحميل الإعدادات:', error);
+              Alert.alert('خطأ', 'فشل في تحميل الإعدادات. تأكد من وجود جدول system_settings في قاعدة البيانات.');
               setLoadingSettings(false);
             });
           }}>

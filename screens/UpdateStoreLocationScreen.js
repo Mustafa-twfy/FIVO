@@ -15,7 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
 import { supabase } from '../supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import storeIcon from '../assets/store-icon.png';
+const storeIcon = { uri: 'https://i.ibb.co/Myy7sCzX/Picsart-25-07-31-16-12-30-512.jpg' };
 
 // استيراد الخريطة فقط على الأجهزة المحمولة
 let MapView, Marker;

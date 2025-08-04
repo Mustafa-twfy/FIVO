@@ -248,10 +248,19 @@ export default function DriverDashboardScreen({ navigation }) {
         setMyOrders(ordersData || []);
       }
 
-      // جلب الطلب الجاري
+      // جلب الطلب الجاري مع بيانات المتجر
       const { data: currentOrderDb } = await supabase
         .from('orders')
-        .select('*')
+        .select(`
+          *,
+          stores (
+            id,
+            name,
+            location_url,
+            address,
+            phone
+          )
+        `)
         .eq('driver_id', parseInt(id))
         .in('status', ['accepted', 'in_progress'])
         .order('created_at', { ascending: false })
@@ -363,22 +372,17 @@ export default function DriverDashboardScreen({ navigation }) {
 
   const completeOrder = async (orderId) => {
     try {
-      const { error } = await supabase
-        .from('orders')
-        .update({ 
-          status: 'completed',
-          actual_delivery_time: new Date().toISOString()
-        })
-        .eq('id', orderId);
+      // استخدام دالة ordersAPI.completeOrder المحسنة التي تحسب النقاط تلقائياً
+      const { data, error } = await ordersAPI.completeOrder(orderId);
 
       if (error) {
-        Alert.alert('خطأ', 'فشل في إكمال الطلب');
+        Alert.alert('خطأ', 'فشل في إكمال الطلب: ' + error.message);
       } else {
-        Alert.alert('نجح', 'تم إكمال الطلب بنجاح');
+        Alert.alert('نجح', 'تم إكمال الطلب بنجاح! تم حساب النقاط تلقائياً.');
         loadDriverData(driverId); // إعادة تحميل البيانات
       }
     } catch (error) {
-      Alert.alert('خطأ', 'حدث خطأ غير متوقع');
+      Alert.alert('خطأ', 'حدث خطأ غير متوقع: ' + error.message);
     }
   };
 
@@ -752,11 +756,40 @@ export default function DriverDashboardScreen({ navigation }) {
           <Text style={{fontWeight:'bold', fontSize:18, marginBottom:12}}>طلب جاري</Text>
           <View style={{backgroundColor:'#F5F5F5', borderRadius:12, padding:16, width:'100%', marginBottom:16}}>
             {currentOrder.store_id ? (
-            <Text>المتجر: {currentOrder.stores?.name || 'غير محدد'}</Text>
+              <>
+                <Text style={{fontWeight: 'bold', fontSize: 16, marginBottom: 4}}>
+                  المتجر: {currentOrder.stores?.name || 'غير محدد'}
+                </Text>
+                {currentOrder.stores?.location_url && (
+                  <TouchableOpacity 
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      backgroundColor: '#E3F2FD',
+                      paddingVertical: 10,
+                      paddingHorizontal: 16,
+                      borderRadius: 10,
+                      marginTop: 8,
+                      justifyContent: 'center',
+                      gap: 8,
+                      borderWidth: 1,
+                      borderColor: '#2196F3'
+                    }}
+                    onPress={() => {
+                      // فتح الرابط في المتصفح
+                      Linking.openURL(currentOrder.stores.location_url);
+                    }}
+                  >
+                    <Ionicons name="map-outline" size={20} color="#2196F3" />
+                    <Text style={{color: '#2196F3', fontWeight: 'bold', fontSize: 14}}>عرض موقع المتجر</Text>
+                    <Ionicons name="open-outline" size={16} color="#2196F3" />
+                  </TouchableOpacity>
+                )}
+              </>
             ) : (
               <>
-                <Text>من: {currentOrder.pickup_address || 'غير محدد'}</Text>
-                <Text>إلى: {currentOrder.delivery_address || 'غير محدد'}</Text>
+                <Text style={{fontWeight: 'bold', fontSize: 16, marginBottom: 4}}>من: {currentOrder.pickup_address || 'غير محدد'}</Text>
+                <Text style={{fontWeight: 'bold', fontSize: 16, marginBottom: 4}}>إلى: {currentOrder.delivery_address || 'غير محدد'}</Text>
               </>
             )}
             <Text>المبلغ: {currentOrder.total_amount || 0} دينار</Text>
@@ -767,29 +800,7 @@ export default function DriverDashboardScreen({ navigation }) {
             {currentOrder.extra_details && (
               <Text style={{marginTop:8, color:'#555'}}>تفاصيل إضافية: {currentOrder.extra_details}</Text>
             )}
-            {currentOrder.stores?.location_url && (
-              <TouchableOpacity 
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  backgroundColor: '#E3F2FD',
-                  paddingVertical: 8,
-                  paddingHorizontal: 12,
-                  borderRadius: 8,
-                  marginTop: 8,
-                  justifyContent: 'center',
-                  gap: 8
-                }}
-                onPress={() => {
-                  // فتح الرابط في المتصفح
-                  Linking.openURL(currentOrder.stores.location_url);
-                }}
-              >
-                <Ionicons name="map-outline" size={20} color="#2196F3" />
-                <Text style={{color: '#2196F3', fontWeight: 'bold'}}>عرض موقع المتجر</Text>
-                <Ionicons name="open-outline" size={16} color="#2196F3" />
-              </TouchableOpacity>
-            )}
+
           </View>
           {/* الزر في واجهة الطلب الجاري */}
           <TouchableOpacity 
