@@ -207,7 +207,9 @@ export default function LoginScreen({ navigation }) {
     >
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.logoContainer}>
-          <Image source={simsimLogo} style={{ width: 120, height: 120, resizeMode: 'contain', marginBottom: 15 }} />
+          <View style={styles.logoWrapper}>
+            <Image source={simsimLogo} style={styles.logo} />
+          </View>
           <Text style={styles.logoText}>سمسم</Text>
           <Text style={styles.subtitle}>خدمة التوصيل الأسرع والأفضل</Text>
         </View>
@@ -304,6 +306,31 @@ const styles = StyleSheet.create({
   logoContainer: {
     alignItems: 'center',
     marginBottom: 40,
+  },
+  logoWrapper: {
+    width: 140,
+    height: 140,
+    borderRadius: 70, // دائري تماماً
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
+    borderWidth: 3,
+    borderColor: colors.primary,
+    marginBottom: 15,
+  },
+  logo: {
+    width: 100,
+    height: 100,
+    resizeMode: 'contain',
+    borderRadius: 50, // دائري للصورة أيضاً
   },
   logoText: {
     fontSize: 28,

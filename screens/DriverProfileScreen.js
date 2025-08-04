@@ -32,6 +32,7 @@ export default function DriverProfileScreen({ navigation }) {
     is_active: false
   });
 
+
   useEffect(() => {
     loadDriverInfo();
   }, []);
@@ -135,6 +136,16 @@ export default function DriverProfileScreen({ navigation }) {
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>الملف الشخصي</Text>
+        <TouchableOpacity 
+          style={styles.editButton}
+          onPress={() => setIsEditing(!isEditing)}
+        >
+          <Ionicons 
+            name={isEditing ? "close" : "create-outline"} 
+            size={24} 
+            color="#fff" 
+          />
+        </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.content}>
@@ -151,23 +162,25 @@ export default function DriverProfileScreen({ navigation }) {
           <Text style={styles.sectionTitle}>معلومات السائق</Text>
           
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>اسم السائق</Text>
+            <Text style={styles.inputLabel}>اسم السائق *</Text>
             <TextInput
-              style={[styles.input, styles.inputDisabled]}
-              value={formData.name || '---'}
+              style={[styles.input, (!isEditing) && styles.inputDisabled]}
+              value={formData.name}
               placeholder="أدخل اسم السائق"
-              editable={false}
+              onChangeText={(text) => handleInputChange('name', text)}
+              editable={isEditing}
             />
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>رقم الهاتف</Text>
+            <Text style={styles.inputLabel}>رقم الهاتف *</Text>
             <TextInput
-              style={[styles.input, styles.inputDisabled]}
-              value={formData.phone || '---'}
+              style={[styles.input, (!isEditing) && styles.inputDisabled]}
+              value={formData.phone}
               placeholder="أدخل رقم الهاتف"
               keyboardType="phone-pad"
-              editable={false}
+              onChangeText={(text) => handleInputChange('phone', text)}
+              editable={isEditing}
             />
           </View>
 
@@ -175,11 +188,12 @@ export default function DriverProfileScreen({ navigation }) {
             <Text style={styles.inputLabel}>البريد الإلكتروني</Text>
             <TextInput
               style={[styles.input, styles.inputDisabled]}
-              value={formData.email || '---'}
+              value={formData.email}
               placeholder="أدخل البريد الإلكتروني"
               keyboardType="email-address"
               editable={false}
             />
+            <Text style={styles.hintText}>لا يمكن تغيير البريد الإلكتروني</Text>
           </View>
         </View>
 
@@ -190,30 +204,33 @@ export default function DriverProfileScreen({ navigation }) {
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>نوع المركبة</Text>
             <TextInput
-              style={[styles.input, styles.inputDisabled]}
-              value={formData.vehicle_type || '---'}
+              style={[styles.input, (!isEditing) && styles.inputDisabled]}
+              value={formData.vehicle_type}
               placeholder="نوع المركبة"
-              editable={false}
+              onChangeText={(text) => handleInputChange('vehicle_type', text)}
+              editable={isEditing}
             />
           </View>
 
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>رقم المركبة</Text>
             <TextInput
-              style={[styles.input, styles.inputDisabled]}
-              value={formData.vehicle_number || '---'}
+              style={[styles.input, (!isEditing) && styles.inputDisabled]}
+              value={formData.vehicle_number}
               placeholder="أدخل رقم المركبة"
-              editable={false}
+              onChangeText={(text) => handleInputChange('vehicle_number', text)}
+              editable={isEditing}
             />
           </View>
 
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>رقم الرخصة</Text>
             <TextInput
-              style={[styles.input, styles.inputDisabled]}
-              value={formData.license_number || '---'}
+              style={[styles.input, (!isEditing) && styles.inputDisabled]}
+              value={formData.license_number}
               placeholder="أدخل رقم الرخصة"
-              editable={false}
+              onChangeText={(text) => handleInputChange('license_number', text)}
+              editable={isEditing}
             />
           </View>
 
@@ -299,6 +316,31 @@ export default function DriverProfileScreen({ navigation }) {
             </View>
           )}
         </View>
+
+        {/* أزرار الحفظ والإلغاء */}
+        {isEditing && (
+          <View style={styles.buttonsContainer}>
+            <TouchableOpacity
+              style={[styles.button, styles.saveButton]}
+              onPress={saveProfile}
+              disabled={saving}
+            >
+              {saving ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <Text style={styles.buttonText}>حفظ التغييرات</Text>
+              )}
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[styles.button, styles.cancelButton]}
+              onPress={cancelEdit}
+              disabled={saving}
+            >
+              <Text style={styles.buttonText}>إلغاء</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </ScrollView>
     </View>
   );
@@ -468,5 +510,44 @@ const styles = StyleSheet.create({
   },
   backButton: {
     padding: 8,
+  },
+  editButton: {
+    padding: 8,
+  },
+  buttonsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    gap: 12,
+  },
+  button: {
+    flex: 1,
+    height: 50,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  saveButton: {
+    backgroundColor: colors.primary,
+  },
+  cancelButton: {
+    backgroundColor: '#F44336',
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  hintText: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 4,
+    fontStyle: 'italic',
   },
 }); 

@@ -32,6 +32,7 @@ export default function StoreProfileScreen({ navigation, route }) {
     address: '',
     description: '',
     category: '',
+    location_url: '',
     is_active: true
   });
 
@@ -77,6 +78,7 @@ export default function StoreProfileScreen({ navigation, route }) {
           address: store.address || '',
           description: store.description || '',
           category: store.category || '',
+          location_url: store.location_url || '',
           is_active: store.is_active || true
         });
       }
@@ -119,6 +121,7 @@ export default function StoreProfileScreen({ navigation, route }) {
           address: formData.address.trim(),
           description: formData.description.trim(),
           category: formData.category.trim(),
+          location_url: formData.location_url.trim(),
           is_active: formData.is_active,
           updated_at: new Date().toISOString()
         })
@@ -145,6 +148,7 @@ export default function StoreProfileScreen({ navigation, route }) {
       address: storeInfo?.address || '',
       description: storeInfo?.description || '',
       category: storeInfo?.category || '',
+      location_url: storeInfo?.location_url || '',
       is_active: storeInfo?.is_active || true
     });
     setIsEditing(false);
@@ -271,6 +275,21 @@ export default function StoreProfileScreen({ navigation, route }) {
               onChangeText={(text) => handleInputChange('description', text)}
               editable={isEditing && !isReadOnly}
             />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>رابط موقع المتجر</Text>
+            <TextInput
+              style={[styles.input, (!isEditing || isReadOnly) && styles.inputDisabled]}
+              value={formData.location_url}
+              placeholder="رابط Google Maps أو موقع المتجر"
+              keyboardType="url"
+              autoCapitalize="none"
+              autoCorrect={false}
+              onChangeText={(text) => handleInputChange('location_url', text)}
+              editable={isEditing && !isReadOnly}
+            />
+            <Text style={styles.hintText}>مثال: https://maps.google.com/...</Text>
           </View>
         </View>
 
