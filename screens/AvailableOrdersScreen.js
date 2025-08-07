@@ -226,10 +226,19 @@ export default function AvailableOrdersScreen({ navigation }) {
       }
 
       // زيادة نقطة للسائق عند قبول الطلب
+      // جلب قيمة النقطة من إعدادات النظام
+      const { data: settings, error: settingsError } = await systemSettingsAPI.getSystemSettings();
+      if (settingsError) {
+        throw new Error('فشل في جلب إعدادات النظام: ' + settingsError.message);
+      }
+      const debtPointValue = settings?.debt_point_value || 250;
+      const newDebtPoints = (driverInfo.debt_points || 0) + 1;
+      const newDebt = newDebtPoints * debtPointValue;
       await supabase
         .from('drivers')
         .update({
-          debt_points: (driverInfo.debt_points || 0) + 1
+          debt_points: newDebtPoints,
+          debt: newDebt
         })
         .eq('id', driverInfo.id);
 
@@ -301,7 +310,7 @@ export default function AvailableOrdersScreen({ navigation }) {
 
       <View style={styles.orderDetails}>
         <Text style={styles.detailsTitle}>تفاصيل الطلب:</Text>
-        <Text style={styles.detailsText}>{item.description || 'لا يوجد تفاصيل'}</Text>
+        <Text style={styles.detailsText}>{item.description || item.items_description || item.extra_details || 'لا يوجد تفاصيل'}</Text>
       </View>
 
       <View style={styles.addressInfo}>

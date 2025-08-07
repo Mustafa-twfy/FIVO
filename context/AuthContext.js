@@ -10,6 +10,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null); // بيانات المستخدم (object)
   const [userType, setUserType] = useState(null); // نوع المستخدم (driver/store/admin)
   const [sessionExpiry, setSessionExpiry] = useState(null); // تاريخ انتهاء الجلسة
+  const [loading, setLoading] = useState(true); // حالة تحميل الجلسة
 
   // تسجيل الدخول
   const login = async (userData, type, expiryDate) => {
@@ -66,6 +67,7 @@ export const AuthProvider = ({ children }) => {
   // تحميل بيانات الجلسة من التخزين المشفر عند بدء التطبيق
   useEffect(() => {
     const loadSession = async () => {
+      setLoading(true);
       try {
         const sessionStr = await EncryptedStorage.getItem('session');
         if (sessionStr) {
@@ -91,6 +93,8 @@ export const AuthProvider = ({ children }) => {
       } catch (e) {
         // تجاهل أي خطأ في التحميل
         console.error('خطأ في تحميل الجلسة:', e);
+      } finally {
+        setLoading(false);
       }
     };
     loadSession();
@@ -103,7 +107,7 @@ export const AuthProvider = ({ children }) => {
   }, [sessionExpiry]);
 
   return (
-    <AuthContext.Provider value={{ user, userType, sessionExpiry, login, logout, checkSessionExpiry }}>
+    <AuthContext.Provider value={{ user, userType, sessionExpiry, login, logout, checkSessionExpiry, loading }}>
       {children}
     </AuthContext.Provider>
   );

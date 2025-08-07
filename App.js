@@ -224,7 +224,7 @@ function AppContent() {
   const [databaseInitialized, setDatabaseInitialized] = useState(false);
   const [initialRoute, setInitialRoute] = useState('Login');
   const scheme = useColorScheme();
-  const { login, user, userType } = useAuth();
+  const { login, user, userType, loading } = useAuth();
   
   useEffect(() => {
     const checkUserSession = async () => {
@@ -332,7 +332,7 @@ function AppContent() {
     }
   }, [user, userType, showSplash]);
   
-  if (showSplash) return <SplashScreen />;
+  if (loading) return <SplashScreen />;
   
   return (
     <NavigationContainer theme={scheme === 'dark' ? darkTheme : lightTheme}>
