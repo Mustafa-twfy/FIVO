@@ -21,14 +21,13 @@ export default function FinancialAccountsScreen({ navigation }) {
       // جلب إعدادات النظام أولاً
       const { data: settings } = await systemSettingsAPI.getSystemSettings();
       const debtPointValue = settings?.debt_point_value || 250;
-      
-      const { data, error } = await driversAPI.getAllDrivers();
-      if (error || !data) {
+      // جلب السائق مباشرة بالمعرّف
+      const { data: driver, error } = await driversAPI.getDriverById(driverId);
+      if (error || !driver) {
         Alert.alert('خطأ', 'تعذر جلب بيانات السائق');
         setLoading(false);
         return;
       }
-      const driver = data.find(d => d.id === driverId);
       setDebtPoints(driver?.debt_points || 0);
       setDebtValue((driver?.debt_points || 0) * debtPointValue);
     } catch (error) {
@@ -43,8 +42,8 @@ export default function FinancialAccountsScreen({ navigation }) {
     if (error) {
       Alert.alert('خطأ', 'تعذر تصفير الحساب');
     } else {
-      setDebtPoints(0);
-      setDebtValue(0);
+      // إعادة الجلب بعد التصفير لضمان تزامن البيانات مع الخادم
+      await fetchDriverDebt();
       Alert.alert('تم', 'تم تصفير الحساب بنجاح');
     }
     setLoading(false);
@@ -82,11 +81,7 @@ export default function FinancialAccountsScreen({ navigation }) {
         <Text style={styles.value}>{debtValue || 0} ألف دينار</Text>
         <Text style={styles.info}>كل نقطة = 250 دينار</Text>
         <Text style={styles.info}>تزداد النقاط عند أخذ كل طلب جديد.</Text>
-        {debtPoints > 0 && (
-          <TouchableOpacity style={styles.clearButton} onPress={handleClearDebt}>
-            <Text style={styles.clearButtonText}>تصفير الحساب</Text>
-          </TouchableOpacity>
-        )}
+        {/* تم إلغاء زر تصفير الحساب للسائق */}
       </View>
       <Text style={styles.supportNote}>لتصفير حسابك يمكنك الضغط على الزر أعلاه أو مراسلة الدعم الفني عبر الأيقونة.</Text>
       <Modal visible={supportModalVisible} transparent animationType="slide" onRequestClose={() => setSupportModalVisible(false)}>

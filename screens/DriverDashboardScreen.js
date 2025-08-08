@@ -797,6 +797,12 @@ export default function DriverDashboardScreen({ navigation }) {
             {currentOrder.customer_phone && (
               <Text>هاتف الزبون: {currentOrder.customer_phone}</Text>
             )}
+            {/* تفاصيل الطلب */}
+            {(currentOrder.description || currentOrder.items_description || currentOrder.extra_details) && (
+              <Text style={{marginTop:8, color:'#555'}}>
+                تفاصيل الطلب: {currentOrder.description || currentOrder.items_description || currentOrder.extra_details}
+              </Text>
+            )}
             {currentOrder.extra_details && (
               <Text style={{marginTop:8, color:'#555'}}>تفاصيل إضافية: {currentOrder.extra_details}</Text>
             )}

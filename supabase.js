@@ -133,6 +133,16 @@ export const driversAPI = {
     return { data, error };
   },
 
+  // جلب سائق واحد بالمعرّف
+  getDriverById: async (driverId) => {
+    const { data, error } = await supabase
+      .from('drivers')
+      .select('*')
+      .eq('id', driverId)
+      .single();
+    return { data, error };
+  },
+
   // تحديث نقاط السائق مع تفعيل الإيقاف التلقائي
   updateDriverDebt: async (driverId, newPoints) => {
     // جلب الحد الأقصى من إعدادات النظام

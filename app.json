@@ -4,11 +4,11 @@
     "slug": "simsim",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "https://i.ibb.co/Myy7sCzX/Picsart-25-07-31-16-12-30-512.jpg",
+    "icon": "./assets/simsim-logo.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "https://i.ibb.co/Myy7sCzX/Picsart-25-07-31-16-12-30-512.jpg",
+      "image": "./assets/simsim-logo.png",
       "resizeMode": "contain",
       "backgroundColor": "#00C897"
     },
@@ -17,14 +17,17 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "https://i.ibb.co/Myy7sCzX/Picsart-25-07-31-16-12-30-512.jpg",
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#00C897"
       },
       "package": "com.twfy.simsim"
     },
     "web": {
-      "favicon": "https://i.ibb.co/Myy7sCzX/Picsart-25-07-31-16-12-30-512.jpg"
+      "favicon": "./assets/favicon.png"
     },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "extra": {
       "eas": {
         "projectId": "7afda903-8cd5-422f-9192-e535509be738"
