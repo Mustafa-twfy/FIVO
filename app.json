@@ -17,7 +17,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/simsim-logo.png",
         "backgroundColor": "#00C897"
       },
       "package": "com.twfy.simsim"
