@@ -229,52 +229,7 @@ function AppContent() {
   // تحديث: عرض تحديثات التطبيق المعلنة من الأدمن
   const [pendingUpdate, setPendingUpdate] = useState(null);
   const [updateVisible, setUpdateVisible] = useState(false);
-  
-  useEffect(() => {
-    // جلب التحديثات عند توفر المستخدم ونهاية شاشة البداية
-    const fetchUpdatesForUser = async () => {
-      try {
-        if (!user || !userType || showSplash) return;
-        const { data: updates, error } = await updatesAPI.getActiveUpdatesForUser(userType);
-        if (error) {
-          console.error('خطأ في جلب التحديثات:', error);
-          return;
-        }
-        if (!updates || updates.length === 0) return;
-
-        for (const u of updates) {
-          const { data: ack } = await supabase
-            .from('app_update_acknowledgements')
-            .select('*')
-            .eq('update_id', u.id)
-            .eq('user_id', user?.id || user?.userId || null)
-            .eq('user_type', userType)
-            .limit(1)
-            .maybeSingle();
-          if (!ack) {
-            setPendingUpdate(u);
-            setUpdateVisible(true);
-            break;
-          }
-        }
-      } catch (e) {
-        console.error('fetchUpdatesForUser error', e);
-      }
-    };
-    fetchUpdatesForUser();
-  }, [user, userType, showSplash]);
-
-  const onAcknowledge = async () => {
-    if (!pendingUpdate) return;
-    try {
-      const userId = user?.id || user?.userId || parseInt(await AsyncStorage.getItem('userId'));
-      await updatesAPI.acknowledgeUpdate(pendingUpdate.id, userId, userType, { dismissed: true });
-    } catch (e) {
-      console.error('acknowledge error', e);
-    }
-    setUpdateVisible(false);
-    setPendingUpdate(null);
-  };
+    useEffect(() => {
     const checkUserSession = async () => {
       try {
         // انتظر قليلاً حتى يتم تحميل AuthContext
