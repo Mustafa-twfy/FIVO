@@ -51,6 +51,68 @@ export const initializeDatabase = async () => {
   }
 };
 
+// دوال الإشعارات/التحديثات التطبيقية
+export const updatesAPI = {
+  // إنشاء تحديث جديد (للقسم الإداري)
+  createUpdate: async (payload) => {
+    try {
+      payload.show_from = payload.show_from || new Date().toISOString();
+      payload.is_active = payload.is_active !== undefined ? payload.is_active : true;
+      const { data, error } = await supabase.from('app_updates').insert(payload).select().single();
+      return { data, error };
+    } catch (error) {
+      return { data: null, error };
+    }
+  },
+
+  updateUpdate: async (id, updates) => {
+    updates.updated_at = new Date().toISOString();
+    const { data, error } = await supabase.from('app_updates').update(updates).eq('id', id).select().single();
+    return { data, error };
+  },
+
+  getAllUpdates: async ({ onlyActive = true } = {}) => {
+    try {
+      let q = supabase.from('app_updates').select('*').order('created_at', { ascending: false });
+      if (onlyActive) q = q.eq('is_active', true);
+      const { data, error } = await q;
+      return { data, error };
+    } catch (error) {
+      return { data: null, error };
+    }
+  },
+
+  getActiveUpdatesForUser: async (userType) => {
+    try {
+      const now = new Date().toISOString();
+      // جلب التحديثات النشطة والموجهة لدور المستخدم والتي تقع ضمن الفترة الزمنية
+      const { data, error } = await supabase
+        .from('app_updates')
+        .select('*')
+        .eq('is_active', true)
+        .or(`show_until.is.null,show_until.gte.${now}`)
+        .or(`show_from.is.null,show_from.lte.${now}`)
+        .contains('target_roles', [userType]);
+      return { data, error };
+    } catch (error) {
+      return { data: null, error };
+    }
+  },
+
+  acknowledgeUpdate: async (updateId, userId, userType, { dismissed = false, metadata = {} } = {}) => {
+    try {
+      const { data, error } = await supabase
+        .from('app_update_acknowledgements')
+        .insert({ update_id: updateId, user_id: userId, user_type: userType, dismissed, metadata })
+        .select()
+        .single();
+      return { data, error };
+    } catch (error) {
+      return { data: null, error };
+    }
+  }
+};
+
 // دالة إدخال بيانات تجريبية
 const insertSampleData = async () => {
   try {
@@ -839,10 +901,13 @@ export const ordersAPI = {
         const newPoints = currentPoints + 1;
         
         // تحديث نقاط السائق
+        console.log('[ordersAPI.completeOrder] will update driver', order.driver_id, 'from', currentPoints, 'to', newPoints);
         const { error: pointsError } = await supabase
           .from('drivers')
           .update({ debt_points: newPoints })
           .eq('id', order.driver_id);
+
+        console.log('[ordersAPI.completeOrder] update result pointsError=', pointsError);
 
         if (!pointsError) {
           // إرسال إشعار للسائق

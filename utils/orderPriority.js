@@ -1,4 +1,7 @@
 // نظام ترتيب الطلبات الذكي
+// ملاحظة: تم تعطيل خاصية الطلبات العاجلة مؤقتاً عن طريق العلم URGENT_FEATURE_ENABLED = false
+const URGENT_FEATURE_ENABLED = false;
+
 export class OrderPrioritySystem {
   
   // حساب أولوية الطلب بناءً على عدة عوامل
@@ -30,8 +33,8 @@ export class OrderPrioritySystem {
     const storeTypePriority = this.getStoreTypePriority(order.store_category);
     priority += storeTypePriority * 0.15; // 15% من الأولوية
     
-    // 5. أولوية الطوارئ (إذا كان الطلب عاجل)
-    if (order.is_urgent) {
+    // 5. أولوية الطوارئ (إذا كان الطلب عاجل) - معطلة حالياً
+    if (URGENT_FEATURE_ENABLED && order.is_urgent) {
       priority += 50; // إضافة 50 نقطة للطلبات العاجلة
     }
     

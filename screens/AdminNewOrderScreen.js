@@ -46,6 +46,7 @@ export default function AdminNewOrderScreen({ navigation }) {
         extra_details: extraDetails,
         total_amount: parseFloat(amount),
         delivery_fee: 0,
+        // الطلبات العاجلة معطلة مؤقتاً
         is_urgent: false,
         payment_method: 'cash',
         payment_status: 'pending',

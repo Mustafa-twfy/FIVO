@@ -151,7 +151,8 @@ export default function AvailableOrdersScreen({ navigation }) {
         ...order,
         store_category: order.stores?.category || 'أخرى',
         store_location: order.stores?.location,
-        is_urgent: order.is_urgent || false,
+        // الطلب العاجل معطل مؤقتاً
+        is_urgent: false,
         distance: driverLocation ? 
           OrderPrioritySystem.calculateDistance(
             driverLocation.latitude,

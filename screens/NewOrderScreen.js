@@ -19,7 +19,7 @@ export default function NewOrderScreen({ navigation }) {
   const [amount, setAmount] = useState('');
   const [address, setAddress] = useState('');
   const [phone, setPhone] = useState('');
-  const [isUrgent, setIsUrgent] = useState(false);
+  const [isUrgent, setIsUrgent] = useState(false); // تم تعطيل خيار الطلب العاجل (لن يُرسل كعاجل حالياً)
   const [loading, setLoading] = useState(false);
   const [storeInfo, setStoreInfo] = useState(null);
   const [storeLocationUrl, setStoreLocationUrl] = useState('');
@@ -116,7 +116,8 @@ export default function NewOrderScreen({ navigation }) {
         description: description,
         total_amount: parseFloat(amount),
         delivery_fee: 0,
-        is_urgent: isUrgent,
+        // إيقاف خاصية الطلب العاجل مؤقتاً - نرسل كل الطلبات كغير عاجلة
+        is_urgent: false,
         payment_method: 'cash',
         payment_status: 'pending',
         status: 'pending',
@@ -224,28 +225,7 @@ export default function NewOrderScreen({ navigation }) {
             />
           </View>
 
-          <View style={styles.urgentSection}>
-            <TouchableOpacity 
-              style={styles.urgentToggle}
-              onPress={() => setIsUrgent(!isUrgent)}
-            >
-              <View style={[styles.checkbox, isUrgent && styles.checkboxChecked]}>
-                {isUrgent && <Ionicons name="checkmark" size={16} color="#fff" />}
-              </View>
-              <View style={styles.urgentInfo}>
-                <Text style={styles.urgentLabel}>طلب عاجل</Text>
-                <Text style={styles.urgentDescription}>
-                  سيحصل الطلب على أولوية أعلى عند السائقين
-                </Text>
-              </View>
-              {isUrgent && (
-                <View style={styles.urgentBadge}>
-                  <Ionicons name="flash" size={16} color="#fff" />
-                  <Text style={styles.urgentBadgeText}>عاجل</Text>
-                </View>
-              )}
-            </TouchableOpacity>
-          </View>
+          {/* خيار 'طلب عاجل' معطل مؤقتاً - سيتم تطويره لاحقاً */}
 
           <View style={styles.infoBox}>
             <Ionicons name="information-circle-outline" size={24} color="#2196F3" />

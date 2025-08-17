@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Alert, Modal, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { adminSupportAPI, driversAPI, storesAPI } from '../supabase';
+import { adminSupportAPI, driversAPI, storesAPI, updatesAPI } from '../supabase';
 import { registrationRequestsAPI } from '../supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../supabase';
@@ -31,6 +31,13 @@ export default function AdminDashboardScreen({ navigation }) {
   const [maxDebtPoints, setMaxDebtPoints] = useState('');
   const [loadingSettings, setLoadingSettings] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
+  const [updateModalVisible, setUpdateModalVisible] = useState(false);
+  const [updateTitle, setUpdateTitle] = useState('');
+  const [updateMessage, setUpdateMessage] = useState('');
+  const [updateLink, setUpdateLink] = useState('');
+  const [updateTarget, setUpdateTarget] = useState('all');
+  const [updateVersion, setUpdateVersion] = useState('');
+  const [sendingUpdate, setSendingUpdate] = useState(false);
 
   useEffect(() => {
     const checkAdmin = async () => {
@@ -438,6 +445,11 @@ export default function AdminDashboardScreen({ navigation }) {
             <Ionicons name="add-circle-outline" size={24} color="#4CAF50" />
             <Text style={styles.quickActionText}>إضافة طلب جديد</Text>
           </TouchableOpacity>
+
+          <TouchableOpacity style={styles.quickAction} onPress={() => setUpdateModalVisible(true)}>
+            <Ionicons name="cloud-upload-outline" size={24} color="#00C897" />
+            <Text style={styles.quickActionText}>تحديث التطبيق</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
 
@@ -539,9 +551,54 @@ export default function AdminDashboardScreen({ navigation }) {
             >
               <Text style={{color:'#fff',fontSize:17,fontWeight:'bold'}}>إرسال</Text>
             </TouchableOpacity>
+            
             <TouchableOpacity onPress={()=>setNotificationModalVisible(false)} style={{alignItems:'center',marginTop:4}}>
               <Text style={{color:'#2196F3',fontSize:15}}>إغلاق</Text>
             </TouchableOpacity>
+            
+            {/* مودال إنشاء تحديث التطبيق */}
+            <Modal
+              visible={updateModalVisible}
+              transparent
+              animationType="slide"
+              onRequestClose={() => setUpdateModalVisible(false)}
+            >
+              <View style={{flex:1,backgroundColor:'rgba(0,0,0,0.4)',justifyContent:'center',alignItems:'center'}}>
+                <View style={{backgroundColor:'#fff',borderRadius:16,padding:24,width:'90%'}}>
+                  <Text style={{fontSize:20,fontWeight:'bold',marginBottom:12,textAlign:'center'}}>إنشاء تحديث للتطبيق</Text>
+                  <TextInput placeholder="عنوان التحديث" value={updateTitle} onChangeText={setUpdateTitle} style={{borderWidth:1,borderColor:'#ccc',borderRadius:8,padding:8,marginBottom:10,fontSize:16}} />
+                  <TextInput placeholder="نص التحديث" value={updateMessage} onChangeText={setUpdateMessage} multiline numberOfLines={3} style={{borderWidth:1,borderColor:'#ccc',borderRadius:8,padding:8,marginBottom:10,fontSize:16,minHeight:80}} />
+                  <TextInput placeholder="رابط التحديث (اختياري)" value={updateLink} onChangeText={setUpdateLink} style={{borderWidth:1,borderColor:'#ccc',borderRadius:8,padding:8,marginBottom:10,fontSize:16}} />
+                  <TextInput placeholder="النسخة (اختياري)" value={updateVersion} onChangeText={setUpdateVersion} style={{borderWidth:1,borderColor:'#ccc',borderRadius:8,padding:8,marginBottom:10,fontSize:16}} />
+                  <View style={{flexDirection:'row',justifyContent:'space-between',marginBottom:12}}>
+                    <TouchableOpacity onPress={()=>setUpdateTarget('drivers')} style={{flex:1,backgroundColor:updateTarget==='drivers'?'#00C897':'#eee',padding:10,borderRadius:8,marginHorizontal:2}}>
+                      <Text style={{color:updateTarget==='drivers'?'#fff':'#333',textAlign:'center'}}>سائقين</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={()=>setUpdateTarget('stores')} style={{flex:1,backgroundColor:updateTarget==='stores'?'#00C897':'#eee',padding:10,borderRadius:8,marginHorizontal:2}}>
+                      <Text style={{color:updateTarget==='stores'?'#fff':'#333',textAlign:'center'}}>متاجر</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={()=>setUpdateTarget('all')} style={{flex:1,backgroundColor:updateTarget==='all'?'#00C897':'#eee',padding:10,borderRadius:8,marginHorizontal:2}}>
+                      <Text style={{color:updateTarget==='all'?'#fff':'#333',textAlign:'center'}}>الكل</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <TouchableOpacity style={{backgroundColor:'#00C897',padding:12,borderRadius:8,alignItems:'center',marginBottom:8,opacity:sendingUpdate?0.6:1}} disabled={sendingUpdate} onPress={async()=>{
+                    if(!updateTitle||!updateMessage){Alert.alert('تنبيه','يرجى إدخال العنوان والنص');return;} setSendingUpdate(true);
+                    try{
+                      const payload = { title: updateTitle, message: updateMessage, link_url: updateLink || null, target_roles: updateTarget==='all'?['driver','store']:(updateTarget==='drivers'?['driver']:['store']), version: updateVersion || null };
+                      const { data, error } = await updatesAPI.createUpdate(payload);
+                      if(error){ Alert.alert('خطأ','فشل في إنشاء التحديث: ' + (error.message||JSON.stringify(error))); }
+                      else{ Alert.alert('تم','تم إنشاء التحديث بنجاح'); setUpdateModalVisible(false); setUpdateTitle(''); setUpdateMessage(''); setUpdateLink(''); setUpdateVersion(''); setUpdateTarget('all'); }
+                    }catch(e){ console.error('create update error', e); Alert.alert('خطأ','حدث خطأ'); }
+                    setSendingUpdate(false);
+                  }}>
+                    <Text style={{color:'#fff',fontSize:17,fontWeight:'bold'}}>إنشاء</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={()=>setUpdateModalVisible(false)} style={{alignItems:'center',marginTop:4}}>
+                    <Text style={{color:'#00C897',fontSize:15}}>إغلاق</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </Modal>
           </View>
         </View>
       </Modal>

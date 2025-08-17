@@ -40,9 +40,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useState, useEffect } from 'react';
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import { DefaultTheme, DarkTheme } from '@react-navigation/native';
-import { initializeDatabase } from './supabase';
+import { supabase, initializeDatabase, updatesAPI } from './supabase';
 import UnifiedPendingApprovalScreen from './screens/UnifiedPendingApprovalScreen';
-import { supabase } from './supabase';
+import UpdateModal from './components/UpdateModal';
 import DriverDrawerContent from './components/DriverDrawerContent';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import AdminNewOrderScreen from './screens/AdminNewOrderScreen';
@@ -225,8 +225,56 @@ function AppContent() {
   const [initialRoute, setInitialRoute] = useState('Login');
   const scheme = useColorScheme();
   const { login, user, userType, loading } = useAuth();
+
+  // تحديث: عرض تحديثات التطبيق المعلنة من الأدمن
+  const [pendingUpdate, setPendingUpdate] = useState(null);
+  const [updateVisible, setUpdateVisible] = useState(false);
   
   useEffect(() => {
+    // جلب التحديثات عند توفر المستخدم ونهاية شاشة البداية
+    const fetchUpdatesForUser = async () => {
+      try {
+        if (!user || !userType || showSplash) return;
+        const { data: updates, error } = await updatesAPI.getActiveUpdatesForUser(userType);
+        if (error) {
+          console.error('خطأ في جلب التحديثات:', error);
+          return;
+        }
+        if (!updates || updates.length === 0) return;
+
+        for (const u of updates) {
+          const { data: ack } = await supabase
+            .from('app_update_acknowledgements')
+            .select('*')
+            .eq('update_id', u.id)
+            .eq('user_id', user?.id || user?.userId || null)
+            .eq('user_type', userType)
+            .limit(1)
+            .maybeSingle();
+          if (!ack) {
+            setPendingUpdate(u);
+            setUpdateVisible(true);
+            break;
+          }
+        }
+      } catch (e) {
+        console.error('fetchUpdatesForUser error', e);
+      }
+    };
+    fetchUpdatesForUser();
+  }, [user, userType, showSplash]);
+
+  const onAcknowledge = async () => {
+    if (!pendingUpdate) return;
+    try {
+      const userId = user?.id || user?.userId || parseInt(await AsyncStorage.getItem('userId'));
+      await updatesAPI.acknowledgeUpdate(pendingUpdate.id, userId, userType, { dismissed: true });
+    } catch (e) {
+      console.error('acknowledge error', e);
+    }
+    setUpdateVisible(false);
+    setPendingUpdate(null);
+  };
     const checkUserSession = async () => {
       try {
         // انتظر قليلاً حتى يتم تحميل AuthContext
