@@ -254,7 +254,7 @@ export default function StoreRegistrationScreen({ navigation }) {
                         setDebugModalVisible(false);
                         // تأخير قصير بعد إغلاق المودال قبل التنقّل
                         setTimeout(() => {
-                          navigation.navigate('StoreInfo', { formData });
+                          navigation.navigate('StoreInfoScreen', { formData });
                         }, 10);
                       }} style={{padding:10,backgroundColor:'#00C897',borderRadius:6,marginLeft:8}}>
                       <Text style={{color:'#fff'}}>متابعة</Text>

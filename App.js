@@ -89,7 +89,7 @@ function AuthStack() {
       <Stack.Screen name="DriverVehicle" component={DriverVehicleScreen} />
       <Stack.Screen name="PendingApproval" component={PendingApprovalScreen} />
       <Stack.Screen name="StoreRegistration" component={StoreRegistrationScreen} />
-      <Stack.Screen name="StoreInfo" component={StoreInfoScreen} />
+      <Stack.Screen name="StoreInfoScreen" component={StoreInfoScreen} />
       <Stack.Screen name="StoreDocuments" component={StoreDocumentsScreen} />
       <Stack.Screen name="StorePendingApproval" component={StorePendingApprovalScreen} />
       <Stack.Screen name="UpdateStoreLocation" component={UpdateStoreLocationScreen} />
@@ -348,7 +348,7 @@ function AppContent() {
         <Stack.Screen name="DriverDocuments" component={DriverDocumentsScreen} />
         <Stack.Screen name="DriverVehicle" component={DriverVehicleScreen} />
         <Stack.Screen name="StoreRegistration" component={StoreRegistrationScreen} />
-        <Stack.Screen name="StoreInfo" component={StoreInfoScreen} />
+        <Stack.Screen name="StoreInfoScreen" component={StoreInfoScreen} />
         <Stack.Screen name="StoreDocuments" component={StoreDocumentsScreen} />
         <Stack.Screen name="StorePendingApproval" component={StorePendingApprovalScreen} />
         <Stack.Screen name="UpdateStoreLocation" component={UpdateStoreLocationScreen} />
