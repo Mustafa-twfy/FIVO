@@ -51,15 +51,21 @@ export default function StoreRegistrationScreen({ navigation }) {
   };
 
   const handleNext = async () => {
+    console.log('StoreRegistrationScreen.handleNext called, formData=', formData);
     if (validateForm()) {
+      console.log('StoreRegistrationScreen: validation passed');
       setLoading(true);
       try {
+        console.log('StoreRegistrationScreen: checking existing registration_requests...');
         // التحقق من وجود البريد الإلكتروني في طلبات التسجيل
         const { data: existingRequest, error: requestError } = await supabase
           .from('registration_requests')
           .select('*')
           .eq('email', formData.email)
           .single();
+        if (requestError) {
+          console.error('StoreRegistrationScreen: registration_requests error', requestError);
+        }
 
         if (existingRequest) {
           if (existingRequest.status === 'pending') {
@@ -94,11 +100,15 @@ export default function StoreRegistrationScreen({ navigation }) {
         }
 
         // التحقق من وجود البريد في جدول المتاجر
+        console.log('StoreRegistrationScreen: checking stores...');
         const { data: existingStore, error: storeError } = await supabase
           .from('stores')
           .select('*')
           .eq('email', formData.email)
           .single();
+        if (storeError) {
+          console.error('StoreRegistrationScreen: stores check error', storeError);
+        }
 
         if (existingStore) {
           Alert.alert('البريد مسجل', 'هذا البريد الإلكتروني مسجل بالفعل كمتجر. يمكنك تسجيل الدخول مباشرة.', [
@@ -112,11 +122,15 @@ export default function StoreRegistrationScreen({ navigation }) {
         }
 
         // التحقق من وجود البريد في جدول السائقين
+        console.log('StoreRegistrationScreen: checking drivers...');
         const { data: existingDriver, error: driverError } = await supabase
           .from('drivers')
           .select('*')
           .eq('email', formData.email)
           .single();
+        if (driverError) {
+          console.error('StoreRegistrationScreen: drivers check error', driverError);
+        }
 
         if (existingDriver) {
           Alert.alert('البريد مسجل', 'هذا البريد الإلكتروني مسجل بالفعل كسائق. يمكنك تسجيل الدخول مباشرة.', [
@@ -130,9 +144,11 @@ export default function StoreRegistrationScreen({ navigation }) {
         }
 
         console.log('StoreRegistrationScreen - navigating to StoreInfo with', { formData });
+        console.log('StoreRegistrationScreen - navigating to StoreInfo with', { formData });
         navigation.navigate('StoreInfo', { formData });
         
       } catch (error) {
+        console.error('StoreRegistrationScreen.handleNext error', error);
         Alert.alert('خطأ', 'حدث خطأ في التحقق من البيانات');
       }
       setLoading(false);

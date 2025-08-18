@@ -2,9 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, TextInput, Button, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { driversAPI, supportAPI, systemSettingsAPI } from '../supabase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuth } from '../context/AuthContext';
 
 export default function FinancialAccountsScreen({ navigation }) {
-  const driverId = 1; // عدل لاحقاً حسب نظام تسجيل الدخول
+  const { user } = useAuth();
+  const [driverId, setDriverId] = useState(null);
   const [debtPoints, setDebtPoints] = useState(0);
   const [debtValue, setDebtValue] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -12,16 +15,35 @@ export default function FinancialAccountsScreen({ navigation }) {
   const [supportMessage, setSupportMessage] = useState('');
 
   useEffect(() => {
-    fetchDriverDebt();
+    const init = async () => {
+      // حاول جلب المعرف من سياق الجلسة أولاً ثم من التخزين
+      if (user && user.id) {
+        setDriverId(user.id);
+      } else {
+        try {
+          const storedId = await AsyncStorage.getItem('userId');
+          if (storedId) setDriverId(parseInt(storedId, 10));
+        } catch (e) {
+          console.error('FinancialAccountsScreen: failed to read userId from AsyncStorage', e);
+        }
+      }
+    };
+    init();
   }, []);
 
   const fetchDriverDebt = async () => {
     setLoading(true);
     try {
+      if (!driverId) {
+        console.warn('FinancialAccountsScreen: no driverId available yet');
+        setLoading(false);
+        return;
+      }
       // جلب إعدادات النظام أولاً
       const { data: settings } = await systemSettingsAPI.getSystemSettings();
       const debtPointValue = settings?.debt_point_value || 250;
       // جلب السائق مباشرة بالمعرّف
+      console.log('FinancialAccountsScreen: fetching driver with id', driverId);
       const { data: driver, error } = await driversAPI.getDriverById(driverId);
       if (error || !driver) {
         Alert.alert('خطأ', 'تعذر جلب بيانات السائق');
@@ -38,6 +60,7 @@ export default function FinancialAccountsScreen({ navigation }) {
 
   const handleClearDebt = async () => {
     setLoading(true);
+    if (!driverId) { Alert.alert('خطأ', 'معرّف السائق غير متوفر'); setLoading(false); return; }
     const { error } = await driversAPI.clearDriverDebt(driverId);
     if (error) {
       Alert.alert('خطأ', 'تعذر تصفير الحساب');
