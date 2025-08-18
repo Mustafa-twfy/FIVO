@@ -12,11 +12,11 @@ export default function StoreInfoScreen({ navigation, route }) {
   const [formDataLocal, setFormDataLocal] = useState(null);
 
   useEffect(() => {
-    console.log('StoreInfoScreen route.params:', route.params);
+    console.log('StoreInfoScreen route.params:', route?.params);
     const init = async () => {
       try {
         // إذا كانت البيانات مرّرت عبر التنقّل فاحتفظ بها
-        if (route.params && route.params.formData) {
+        if (route?.params?.formData) {
           setFormDataLocal(route.params.formData);
           try { await AsyncStorage.removeItem('pendingStoreRegistration'); } catch (e) { console.error('remove pendingStoreRegistration', e); }
           return;
@@ -49,7 +49,7 @@ export default function StoreInfoScreen({ navigation, route }) {
       try { setFormDataLocal({ email: '', password: '' }); } catch (s) { console.error(s); }
       Alert.alert('خطأ', 'حدث خطأ غير متوقع. الرجاء المحاولة لاحقاً.');
     });
-  }, [route.params]);
+  }, [route?.params]);
 
   if (!formDataLocal) {
     return (

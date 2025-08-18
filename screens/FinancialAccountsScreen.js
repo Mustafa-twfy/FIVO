@@ -31,6 +31,13 @@ export default function FinancialAccountsScreen({ navigation }) {
     init();
   }, []);
 
+  // جلب بيانات الديون متى ما أصبح driverId متوفراً
+  useEffect(() => {
+    if (driverId) {
+      fetchDriverDebt();
+    }
+  }, [driverId]);
+
   const fetchDriverDebt = async () => {
     setLoading(true);
     try {
@@ -104,7 +111,12 @@ export default function FinancialAccountsScreen({ navigation }) {
         <Text style={styles.value}>{debtValue || 0} ألف دينار</Text>
         <Text style={styles.info}>كل نقطة = 250 دينار</Text>
         <Text style={styles.info}>تزداد النقاط عند أخذ كل طلب جديد.</Text>
-        {/* تم إلغاء زر تصفير الحساب للسائق */}
+        {/* زر تصفير الحساب للسائق */}
+        {debtPoints > 0 && (
+          <TouchableOpacity style={styles.clearButton} onPress={handleClearDebt} disabled={loading}>
+            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.clearButtonText}>تصفير الحساب</Text>}
+          </TouchableOpacity>
+        )}
       </View>
       <Text style={styles.supportNote}>لتصفير حسابك يمكنك الضغط على الزر أعلاه أو مراسلة الدعم الفني عبر الأيقونة.</Text>
       <Modal visible={supportModalVisible} transparent animationType="slide" onRequestClose={() => setSupportModalVisible(false)}>
