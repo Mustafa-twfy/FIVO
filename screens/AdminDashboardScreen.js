@@ -581,16 +581,31 @@ export default function AdminDashboardScreen({ navigation }) {
                       <Text style={{color:updateTarget==='all'?'#fff':'#333',textAlign:'center'}}>الكل</Text>
                     </TouchableOpacity>
                   </View>
-                  <TouchableOpacity style={{backgroundColor:'#00C897',padding:12,borderRadius:8,alignItems:'center',marginBottom:8,opacity:sendingUpdate?0.6:1}} disabled={sendingUpdate} onPress={async()=>{
-                    if(!updateTitle||!updateMessage){Alert.alert('تنبيه','يرجى إدخال العنوان والنص');return;} setSendingUpdate(true);
-                    try{
-                      const payload = { title: updateTitle, message: updateMessage, link_url: updateLink || null, target_roles: updateTarget==='all'?['driver','store']:(updateTarget==='drivers'?['driver']:['store']), version: updateVersion || null };
-                      const { data, error } = await updatesAPI.createUpdate(payload);
-                      if(error){ Alert.alert('خطأ','فشل في إنشاء التحديث: ' + (error.message||JSON.stringify(error))); }
-                      else{ Alert.alert('تم','تم إنشاء التحديث بنجاح'); setUpdateModalVisible(false); setUpdateTitle(''); setUpdateMessage(''); setUpdateLink(''); setUpdateVersion(''); setUpdateTarget('all'); }
-                    }catch(e){ console.error('create update error', e); Alert.alert('خطأ','حدث خطأ'); }
-                    setSendingUpdate(false);
-                  }}>
+                  <TouchableOpacity
+                    style={{backgroundColor:'#00C897',padding:12,borderRadius:8,alignItems:'center',marginBottom:8,opacity:sendingUpdate?0.6:1}}
+                    disabled={sendingUpdate}
+                    onPress={() => {
+                      if(!updateTitle||!updateMessage){ Alert.alert('تنبيه','يرجى إدخال العنوان والنص'); return; }
+                      Alert.alert(
+                        'تأكيد',
+                        'هل أنت متأكد من نشر هذا التحديث الآن؟',
+                        [
+                          { text: 'إلغاء', style: 'cancel' },
+                          { text: 'نعم', onPress: async () => {
+                              setSendingUpdate(true);
+                              try {
+                                const payload = { title: updateTitle, message: updateMessage, link_url: updateLink || null, target_roles: updateTarget==='all'?['driver','store']:(updateTarget==='drivers'?['driver']:['store']), version: updateVersion || null };
+                                const { data, error } = await updatesAPI.createUpdate(payload);
+                                if(error){ Alert.alert('خطأ','فشل في إنشاء التحديث: ' + (error.message||JSON.stringify(error))); }
+                                else{ Alert.alert('تم','تم إنشاء التحديث بنجاح'); setUpdateModalVisible(false); setUpdateTitle(''); setUpdateMessage(''); setUpdateLink(''); setUpdateVersion(''); setUpdateTarget('all'); }
+                              } catch(e){ console.error('create update error', e); Alert.alert('خطأ','حدث خطأ'); }
+                              setSendingUpdate(false);
+                            }
+                          }
+                        ]
+                      );
+                    }}
+                  >
                     <Text style={{color:'#fff',fontSize:17,fontWeight:'bold'}}>إنشاء</Text>
                   </TouchableOpacity>
                   <TouchableOpacity onPress={()=>setUpdateModalVisible(false)} style={{alignItems:'center',marginTop:4}}>

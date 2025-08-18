@@ -129,6 +129,7 @@ export default function StoreRegistrationScreen({ navigation }) {
           return;
         }
 
+        console.log('StoreRegistrationScreen - navigating to StoreInfo with', { formData });
         navigation.navigate('StoreInfo', { formData });
         
       } catch (error) {

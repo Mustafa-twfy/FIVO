@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -8,11 +8,25 @@ const storeIcon = { uri: 'https://i.ibb.co/Myy7sCzX/Picsart-25-07-31-16-12-30-51
 
 export default function StoreInfoScreen({ navigation, route }) {
   const { formData } = route.params || {};
-  
+
+  useEffect(() => {
+    console.log('StoreInfoScreen route.params:', route.params);
+  }, [route.params]);
+
   if (!formData) {
-    Alert.alert('خطأ', 'لم يتم استلام بيانات النموذج، سيتم العودة للصفحة السابقة');
-    navigation.goBack();
-    return null;
+    // بدلًا من الرجوع فورًا وعرض شاشة بيضاء، نعرض واجهة بسيطة تُمكّن المستخدم من العودة
+    return (
+      <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          <View style={[styles.content, { justifyContent: 'center', alignItems: 'center' }]}>
+            <Text style={{ fontSize: 18, color: '#333', marginBottom: 12 }}>خطأ: لم يتم استلام بيانات النموذج</Text>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={{ padding: 12, backgroundColor: '#FF9800', borderRadius: 8 }}>
+              <Text style={{ color: '#fff', fontWeight: 'bold' }}>العودة</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    );
   }
   
   const [info, setInfo] = useState({

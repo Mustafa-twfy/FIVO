@@ -1,9 +1,10 @@
-import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Dimensions, Animated, Easing, Image } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, StyleSheet, Dimensions, Animated, Easing } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 const simsimLogo = require('../assets/simsim-logo.png');
 
 export default function SplashScreen() {
+  const [imageError, setImageError] = useState(false);
   const logoOpacity = useRef(new Animated.Value(0)).current;
   const logoScale = useRef(new Animated.Value(0.3)).current;
   const logoRotation = useRef(new Animated.Value(0)).current;
@@ -77,7 +78,19 @@ export default function SplashScreen() {
           ]}
         >
           <View style={styles.logoWrapper}>
-            <Image source={simsimLogo} style={styles.logo} />
+            {!imageError ? (
+              <Animated.Image
+                source={simsimLogo}
+                style={styles.logo}
+                onError={(e) => {
+                  console.error('Splash image load error', e.nativeEvent?.error || e);
+                  setImageError(true);
+                }}
+                onLoad={() => console.log('Splash image loaded')}
+              />
+            ) : (
+              <Text style={{ color: '#000', fontWeight: 'bold' }}>سمسم</Text>
+            )}
           </View>
         </Animated.View>
         
