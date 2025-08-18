@@ -230,6 +230,7 @@ export default function DriverDashboardScreen({ navigation }) {
       // تحديث بيانات السائق
       setDriverInfo(driver);
       setIsOnline(driver.is_active || false);
+      console.log('DriverDashboardScreen: loaded driver debt_points=', driver.debt_points);
       
       // جلب الطلبات المرتبطة بالسائق
       const { data: ordersData, error: ordersError } = await supabase

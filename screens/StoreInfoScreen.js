@@ -13,24 +13,46 @@ export default function StoreInfoScreen({ navigation, route }) {
   useEffect(() => {
     console.log('StoreInfoScreen route.params:', route.params);
     const init = async () => {
-      if (route.params && route.params.formData) {
-        setFormDataLocal(route.params.formData);
-        try { await AsyncStorage.removeItem('pendingStoreRegistration'); } catch (e) { console.error('remove pendingStoreRegistration', e); }
-        return;
-      }
-
       try {
-        const pending = await AsyncStorage.getItem('pendingStoreRegistration');
-        if (pending) {
-          setFormDataLocal(JSON.parse(pending));
-          await AsyncStorage.removeItem('pendingStoreRegistration');
+        // إذا كانت البيانات مرّرت عبر التنقّل فاحتفظ بها
+        if (route.params && route.params.formData) {
+          setFormDataLocal(route.params.formData);
+          try { await AsyncStorage.removeItem('pendingStoreRegistration'); } catch (e) { console.error('remove pendingStoreRegistration', e); }
           return;
         }
+
+        // خلاف ذلك جرب استعادة بيانات محفوظة مؤقتاً
+        const pending = await AsyncStorage.getItem('pendingStoreRegistration');
+        if (pending) {
+          try {
+            setFormDataLocal(JSON.parse(pending));
+            await AsyncStorage.removeItem('pendingStoreRegistration');
+            return;
+          } catch (parseErr) {
+            console.error('Error parsing pendingStoreRegistration', parseErr);
+            // تابع إلى الفallback أدناه
+          }
+        }
+
+        // لا توجد بيانات؛ نترك formDataLocal = null ليظهر النص التوضيحي للمستخدم
       } catch (e) {
-        console.error('Error reading pendingStoreRegistration', e);
+        // أي خطأ غير متوقع - سجل الخطأ وامنح المستخدم رسالة بديلة بدل الشاشة البيضاء
+        console.error('StoreInfoScreen init error:', e);
+        try {
+          // ضع فالج باكب بسيط حتى لا ينهار العرض
+          setFormDataLocal({ email: '', password: '' });
+        } catch (s) {
+          console.error('Failed to set fallback formDataLocal', s);
+        }
+        Alert.alert('خطأ', 'حدث خطأ داخل شاشة بيانات المتجر. الرجاء المحاولة مرة أخرى.');
       }
     };
-    init();
+    // نفّذ التهيئة، والتقاط أي استثناء من النداء نفسه
+    init().catch(err => {
+      console.error('Unhandled error in StoreInfoScreen.init:', err);
+      try { setFormDataLocal({ email: '', password: '' }); } catch (s) { console.error(s); }
+      Alert.alert('خطأ', 'حدث خطأ غير متوقع. الرجاء المحاولة لاحقاً.');
+    });
   }, [route.params]);
 
   if (!formDataLocal) {

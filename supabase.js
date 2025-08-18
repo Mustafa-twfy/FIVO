@@ -899,10 +899,7 @@ export const ordersAPI = {
         
         // حساب النقاط الجديدة (مثال: كل طلب يضيف نقطة واحدة)
         const newPoints = currentPoints + 1;
-
-        // Supabase قد يعيد العلاقات كمصفوفة؛ نأخذ العنصر الأول إن وُجد
-        const driverRecord = Array.isArray(order.drivers) ? order.drivers[0] : order.drivers;
-
+        
         // تحديث نقاط السائق
         console.log('[ordersAPI.completeOrder] will update driver', order.driver_id, 'from', currentPoints, 'to', newPoints);
         const { error: pointsError } = await supabase
@@ -920,11 +917,11 @@ export const ordersAPI = {
             `تم إكمال الطلب بنجاح! نقاطك الحالية: ${newPoints} نقطة (${newPoints * debtPointValue} دينار)`
           );
 
-          // التحقق من تجاوز الحد الأقصى باستخدام السجل الموحد
-          if (newPoints >= maxDebtPoints && !driverRecord?.is_suspended) {
+          // التحقق من تجاوز الحد الأقصى
+          if (newPoints >= maxDebtPoints && !driver.is_suspended) {
             // إيقاف السائق تلقائياً
             await driversAPI.suspendDriver(
-              order.driver_id,
+              order.driver_id, 
               'تم إيقافك مؤقتًا بسبب تجاوز حد الديون. يرجى تصفير الديون للعودة للعمل.'
             );
             await driversAPI.sendNotification(

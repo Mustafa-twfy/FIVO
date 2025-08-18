@@ -246,8 +246,11 @@ export default function StoreRegistrationScreen({ navigation }) {
                         try {
                           await AsyncStorage.setItem('pendingStoreRegistration', JSON.stringify(formData));
                         } catch(e) { console.error('Failed to save pendingStoreRegistration', e); }
-                        setDebugModalVisible(false); 
-                        navigation.navigate('StoreInfo', { formData });
+                        // أغلق المودال أولاً ثم نفّذ التنقّل بعد فترة قصيرة لمنع بقاء overlay فوق الشاشة الجديدة
+                        setDebugModalVisible(false);
+                        setTimeout(() => {
+                          navigation.navigate('StoreInfo', { formData });
+                        }, 10);
                       }} style={{padding:10,backgroundColor:'#00C897',borderRadius:6,marginLeft:8}}>
                       <Text style={{color:'#fff'}}>متابعة</Text>
                     </TouchableOpacity>
