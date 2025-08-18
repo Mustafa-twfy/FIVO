@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView, KeyboardAvoidingView, Platform, Image } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView, KeyboardAvoidingView, Platform, Image, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../supabase';
@@ -235,19 +235,24 @@ export default function StoreRegistrationScreen({ navigation }) {
               </LinearGradient>
             </TouchableOpacity>
             {/* مودال فحص مؤقت لتجنب الشاشة البيضاء: يظهر بيانات formData ويوفر زر للمتابعة */}
-            {debugModalVisible && (
-              <View style={{position:'absolute',top:0,left:0,right:0,bottom:0,backgroundColor:'rgba(0,0,0,0.5)',justifyContent:'center',alignItems:'center'}}>
+            <Modal
+              visible={debugModalVisible}
+              transparent
+              animationType="fade"
+              onRequestClose={() => setDebugModalVisible(false)}
+            >
+              <View style={{flex:1,backgroundColor:'rgba(0,0,0,0.5)',justifyContent:'center',alignItems:'center'}}>
                 <View style={{width:'90%',backgroundColor:'#fff',padding:16,borderRadius:8}}>
                   <Text style={{fontWeight:'bold',marginBottom:8}}>Debug — بيانات النموذج</Text>
                   <Text>البريد: {formData.email}</Text>
                   <Text>كلمة المرور: {formData.password ? '●●●●●●' : '(فارغ)'}</Text>
                   <View style={{flexDirection:'row',justifyContent:'flex-end',marginTop:12}}>
-                    <TouchableOpacity onPress={async () => { 
+                    <TouchableOpacity onPress={async () => {
                         try {
                           await AsyncStorage.setItem('pendingStoreRegistration', JSON.stringify(formData));
                         } catch(e) { console.error('Failed to save pendingStoreRegistration', e); }
-                        // أغلق المودال أولاً ثم نفّذ التنقّل بعد فترة قصيرة لمنع بقاء overlay فوق الشاشة الجديدة
                         setDebugModalVisible(false);
+                        // تأخير قصير بعد إغلاق المودال قبل التنقّل
                         setTimeout(() => {
                           navigation.navigate('StoreInfo', { formData });
                         }, 10);
@@ -260,7 +265,7 @@ export default function StoreRegistrationScreen({ navigation }) {
                   </View>
                 </View>
               </View>
-            )}
+            </Modal>
           </View>
         </View>
       </ScrollView>

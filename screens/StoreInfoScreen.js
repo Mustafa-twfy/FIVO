@@ -105,9 +105,13 @@ export default function StoreInfoScreen({ navigation, route }) {
     if (!info.locationUrl.trim()) {
       newErrors.locationUrl = 'يرجى إدخال رابط موقع المتجر من Google Maps';
       valid = false;
-    } else if (!info.locationUrl.includes('maps.google.com') && !info.locationUrl.includes('goo.gl/maps')) {
-      newErrors.locationUrl = 'يرجى إدخال رابط صحيح من Google Maps';
-      valid = false;
+    } else {
+      // اقبل أشكالاً متعددة من روابط خرائط Google بدل الاعتماد على سلسلتين فقط
+      const mapUrlRegex = /(google\.com\/maps|maps\.google\.com|goo\.gl\/maps|maps\.app\.goo\.gl|\/place\/|\/@)/i;
+      if (!mapUrlRegex.test(info.locationUrl.trim())) {
+        newErrors.locationUrl = 'يرجى إدخال رابط صحيح من Google Maps';
+        valid = false;
+      }
     }
     setErrors(newErrors);
     return valid;
