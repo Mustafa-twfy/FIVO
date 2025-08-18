@@ -9,24 +9,33 @@ const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null); // بيانات المستخدم (object)
   const [userType, setUserType] = useState(null); // نوع المستخدم (driver/store/admin)
+  const [userToken, setUserToken] = useState(null); // توكن الجلسة إذا وُجد
   const [sessionExpiry, setSessionExpiry] = useState(null); // تاريخ انتهاء الجلسة
   const [loading, setLoading] = useState(true); // حالة تحميل الجلسة
 
   // تسجيل الدخول
-  const login = async (userData, type, expiryDate) => {
+  // login now accepts optional token (from server) and saves it securely
+  const login = async (userData, type, expiryDate, token = null) => {
     setUser(userData);
     setUserType(type);
     setSessionExpiry(expiryDate || null);
-    // حفظ بيانات الجلسة بشكل مشفر
-    await EncryptedStorage.setItem('session', JSON.stringify({
+    if (token) setUserToken(token);
+
+    // حفظ بيانات الجلسة بشكل مشفر (يشمل التوكن إن وُجد)
+    const sessionObj = {
       user: userData,
       userType: type,
-      sessionExpiry: expiryDate || null
-    }));
+      sessionExpiry: expiryDate || null,
+    };
+    if (token) sessionObj.token = token;
+
+    await EncryptedStorage.setItem('session', JSON.stringify(sessionObj));
+
     // حفظ البيانات في AsyncStorage أيضاً للتوافق
     try {
       await AsyncStorage.setItem('userId', userData.id?.toString() || '');
       await AsyncStorage.setItem('userType', type);
+      if (token) await AsyncStorage.setItem('userToken', token);
     } catch (e) {
       console.error('خطأ في حفظ AsyncStorage:', e);
     }
@@ -37,11 +46,13 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     setUserType(null);
     setSessionExpiry(null);
+    setUserToken(null);
     await EncryptedStorage.removeItem('session');
     // حذف البيانات من AsyncStorage أيضاً للتوافق
     try {
       await AsyncStorage.removeItem('userId');
       await AsyncStorage.removeItem('userType');
+      await AsyncStorage.removeItem('userToken');
     } catch (e) {
       console.error('خطأ في حذف AsyncStorage:', e);
     }
@@ -81,6 +92,7 @@ export const AuthProvider = ({ children }) => {
               setUser(session.user);
               setUserType(session.userType);
               setSessionExpiry(session.sessionExpiry);
+              if (session.token) setUserToken(session.token);
             } else {
               // الجلسة منتهية الصلاحية - احذفها
               await EncryptedStorage.removeItem('session');
@@ -88,6 +100,22 @@ export const AuthProvider = ({ children }) => {
           } else {
             // لا يوجد تاريخ انتهاء - احذف الجلسة
             await EncryptedStorage.removeItem('session');
+          }
+        }
+        // في حالة عدم وجود جلسة مشفرة، حاول استعادة التوكن والنوع من AsyncStorage
+        if (!user && !userType) {
+          try {
+            const storedToken = await AsyncStorage.getItem('userToken');
+            const storedType = await AsyncStorage.getItem('userType');
+            const storedId = await AsyncStorage.getItem('userId');
+            if (storedToken) setUserToken(storedToken);
+            if (storedType) setUserType(storedType);
+            if (storedId && !user) {
+              // اجعل user جزئيًا لتمثيل الجلسة (لن يحتوي كل الحقول)
+              setUser({ id: parseInt(storedId, 10) });
+            }
+          } catch (e) {
+            console.error('خطأ في استعادة AsyncStorage أثناء التحميل:', e);
           }
         }
       } catch (e) {

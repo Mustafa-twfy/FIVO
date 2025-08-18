@@ -17,6 +17,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import colors from '../colors';
 import { useAuth } from '../context/AuthContext';
 const simsimLogo = { uri: 'https://i.ibb.co/Myy7sCzX/Picsart-25-07-31-16-12-30-512.jpg' };
+// رابط دالة المصادقة على Supabase Functions لمشروعك
+const AUTH_API_URL = 'https://nzxmhpigoeexuadrnith.functions.supabase.co';
 
 export default function LoginScreen({ navigation }) {
   const { login } = useAuth();
@@ -38,11 +40,49 @@ export default function LoginScreen({ navigation }) {
     try {
       console.log('=== بداية عملية تسجيل الدخول ===');
       console.log('البريد الإلكتروني:', email);
+
+      // إذا كان لديك API خارجي للمصادقة ضع رابطه في AUTH_API_URL أعلاه
+      if (AUTH_API_URL && !AUTH_API_URL.includes('YOUR_')) {
+        try {
+          const resp = await fetch(`${AUTH_API_URL.replace(/\/$/, '')}/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+          });
+          const json = await resp.json();
+          if (resp.ok && json.token && json.role && json.user) {
+            // خزن التوكن والدور والمستخدم
+            const { token, role, user, expires_at } = json;
+            await AsyncStorage.setItem('userId', user.id?.toString() || '');
+            await AsyncStorage.setItem('userType', role);
+            await login(user, role, expires_at || null, token);
+            // توجيه بحسب الدور
+            if (role === 'admin') navigation.replace('AdminDashboard');
+            else if (role === 'driver') navigation.replace('Driver', { driverId: user.id });
+            else if (role === 'store' || role === 'restaurant') navigation.replace('Store', { storeId: user.id });
+            setLoading(false);
+            return;
+          } else {
+            console.warn('Auth API rejected credentials or responded unexpectedly', json);
+            // تابع إلى منطق fall-back الداخلي
+          }
+        } catch (apiErr) {
+          console.warn('Auth API call failed, falling back to built-in checks', apiErr);
+          // استمر إلى منطق Supabase الافتراضي
+        }
+      }
       
       // تحقق الأدمن (بريد خاص)
       if (email === 'nmcmilli07@gmail.com' && password === 'admin1234') {
         console.log('تسجيل دخول الأدمن');
+        // أنشئ كائن مستخدم مؤقت للأدمن
+        const adminUser = { id: 0, name: 'Admin', email };
+        const expiry = new Date();
+        expiry.setDate(expiry.getDate() + 7);
+        const simulatedToken = 'admin-token-placeholder';
+        await AsyncStorage.setItem('userId', adminUser.id.toString());
         await AsyncStorage.setItem('userType', 'admin');
+        await login(adminUser, 'admin', expiry.toISOString(), simulatedToken);
         Alert.alert('مرحباً بك أيها الأدمن!');
         navigation.replace('AdminDashboard');
         setLoading(false);
@@ -111,7 +151,9 @@ export default function LoginScreen({ navigation }) {
         // حساب تاريخ انتهاء الجلسة بعد 7 أيام
         const expiry = new Date();
         expiry.setDate(expiry.getDate() + 7);
-        login(driver, 'driver', expiry.toISOString());
+        // إذا كان السيرفر يرسل التوكن ضمّنه هنا، وإلا استخدم placeholder
+        const simulatedToken = driver.token || 'driver-token-placeholder';
+        await login(driver, 'driver', expiry.toISOString(), simulatedToken);
         console.log('تم العثور على سائق، توجيه لـ DriverDrawer');
         Alert.alert('نجح تسجيل الدخول', `مرحباً بك ${driver.name || ''}!`);
         navigation.replace('Driver', { driverId: driver.id });
@@ -146,10 +188,10 @@ export default function LoginScreen({ navigation }) {
       if (store) {
         await AsyncStorage.setItem('userId', store.id.toString());
         await AsyncStorage.setItem('userType', 'store');
-        // حساب تاريخ انتهاء الجلسة بعد 7 أيام
         const expiry = new Date();
         expiry.setDate(expiry.getDate() + 7);
-        login(store, 'store', expiry.toISOString());
+        const simulatedToken = store.token || 'store-token-placeholder';
+        await login(store, 'store', expiry.toISOString(), simulatedToken);
         console.log('تم العثور على متجر، توجيه لـ StoreDrawer');
         Alert.alert('نجح تسجيل الدخول', `مرحباً بك ${store.name || ''}!`);
         navigation.replace('Store', { storeId: store.id });
