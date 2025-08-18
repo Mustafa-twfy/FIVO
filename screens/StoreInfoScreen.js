@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Alert, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import colors from '../colors';
+
 const storeIcon = { uri: 'https://i.ibb.co/Myy7sCzX/Picsart-25-07-31-16-12-30-512.jpg' };
 
 export default function StoreInfoScreen({ navigation, route }) {
-  const [formDataLocal, setFormDataLocal] = React.useState(null);
+  const [formDataLocal, setFormDataLocal] = useState(null);
 
   useEffect(() => {
     console.log('StoreInfoScreen route.params:', route.params);
@@ -30,16 +31,12 @@ export default function StoreInfoScreen({ navigation, route }) {
             return;
           } catch (parseErr) {
             console.error('Error parsing pendingStoreRegistration', parseErr);
-            // تابع إلى الفallback أدناه
           }
         }
 
-        // لا توجد بيانات؛ نترك formDataLocal = null ليظهر النص التوضيحي للمستخدم
       } catch (e) {
-        // أي خطأ غير متوقع - سجل الخطأ وامنح المستخدم رسالة بديلة بدل الشاشة البيضاء
         console.error('StoreInfoScreen init error:', e);
         try {
-          // ضع فالج باكب بسيط حتى لا ينهار العرض
           setFormDataLocal({ email: '', password: '' });
         } catch (s) {
           console.error('Failed to set fallback formDataLocal', s);
@@ -47,7 +44,6 @@ export default function StoreInfoScreen({ navigation, route }) {
         Alert.alert('خطأ', 'حدث خطأ داخل شاشة بيانات المتجر. الرجاء المحاولة مرة أخرى.');
       }
     };
-    // نفّذ التهيئة، والتقاط أي استثناء من النداء نفسه
     init().catch(err => {
       console.error('Unhandled error in StoreInfoScreen.init:', err);
       try { setFormDataLocal({ email: '', password: '' }); } catch (s) { console.error(s); }
@@ -58,7 +54,7 @@ export default function StoreInfoScreen({ navigation, route }) {
   if (!formDataLocal) {
     return (
       <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <ScrollView contentContainerStyle={styles.scrollContent}>
+        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
           <View style={[styles.content, { justifyContent: 'center', alignItems: 'center' }]}>
             <Text style={{ fontSize: 18, color: '#333', marginBottom: 12 }}>لم يتم استلام بيانات النموذج بعد. الرجاء الضغط التالي مرة أخرى.</Text>
             <TouchableOpacity onPress={() => navigation.goBack()} style={{ padding: 12, backgroundColor: '#FF9800', borderRadius: 8 }}>
@@ -69,7 +65,7 @@ export default function StoreInfoScreen({ navigation, route }) {
       </KeyboardAvoidingView>
     );
   }
-  
+
   const [info, setInfo] = useState({
     storeName: '',
     address: '',
@@ -87,6 +83,7 @@ export default function StoreInfoScreen({ navigation, route }) {
   const validateForm = () => {
     let valid = true;
     let newErrors = {};
+
     if (!info.storeName.trim()) {
       newErrors.storeName = 'يرجى إدخال اسم المتجر';
       valid = false;
@@ -98,21 +95,21 @@ export default function StoreInfoScreen({ navigation, route }) {
     if (!info.phone.trim()) {
       newErrors.phone = 'يرجى إدخال رقم الهاتف';
       valid = false;
-    } else if (info.phone.length < 8) {
-      newErrors.phone = 'رقم الهاتف غير صحيح';
+    } else if (!/^\d{8,15}$/.test(info.phone)) {
+      newErrors.phone = 'يرجى إدخال رقم هاتف صحيح بدون أحرف';
       valid = false;
     }
     if (!info.locationUrl.trim()) {
       newErrors.locationUrl = 'يرجى إدخال رابط موقع المتجر من Google Maps';
       valid = false;
     } else {
-      // اقبل أشكالاً متعددة من روابط خرائط Google بدل الاعتماد على سلسلتين فقط
-      const mapUrlRegex = /(google\.com\/maps|maps\.google\.com|goo\.gl\/maps|maps\.app\.goo\.gl|\/place\/|\/@)/i;
+      const mapUrlRegex = /https?:\/\/(www\.)?google\.[a-z]+\/maps/;
       if (!mapUrlRegex.test(info.locationUrl.trim())) {
         newErrors.locationUrl = 'يرجى إدخال رابط صحيح من Google Maps';
         valid = false;
       }
     }
+
     setErrors(newErrors);
     return valid;
   };
@@ -121,7 +118,6 @@ export default function StoreInfoScreen({ navigation, route }) {
     if (validateForm()) {
       setLoading(true);
       try {
-        // إرسال الطلب مباشرة إلى قاعدة البيانات بدون مستندات
         const payload = {
           email: (formDataLocal && formDataLocal.email) || '',
           password: (formDataLocal && formDataLocal.password) || '',
@@ -139,7 +135,9 @@ export default function StoreInfoScreen({ navigation, route }) {
           .insert([payload]);
 
         if (error) {
-          Alert.alert('خطأ', 'فشل في إرسال طلب التسجيل');
+          // حفظ البيانات مؤقتًا لإعادة المحاولة
+          await AsyncStorage.setItem('pendingStoreRegistration', JSON.stringify(formDataLocal));
+          Alert.alert('خطأ', 'فشل في إرسال طلب التسجيل. سيتم حفظ بياناتك لإعادة المحاولة.');
         } else {
           Alert.alert('نجاح', 'تم إرسال طلب التسجيل بنجاح! سيتم مراجعة طلبك من قبل الإدارة.', [
             {
@@ -151,7 +149,8 @@ export default function StoreInfoScreen({ navigation, route }) {
           ]);
         }
       } catch (error) {
-        Alert.alert('خطأ', 'حدث خطأ أثناء إرسال الطلب');
+        await AsyncStorage.setItem('pendingStoreRegistration', JSON.stringify(formDataLocal));
+        Alert.alert('خطأ', 'حدث خطأ أثناء إرسال الطلب. سيتم حفظ بياناتك لإعادة المحاولة.');
       } finally {
         setLoading(false);
       }
@@ -160,13 +159,13 @@ export default function StoreInfoScreen({ navigation, route }) {
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
           <TouchableOpacity onPress={() => { if (navigation.canGoBack()) { navigation.goBack(); } }} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color="#FF9800" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>بيانات المتجر</Text>
-          <View style={{width: 24}} />
+          <View style={{ width: 24 }} />
         </View>
         <View style={styles.content}>
           <View style={styles.logoContainer}>
@@ -176,14 +175,12 @@ export default function StoreInfoScreen({ navigation, route }) {
           </View>
           <View style={styles.formContainer}>
             <Text style={styles.sectionTitle}>معلومات المتجر</Text>
-            
             <View style={styles.infoCard}>
               <Ionicons name="information-circle-outline" size={20} color="#2196F3" />
               <Text style={styles.infoText}>
                 لا حاجة لرفع مستندات - سيتم مراجعة طلبك من قبل الإدارة
               </Text>
             </View>
-            
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>اسم المتجر</Text>
               <View style={styles.inputContainer}>
