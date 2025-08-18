@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView, KeyboardAvoidingView, Platform, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -12,6 +13,7 @@ export default function StoreRegistrationScreen({ navigation }) {
     password: '',
     confirmPassword: ''
   });
+  const [debugModalVisible, setDebugModalVisible] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -143,9 +145,10 @@ export default function StoreRegistrationScreen({ navigation }) {
           return;
         }
 
-        console.log('StoreRegistrationScreen - navigating to StoreInfo with', { formData });
-        console.log('StoreRegistrationScreen - navigating to StoreInfo with', { formData });
-        navigation.navigate('StoreInfo', { formData });
+        console.log('StoreRegistrationScreen - ready to navigate to StoreInfo with', { formData });
+        // بدلاً من التنقّل مباشرةً، نعرض مودال فحص مؤقت ليُظهر بيانات النموذج ويضمن عدم ظهور شاشة بيضاء
+        setDebugModalVisible(true);
+        // بعد إظهار المودال، نسمح للمستخدم بالانتقال يدوياً عند الضغط على زر الموافقة
         
       } catch (error) {
         console.error('StoreRegistrationScreen.handleNext error', error);
@@ -231,6 +234,30 @@ export default function StoreRegistrationScreen({ navigation }) {
                 <Ionicons name="arrow-forward" size={20} color={colors.secondary} />
               </LinearGradient>
             </TouchableOpacity>
+            {/* مودال فحص مؤقت لتجنب الشاشة البيضاء: يظهر بيانات formData ويوفر زر للمتابعة */}
+            {debugModalVisible && (
+              <View style={{position:'absolute',top:0,left:0,right:0,bottom:0,backgroundColor:'rgba(0,0,0,0.5)',justifyContent:'center',alignItems:'center'}}>
+                <View style={{width:'90%',backgroundColor:'#fff',padding:16,borderRadius:8}}>
+                  <Text style={{fontWeight:'bold',marginBottom:8}}>Debug — بيانات النموذج</Text>
+                  <Text>البريد: {formData.email}</Text>
+                  <Text>كلمة المرور: {formData.password ? '●●●●●●' : '(فارغ)'}</Text>
+                  <View style={{flexDirection:'row',justifyContent:'flex-end',marginTop:12}}>
+                    <TouchableOpacity onPress={async () => { 
+                        try {
+                          await AsyncStorage.setItem('pendingStoreRegistration', JSON.stringify(formData));
+                        } catch(e) { console.error('Failed to save pendingStoreRegistration', e); }
+                        setDebugModalVisible(false); 
+                        navigation.navigate('StoreInfo', { formData });
+                      }} style={{padding:10,backgroundColor:'#00C897',borderRadius:6,marginLeft:8}}>
+                      <Text style={{color:'#fff'}}>متابعة</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => setDebugModalVisible(false)} style={{padding:10,backgroundColor:'#ccc',borderRadius:6}}>
+                      <Text>إلغاء</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            )}
           </View>
         </View>
       </ScrollView>

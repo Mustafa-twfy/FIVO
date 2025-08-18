@@ -3,23 +3,42 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Keyboa
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../supabase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import colors from '../colors';
 const storeIcon = { uri: 'https://i.ibb.co/Myy7sCzX/Picsart-25-07-31-16-12-30-512.jpg' };
 
 export default function StoreInfoScreen({ navigation, route }) {
-  const { formData } = route.params || {};
+  const [formDataLocal, setFormDataLocal] = React.useState(null);
 
   useEffect(() => {
     console.log('StoreInfoScreen route.params:', route.params);
+    const init = async () => {
+      if (route.params && route.params.formData) {
+        setFormDataLocal(route.params.formData);
+        try { await AsyncStorage.removeItem('pendingStoreRegistration'); } catch (e) { console.error('remove pendingStoreRegistration', e); }
+        return;
+      }
+
+      try {
+        const pending = await AsyncStorage.getItem('pendingStoreRegistration');
+        if (pending) {
+          setFormDataLocal(JSON.parse(pending));
+          await AsyncStorage.removeItem('pendingStoreRegistration');
+          return;
+        }
+      } catch (e) {
+        console.error('Error reading pendingStoreRegistration', e);
+      }
+    };
+    init();
   }, [route.params]);
 
-  if (!formData) {
-    // بدلًا من الرجوع فورًا وعرض شاشة بيضاء، نعرض واجهة بسيطة تُمكّن المستخدم من العودة
+  if (!formDataLocal) {
     return (
       <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={[styles.content, { justifyContent: 'center', alignItems: 'center' }]}>
-            <Text style={{ fontSize: 18, color: '#333', marginBottom: 12 }}>خطأ: لم يتم استلام بيانات النموذج</Text>
+            <Text style={{ fontSize: 18, color: '#333', marginBottom: 12 }}>لم يتم استلام بيانات النموذج بعد. الرجاء الضغط التالي مرة أخرى.</Text>
             <TouchableOpacity onPress={() => navigation.goBack()} style={{ padding: 12, backgroundColor: '#FF9800', borderRadius: 8 }}>
               <Text style={{ color: '#fff', fontWeight: 'bold' }}>العودة</Text>
             </TouchableOpacity>
@@ -77,21 +96,22 @@ export default function StoreInfoScreen({ navigation, route }) {
       setLoading(true);
       try {
         // إرسال الطلب مباشرة إلى قاعدة البيانات بدون مستندات
+        const payload = {
+          email: (formDataLocal && formDataLocal.email) || '',
+          password: (formDataLocal && formDataLocal.password) || '',
+          user_type: 'store',
+          name: info.storeName,
+          phone: info.phone,
+          address: info.address,
+          location_url: info.locationUrl,
+          status: 'pending',
+          created_at: new Date().toISOString(),
+        };
+
         const { error } = await supabase
           .from('registration_requests')
-          .insert([
-            {
-              email: formData.email,
-              password: formData.password,
-              user_type: 'store',
-              name: info.storeName,
-              phone: info.phone,
-              address: info.address,
-              location_url: info.locationUrl,
-              status: 'pending',
-              created_at: new Date().toISOString(),
-            }
-          ]);
+          .insert([payload]);
+
         if (error) {
           Alert.alert('خطأ', 'فشل في إرسال طلب التسجيل');
         } else {
@@ -99,7 +119,7 @@ export default function StoreInfoScreen({ navigation, route }) {
             {
               text: 'حسناً',
               onPress: () => {
-                navigation.replace('UnifiedPendingApproval', { email: formData.email, user_type: 'store' });
+                navigation.replace('UnifiedPendingApproval', { email: payload.email, user_type: 'store' });
               }
             }
           ]);

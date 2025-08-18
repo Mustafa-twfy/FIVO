@@ -14,10 +14,13 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase, driversAPI } from '../supabase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuth } from '../context/AuthContext';
 import colors from '../colors';
 
 export default function DriverProfileScreen({ navigation }) {
-  const driverId = 1; // عدل لاحقاً حسب نظام تسجيل الدخول
+  const { user } = useAuth();
+  const [driverId, setDriverId] = useState(null);
   const [driverInfo, setDriverInfo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -34,15 +37,31 @@ export default function DriverProfileScreen({ navigation }) {
 
 
   useEffect(() => {
-    loadDriverInfo();
-  }, []);
+    const init = async () => {
+      if (user && user.id) {
+        setDriverId(parseInt(user.id, 10));
+      } else {
+        try {
+          const storedId = await AsyncStorage.getItem('userId');
+          if (storedId) setDriverId(parseInt(storedId, 10));
+        } catch (e) {
+          console.error('DriverProfileScreen: failed to read userId from AsyncStorage', e);
+        }
+      }
+    };
+    init();
+  }, [user]);
+
+  useEffect(() => {
+    if (driverId) loadDriverInfo();
+  }, [driverId]);
 
   const loadDriverInfo = async () => {
     setLoading(true);
     try {
-      const { data: drivers, error } = await driversAPI.getAllDrivers();
-      if (error || !drivers) throw new Error('تعذر جلب بيانات السائق');
-      const driver = drivers.find(d => d.id === driverId);
+      if (!driverId) throw new Error('معرّف السائق غير متوفر');
+      const { data: driver, error } = await driversAPI.getDriverById(driverId);
+      if (error || !driver) throw new Error('تعذر جلب بيانات السائق');
       setDriverInfo(driver);
       setFormData({
         name: driver?.name || '',
@@ -55,6 +74,7 @@ export default function DriverProfileScreen({ navigation }) {
       });
     } catch (error) {
       Alert.alert('خطأ', error.message || 'فشل في تحميل بيانات السائق');
+      console.error('DriverProfileScreen.loadDriverInfo error', error);
     }
     setLoading(false);
   };

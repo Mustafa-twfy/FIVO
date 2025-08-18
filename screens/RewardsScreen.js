@@ -1,16 +1,35 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, Alert, TouchableOpacity, Platform } from 'react-native';
 import { driversAPI } from '../supabase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuth } from '../context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function RewardsScreen({ navigation }) {
-  const driverId = 1; // عدل لاحقاً حسب نظام تسجيل الدخول
+  const { user } = useAuth();
+  const [driverId, setDriverId] = useState(null);
   const [rewards, setRewards] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchRewards();
-  }, []);
+    const init = async () => {
+      if (user && user.id) {
+        setDriverId(parseInt(user.id, 10));
+      } else {
+        try {
+          const storedId = await AsyncStorage.getItem('userId');
+          if (storedId) setDriverId(parseInt(storedId, 10));
+        } catch (e) {
+          console.error('RewardsScreen: failed to read userId from AsyncStorage', e);
+        }
+      }
+    };
+    init();
+  }, [user]);
+
+  useEffect(() => {
+    if (driverId) fetchRewards();
+  }, [driverId]);
 
   const fetchRewards = async () => {
     setLoading(true);
