@@ -147,18 +147,20 @@ export default function StoreRegistrationScreen({ navigation }) {
           return;
         }
 
-        console.log('StoreRegistrationScreen - ready to navigate to StoreInfo with', { formData });
-        // بدلاً من التنقّل مباشرةً، نعرض مودال فحص مؤقت ليُظهر بيانات النموذج ويضمن عدم ظهور شاشة بيضاء
-        setDebugModalVisible(true);
-        // بعد إظهار المودال، نسمح للمستخدم بالانتقال يدوياً عند الضغط على زر الموافقة
-        
+        // إذا وصلنا هنا، البيانات سليمة ويمكن الانتقال مباشرة
+        try {
+          await AsyncStorage.setItem('pendingStoreRegistration', JSON.stringify(formData));
+        } catch(e) { console.error('Failed to save pendingStoreRegistration', e); }
+        navigation.navigate('StoreInfoScreen', { formData });
       } catch (error) {
         console.error('StoreRegistrationScreen.handleNext error', error);
-        Alert.alert('خطأ', 'حدث خطأ في التحقق من البيانات');
+        Alert.alert('خطأ', 'حدث خطأ في التحقق من البيانات: ' + error.message);
       } finally {
         setLoading(false);
         setLoadingInit(false);
       }
+    } else {
+      Alert.alert('خطأ', 'يرجى تصحيح الأخطاء في النموذج قبل المتابعة.');
     }
   };
 
@@ -246,49 +248,6 @@ export default function StoreRegistrationScreen({ navigation }) {
                 </TouchableOpacity>
               )}
             </View>
-            {/* مودال فحص مؤقت لتجنب الشاشة البيضاء: يظهر بيانات formData ويوفر زر للمتابعة */}
-            <Modal
-              visible={debugModalVisible}
-              transparent
-              animationType="fade"
-              onRequestClose={() => setDebugModalVisible(false)}
-            >
-              <View style={{flex:1,backgroundColor:'rgba(0,0,0,0.5)',justifyContent:'center',alignItems:'center'}}>
-                <View style={{width:'90%',backgroundColor:'#fff',padding:16,borderRadius:8}}>
-                  <Text style={{fontWeight:'bold',marginBottom:8}}>Debug — بيانات النموذج</Text>
-                  <Text>البريد: {formData.email}</Text>
-                  <Text>كلمة المرور: {formData.password ? '●●●●●●' : '(فارغ)'}</Text>
-                  <View style={{flexDirection:'row',justifyContent:'flex-end',marginTop:12}}>
-                    <TouchableOpacity onPress={async () => {
-                        try {
-                          await AsyncStorage.setItem('pendingStoreRegistration', JSON.stringify(formData));
-                        } catch(e) { console.error('Failed to save pendingStoreRegistration', e); }
-                        setDebugModalVisible(false);
-                        // حاول التنقّل واحتواء أي استثناء: إذا فشل navigate جرب replace
-                        setTimeout(async () => {
-                          try {
-                            console.log('Attempting navigation to StoreInfoScreen with formData=', formData);
-                            navigation.navigate('StoreInfoScreen', { formData });
-                          } catch (navErr) {
-                            console.error('navigation.navigate failed, trying replace', navErr);
-                            try {
-                              navigation.replace('StoreInfoScreen', { formData });
-                            } catch (repErr) {
-                              console.error('navigation.replace also failed', repErr);
-                              Alert.alert('خطأ', 'تعذر الانتقال لصفحة بيانات المتجر');
-                            }
-                          }
-                        }, 10);
-                      }} style={{padding:10,backgroundColor:'#00C897',borderRadius:6,marginLeft:8}}>
-                      <Text style={{color:'#fff'}}>متابعة</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => setDebugModalVisible(false)} style={{padding:10,backgroundColor:'#ccc',borderRadius:6}}>
-                      <Text>إلغاء</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </View>
-            </Modal>
           </View>
         </View>
       </ScrollView>

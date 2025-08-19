@@ -13,43 +13,51 @@ export default function StoreInfoScreen({ navigation, route }) {
   const [loadingInit, setLoadingInit] = useState(true);
 
   useEffect(() => {
+    // Debug: طباعة بيانات التنقل
     console.log('StoreInfoScreen route.params:', route?.params);
+    Alert.alert('Debug', 'route.params: ' + JSON.stringify(route?.params));
     const init = async () => {
       setLoadingInit(true);
       try {
         // إذا كانت البيانات مرّرت عبر التنقّل فاحتفظ بها
         if (route?.params?.formData) {
-        setFormDataLocal(route.params.formData);
-        try { await AsyncStorage.removeItem('pendingStoreRegistration'); } catch (e) { console.error('remove pendingStoreRegistration', e); }
-        return;
-      }
+          console.log('تم استقبال formData من التنقل:', route.params.formData);
+          Alert.alert('Debug', 'تم استقبال formData من التنقل: ' + JSON.stringify(route.params.formData));
+          setFormDataLocal(route.params.formData);
+          try { await AsyncStorage.removeItem('pendingStoreRegistration'); } catch (e) { console.error('remove pendingStoreRegistration', e); }
+          return;
+        }
 
         // خلاف ذلك جرب استعادة بيانات محفوظة مؤقتاً
         const pending = await AsyncStorage.getItem('pendingStoreRegistration');
+        console.log('pendingStoreRegistration:', pending);
+        Alert.alert('Debug', 'pendingStoreRegistration: ' + pending);
         if (pending) {
           try {
-          setFormDataLocal(JSON.parse(pending));
-          await AsyncStorage.removeItem('pendingStoreRegistration');
-          return;
+            setFormDataLocal(JSON.parse(pending));
+            await AsyncStorage.removeItem('pendingStoreRegistration');
+            return;
           } catch (parseErr) {
             console.error('Error parsing pendingStoreRegistration', parseErr);
+            Alert.alert('Debug', 'Error parsing pendingStoreRegistration: ' + parseErr);
           }
         }
 
       } catch (e) {
         console.error('StoreInfoScreen init error:', e);
+        Alert.alert('خطأ', 'حدث خطأ داخل شاشة بيانات المتجر. الرجاء المحاولة مرة أخرى. ' + e);
         try {
           setFormDataLocal({ email: '', password: '' });
         } catch (s) {
           console.error('Failed to set fallback formDataLocal', s);
         }
-        Alert.alert('خطأ', 'حدث خطأ داخل شاشة بيانات المتجر. الرجاء المحاولة مرة أخرى.');
       } finally {
         setLoadingInit(false);
       }
     };
     init().catch(err => {
       console.error('Unhandled error in StoreInfoScreen.init:', err);
+      Alert.alert('Debug', 'Unhandled error in StoreInfoScreen.init: ' + err);
       try { setFormDataLocal({ email: '', password: '' }); } catch (s) { console.error(s); }
       Alert.alert('خطأ', 'حدث خطأ غير متوقع. الرجاء المحاولة لاحقاً.');
       setLoadingInit(false);
@@ -57,22 +65,12 @@ export default function StoreInfoScreen({ navigation, route }) {
   }, [route?.params]);
 
   if (!formDataLocal) {
-    if (loadingInit) {
-      return (
-        <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-          <View style={[styles.content, { justifyContent: 'center', alignItems: 'center' }]}>
-            <ActivityIndicator size="large" color="#00C897" />
-            <Text style={{ marginTop: 12, color: '#333' }}>جارٍ استرجاع بيانات النموذج...</Text>
-          </View>
-        </KeyboardAvoidingView>
-      );
-    }
-
+    // عرض رسالة واضحة حتى لو لم تصل بيانات
     return (
       <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-          <View style={[styles.content, { justifyContent: 'center', alignItems: 'center' }]}>
-            <Text style={{ fontSize: 18, color: '#333', marginBottom: 12 }}>لم يتم استلام بيانات النموذج بعد. الرجاء الضغط التالي مرة أخرى.</Text>
+          <View style={[styles.content, { justifyContent: 'center', alignItems: 'center' }]}> 
+            <Text style={{ fontSize: 18, color: '#333', marginBottom: 12 }}>لم يتم إرسال بيانات التسجيل. الرجاء العودة وإعادة المحاولة.</Text>
             <TouchableOpacity onPress={() => navigation.goBack()} style={{ padding: 12, backgroundColor: '#FF9800', borderRadius: 8 }}>
               <Text style={{ color: '#fff', fontWeight: 'bold' }}>العودة</Text>
             </TouchableOpacity>
