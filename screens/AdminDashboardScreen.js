@@ -192,6 +192,7 @@ export default function AdminDashboardScreen({ navigation }) {
   ];
 
   const handleOptionPress = (optionId) => {
+    console.log('تم الضغط على زر:', optionId);
     switch (optionId) {
       case 'drivers':
         navigation.navigate('Drivers');

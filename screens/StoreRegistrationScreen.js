@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView, KeyboardAvoidingView, Platform, Image, Modal, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView, KeyboardAvoidingView, Platform, Image, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../supabase';
 import colors from '../colors';
+
 const storeIcon = { uri: 'https://i.ibb.co/Myy7sCzX/Picsart-25-07-31-16-12-30-512.jpg' };
 
 export default function StoreRegistrationScreen({ navigation }) {
@@ -13,7 +14,6 @@ export default function StoreRegistrationScreen({ navigation }) {
     password: '',
     confirmPassword: ''
   });
-  const [debugModalVisible, setDebugModalVisible] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -54,22 +54,16 @@ export default function StoreRegistrationScreen({ navigation }) {
   };
 
   const handleNext = async () => {
-    console.log('StoreRegistrationScreen.handleNext called, formData=', formData);
     if (validateForm()) {
-      console.log('StoreRegistrationScreen: validation passed');
       setLoading(true);
       setLoadingInit(true);
       try {
-        console.log('StoreRegistrationScreen: checking existing registration_requests...');
-        // التحقق من وجود البريد الإلكتروني في طلبات التسجيل
-        const { data: existingRequest, error: requestError } = await supabase
+        // التحقق من البريد في طلبات التسجيل
+        const { data: existingRequest } = await supabase
           .from('registration_requests')
           .select('*')
           .eq('email', formData.email)
           .single();
-        if (requestError) {
-          console.error('StoreRegistrationScreen: registration_requests error', requestError);
-        }
 
         if (existingRequest) {
           if (existingRequest.status === 'pending') {
@@ -78,19 +72,13 @@ export default function StoreRegistrationScreen({ navigation }) {
                 text: 'عرض حالة الطلب',
                 onPress: () => navigation.replace('UnifiedPendingApproval', { email: formData.email, user_type: existingRequest.user_type })
               },
-              {
-                text: 'إلغاء',
-                style: 'cancel'
-              }
+              { text: 'إلغاء', style: 'cancel' }
             ]);
             setLoading(false);
             return;
           } else if (existingRequest.status === 'approved') {
             Alert.alert('البريد مسجل', 'هذا البريد الإلكتروني مسجل وتمت الموافقة عليه. يمكنك تسجيل الدخول مباشرة.', [
-              {
-                text: 'تسجيل الدخول',
-                onPress: () => navigation.replace('Login')
-              }
+              { text: 'تسجيل الدخول', onPress: () => navigation.replace('Login') }
             ]);
             setLoading(false);
             return;
@@ -103,58 +91,43 @@ export default function StoreRegistrationScreen({ navigation }) {
           }
         }
 
-        // التحقق من وجود البريد في جدول المتاجر
-        console.log('StoreRegistrationScreen: checking stores...');
-        const { data: existingStore, error: storeError } = await supabase
+        // التحقق من البريد في جدول المتاجر
+        const { data: existingStore } = await supabase
           .from('stores')
           .select('*')
           .eq('email', formData.email)
           .single();
-        if (storeError) {
-          console.error('StoreRegistrationScreen: stores check error', storeError);
-        }
 
         if (existingStore) {
           Alert.alert('البريد مسجل', 'هذا البريد الإلكتروني مسجل بالفعل كمتجر. يمكنك تسجيل الدخول مباشرة.', [
-            {
-              text: 'تسجيل الدخول',
-              onPress: () => navigation.replace('Login')
-            }
+            { text: 'تسجيل الدخول', onPress: () => navigation.replace('Login') }
           ]);
           setLoading(false);
           return;
         }
 
-        // التحقق من وجود البريد في جدول السائقين
-        console.log('StoreRegistrationScreen: checking drivers...');
-        const { data: existingDriver, error: driverError } = await supabase
+        // التحقق من البريد في جدول السائقين
+        const { data: existingDriver } = await supabase
           .from('drivers')
           .select('*')
           .eq('email', formData.email)
           .single();
-        if (driverError) {
-          console.error('StoreRegistrationScreen: drivers check error', driverError);
-        }
 
         if (existingDriver) {
           Alert.alert('البريد مسجل', 'هذا البريد الإلكتروني مسجل بالفعل كسائق. يمكنك تسجيل الدخول مباشرة.', [
-            {
-              text: 'تسجيل الدخول',
-              onPress: () => navigation.replace('Login')
-            }
+            { text: 'تسجيل الدخول', onPress: () => navigation.replace('Login') }
           ]);
           setLoading(false);
           return;
         }
 
-        // إذا وصلنا هنا، البيانات سليمة ويمكن الانتقال مباشرة
-        try {
-          await AsyncStorage.setItem('pendingStoreRegistration', JSON.stringify(formData));
-        } catch(e) { console.error('Failed to save pendingStoreRegistration', e); }
+        // حفظ البيانات مؤقتًا والانتقال للشاشة التالية
+        await AsyncStorage.setItem('pendingStoreRegistration', JSON.stringify(formData));
         navigation.navigate('StoreInfoScreen', { formData });
+
       } catch (error) {
-        console.error('StoreRegistrationScreen.handleNext error', error);
-        Alert.alert('خطأ', 'حدث خطأ في التحقق من البيانات: ' + error.message);
+        console.error(error);
+        Alert.alert('خطأ', 'حدث خطأ أثناء التحقق من البيانات.');
       } finally {
         setLoading(false);
         setLoadingInit(false);
@@ -168,7 +141,7 @@ export default function StoreRegistrationScreen({ navigation }) {
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => { if (navigation.canGoBack()) { navigation.goBack(); } }} style={styles.backButton}>
+          <TouchableOpacity onPress={() => { if (navigation.canGoBack()) navigation.goBack(); }} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color={colors.primary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>تسجيل متجر جديد</Text>
@@ -176,12 +149,14 @@ export default function StoreRegistrationScreen({ navigation }) {
         </View>
         <View style={styles.content}>
           <View style={styles.logoContainer}>
-                         <Image source={storeIcon} style={{ width: 100, height: 100, resizeMode: 'contain', marginBottom: 10 }} />
+            <Image source={storeIcon} style={{ width: 100, height: 100, resizeMode: 'contain', marginBottom: 10 }} />
             <Text style={styles.logoText}>سمسم</Text>
             <Text style={styles.subtitle}>انضم إلينا كمتجر</Text>
           </View>
           <View style={styles.formContainer}>
             <Text style={styles.sectionTitle}>معلومات الحساب</Text>
+
+            {/* البريد الإلكتروني */}
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>البريد الإلكتروني</Text>
               <View style={styles.inputContainer}>
@@ -198,6 +173,8 @@ export default function StoreRegistrationScreen({ navigation }) {
               </View>
               {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
             </View>
+
+            {/* كلمة المرور */}
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>كلمة المرور</Text>
               <View style={styles.inputContainer}>
@@ -216,6 +193,8 @@ export default function StoreRegistrationScreen({ navigation }) {
               </View>
               {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
             </View>
+
+            {/* تأكيد كلمة المرور */}
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>تأكيد كلمة المرور</Text>
               <View style={styles.inputContainer}>
@@ -234,6 +213,8 @@ export default function StoreRegistrationScreen({ navigation }) {
               </View>
               {errors.confirmPassword && <Text style={styles.errorText}>{errors.confirmPassword}</Text>}
             </View>
+
+            {/* زر التالي */}
             <View style={{ marginTop: 12 }}>
               {(loadingInit || loading) ? (
                 <View style={[styles.nextButton, { alignItems: 'center', justifyContent: 'center' }]}>
@@ -248,6 +229,7 @@ export default function StoreRegistrationScreen({ navigation }) {
                 </TouchableOpacity>
               )}
             </View>
+
           </View>
         </View>
       </ScrollView>
@@ -265,14 +247,7 @@ const styles = StyleSheet.create({
   logoContainer: { alignItems: 'center', marginBottom: 30 },
   logoText: { fontSize: 28, fontWeight: 'bold', color: colors.primary, marginTop: 10 },
   subtitle: { fontSize: 16, color: colors.dark, marginTop: 5 },
-  formContainer: {
-    backgroundColor: colors.secondary,
-    borderRadius: 16,
-    padding: 24,
-    ...(Platform.OS === 'web'
-      ? { boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }
-      : { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 4 }),
-  },
+  formContainer: { backgroundColor: colors.secondary, borderRadius: 16, padding: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 4 },
   sectionTitle: { fontSize: 18, fontWeight: 'bold', color: colors.primary, marginBottom: 16 },
   inputGroup: { marginBottom: 16 },
   inputLabel: { fontSize: 14, color: colors.primary, marginBottom: 4 },
@@ -284,4 +259,4 @@ const styles = StyleSheet.create({
   gradientButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 16, paddingHorizontal: 24 },
   nextButtonText: { fontSize: 16, fontWeight: 'bold', color: colors.secondary, marginRight: 8 },
   errorText: { color: 'red', fontSize: 12, marginTop: 4 },
-}); 
+});
