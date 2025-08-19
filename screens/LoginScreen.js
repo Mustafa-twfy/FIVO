@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import colors from '../colors';
 import { useAuth } from '../context/AuthContext';
+
 const simsimLogo = { uri: 'https://i.ibb.co/Myy7sCzX/Picsart-25-07-31-16-12-30-512.jpg' };
 // رابط دالة المصادقة على Supabase Functions لمشروعك
 const AUTH_API_URL = 'https://nzxmhpigoeexuadrnith.functions.supabase.co';
@@ -27,7 +28,59 @@ export default function LoginScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
+  // ✅ استعادة جلسة محفوظة (إن وجدت) + توجيه فوري
+  useEffect(() => {
+    const restoreSession = async () => {
+      try {
+        const [userId, userType, sessionExpiry, sessionToken, userEmail] = await Promise.all([
+          AsyncStorage.getItem('userId'),
+          AsyncStorage.getItem('userType'),
+          AsyncStorage.getItem('sessionExpiry'),
+          AsyncStorage.getItem('sessionToken'),
+          AsyncStorage.getItem('userEmail'),
+        ]);
 
+        if (!userId || !userType) return;
+
+        // فحص انتهاء الجلسة (إن وُجدت)
+        if (sessionExpiry) {
+          const now = new Date();
+          const exp = new Date(sessionExpiry);
+          if (isNaN(exp.getTime()) || exp <= now) {
+            // انتهت الجلسة
+            await AsyncStorage.multiRemove(['userId', 'userType', 'sessionExpiry', 'sessionToken', 'userEmail']);
+            return;
+          }
+        }
+
+        // استدعاء login في الكونتكست (ببيانات متاحة) ثم توجيه
+        const userObj = { id: Number(userId), email: userEmail || '' };
+        await login(userObj, userType, sessionExpiry || null, sessionToken || null);
+        redirectByRole(userType, Number(userId));
+      } catch (_) {
+        // تجاهل
+      }
+    };
+    restoreSession();
+  }, []);
+
+  const redirectByRole = (role, id) => {
+    if (role === 'admin') navigation.replace('AdminDashboard');
+    else if (role === 'driver') navigation.replace('Driver', { driverId: id });
+    else if (role === 'store' || role === 'restaurant') navigation.replace('Store', { storeId: id });
+    else navigation.replace('UnifiedPendingApproval');
+  };
+
+  const persistSession = async (user, role, expiryDate, token) => {
+    // حفظ الجلسة محليًا بالإضافة إلى login من الكونتكست
+    await AsyncStorage.setItem('userId', String(user.id));
+    await AsyncStorage.setItem('userType', role);
+    await AsyncStorage.setItem('userEmail', user.email || '');
+    if (token) await AsyncStorage.setItem('sessionToken', token);
+    if (expiryDate) await AsyncStorage.setItem('sessionExpiry', expiryDate);
+
+    await login(user, role, expiryDate || null, token || null);
+  };
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -36,12 +89,12 @@ export default function LoginScreen({ navigation }) {
     }
 
     setLoading(true);
-    
+
     try {
       console.log('=== بداية عملية تسجيل الدخول ===');
       console.log('البريد الإلكتروني:', email);
 
-      // إذا كان لديك API خارجي للمصادقة ضع رابطه في AUTH_API_URL أعلاه
+      // 1) محاولة API خارجي إن كنت مفعّله
       if (AUTH_API_URL && !AUTH_API_URL.includes('YOUR_')) {
         try {
           const resp = await fetch(`${AUTH_API_URL.replace(/\/$/, '')}/auth/login`, {
@@ -51,54 +104,46 @@ export default function LoginScreen({ navigation }) {
           });
           const json = await resp.json();
           if (resp.ok && json.token && json.role && json.user) {
-            // خزن التوكن والدور والمستخدم
             const { token, role, user, expires_at } = json;
-            await AsyncStorage.setItem('userId', user.id?.toString() || '');
-            await AsyncStorage.setItem('userType', role);
-            await login(user, role, expires_at || null, token);
-            // توجيه بحسب الدور
-            if (role === 'admin') navigation.replace('AdminDashboard');
-            else if (role === 'driver') navigation.replace('Driver', { driverId: user.id });
-            else if (role === 'store' || role === 'restaurant') navigation.replace('Store', { storeId: user.id });
+
+            // حفظ الجلسة
+            await persistSession(user, role, expires_at || null, token);
+
+            // توجيه
+            redirectByRole(role, user.id);
             setLoading(false);
             return;
           } else {
             console.warn('Auth API rejected credentials or responded unexpectedly', json);
-            // تابع إلى منطق fall-back الداخلي
+            // نكمل للمنطق الداخلي
           }
         } catch (apiErr) {
           console.warn('Auth API call failed, falling back to built-in checks', apiErr);
-          // استمر إلى منطق Supabase الافتراضي
+          // نكمل للمنطق الداخلي
         }
       }
-      
-      // تحقق الأدمن (بريد خاص)
+
+      // 2) حساب أدمن ثابت (إن وجد)
       if (email === 'nmcmilli07@gmail.com' && password === 'admin1234') {
-        console.log('تسجيل دخول الأدمن');
-        // أنشئ كائن مستخدم مؤقت للأدمن
         const adminUser = { id: 0, name: 'Admin', email };
         const expiry = new Date();
         expiry.setDate(expiry.getDate() + 7);
-        const simulatedToken = 'admin-token-placeholder';
-        await AsyncStorage.setItem('userId', adminUser.id.toString());
-        await AsyncStorage.setItem('userType', 'admin');
-        await login(adminUser, 'admin', expiry.toISOString(), simulatedToken);
+        const token = 'admin-token-placeholder';
+
+        await persistSession(adminUser, 'admin', expiry.toISOString(), token);
         Alert.alert('مرحباً بك أيها الأدمن!');
         navigation.replace('AdminDashboard');
         setLoading(false);
         return;
       }
 
-      console.log('=== التحقق من طلبات التسجيل ===');
-      // التحقق من وجود طلب تسجيل معلق أولاً
+      // 3) التحقق من طلبات التسجيل
       const { data: pendingRequest, error: requestError } = await supabase
         .from('registration_requests')
         .select('*')
         .eq('email', email)
         .eq('password', password)
         .single();
-
-      console.log('نتيجة البحث في طلبات التسجيل:', { pendingRequest, requestError });
 
       if (requestError && requestError.code !== 'PGRST116') {
         console.error('خطأ في البحث في طلبات التسجيل:', requestError);
@@ -108,7 +153,6 @@ export default function LoginScreen({ navigation }) {
       }
 
       if (pendingRequest) {
-        console.log('تم العثور على طلب تسجيل:', pendingRequest);
         if (pendingRequest.status === 'pending') {
           Alert.alert('انتظار الموافقة', 'يرجى انتظار موافقة الإدارة على حسابك');
           navigation.replace('UnifiedPendingApproval', { email, user_type: pendingRequest.user_type, password });
@@ -122,12 +166,9 @@ export default function LoginScreen({ navigation }) {
           setLoading(false);
           return;
         }
-      } else {
-        console.log('لا يوجد طلب تسجيل معلق');
       }
 
-      console.log('=== التحقق من جدول السائقين ===');
-      // تحقق السائق
+      // 4) التحقق من السائق المعتمد
       const { data: driver, error: driverError } = await supabase
         .from('drivers')
         .select('*')
@@ -135,42 +176,24 @@ export default function LoginScreen({ navigation }) {
         .eq('password', password)
         .eq('status', 'approved')
         .single();
-      
-      console.log('نتيجة البحث في جدول السائقين:', { driver, driverError });
-      console.log('البريد الإلكتروني المدخل:', email);
-      console.log('كلمة المرور المدخلة:', password);
-      
+
       if (driverError && driverError.code !== 'PGRST116') {
         console.error('خطأ في البحث في جدول السائقين:', driverError);
       }
-      
+
       if (driver) {
-        console.log('تم العثور على سائق:', driver);
-        await AsyncStorage.setItem('userId', driver.id.toString());
-        await AsyncStorage.setItem('userType', 'driver');
-        // حساب تاريخ انتهاء الجلسة بعد 7 أيام
         const expiry = new Date();
         expiry.setDate(expiry.getDate() + 7);
-        // إذا كان السيرفر يرسل التوكن ضمّنه هنا، وإلا استخدم placeholder
-        const simulatedToken = driver.token || 'driver-token-placeholder';
-        await login(driver, 'driver', expiry.toISOString(), simulatedToken);
-        console.log('تم العثور على سائق، توجيه لـ DriverDrawer');
+        const token = driver.token || 'driver-token-placeholder';
+
+        await persistSession(driver, 'driver', expiry.toISOString(), token);
         Alert.alert('نجح تسجيل الدخول', `مرحباً بك ${driver.name || ''}!`);
         navigation.replace('Driver', { driverId: driver.id });
         setLoading(false);
         return;
-      } else {
-        console.log('لم يتم العثور على سائق بهذه البيانات');
-        // جلب جميع السائقين للتحقق
-        const { data: allDrivers } = await supabase
-          .from('drivers')
-          .select('email, status, name')
-          .limit(10);
-        console.log('جميع السائقين في قاعدة البيانات:', allDrivers);
       }
 
-      console.log('=== التحقق من جدول المتاجر ===');
-      // تحقق المتجر
+      // 5) التحقق من المتجر النشط
       const { data: store, error: storeError } = await supabase
         .from('stores')
         .select('*')
@@ -178,71 +201,52 @@ export default function LoginScreen({ navigation }) {
         .eq('password', password)
         .eq('is_active', true)
         .single();
-      
-      console.log('نتيجة البحث في جدول المتاجر:', { store, storeError });
-      
+
       if (storeError && storeError.code !== 'PGRST116') {
         console.error('خطأ في البحث في جدول المتاجر:', storeError);
       }
-      
+
       if (store) {
-        await AsyncStorage.setItem('userId', store.id.toString());
-        await AsyncStorage.setItem('userType', 'store');
         const expiry = new Date();
         expiry.setDate(expiry.getDate() + 7);
-        const simulatedToken = store.token || 'store-token-placeholder';
-        await login(store, 'store', expiry.toISOString(), simulatedToken);
-        console.log('تم العثور على متجر، توجيه لـ StoreDrawer');
+        const token = store.token || 'store-token-placeholder';
+
+        await persistSession(store, 'store', expiry.toISOString(), token);
         Alert.alert('نجح تسجيل الدخول', `مرحباً بك ${store.name || ''}!`);
         navigation.replace('Store', { storeId: store.id });
         setLoading(false);
         return;
       }
 
-      console.log('=== لم يتم العثور على حساب صالح ===');
-      console.log('ملخص البحث:');
-      console.log('- طلب تسجيل معلق:', pendingRequest ? 'نعم' : 'لا');
-      console.log('- سائق معتمد:', driver ? 'نعم' : 'لا');
-      console.log('- متجر نشط:', store ? 'نعم' : 'لا');
-      
+      // 6) لا يوجد حساب صالح
       Alert.alert('خطأ في تسجيل الدخول', 'بيانات الدخول غير صحيحة أو لم تتم الموافقة بعد');
     } catch (error) {
-      console.error('=== خطأ عام في عملية تسجيل الدخول ===');
-      console.error('نوع الخطأ:', error.constructor.name);
-      console.error('رسالة الخطأ:', error.message);
-      console.error('تفاصيل الخطأ:', error);
+      console.error('=== خطأ عام في عملية تسجيل الدخول ===', error);
       Alert.alert('خطأ', 'حدث خطأ أثناء تسجيل الدخول: ' + error.message);
     } finally {
-      console.log('=== انتهاء عملية تسجيل الدخول ===');
       setLoading(false);
     }
   };
 
   const handleRegister = (userType) => {
-    console.log('handleRegister called with', userType);
     if (userType === 'driver') {
-      console.log('navigating to DriverRegistration');
       navigation.navigate('DriverRegistration');
     } else if (userType === 'store') {
-      console.log('navigating to StoreRegistration');
-      navigation.navigate('StoreRegistration');
+      // ✅ صار يفتح شاشتنا الجديدة الموحّدة
+      navigation.navigate('UnifiedStoreRegistrationScreen');
     }
   };
 
   const handleLogout = async () => {
-    await AsyncStorage.removeItem('userId');
-    await AsyncStorage.removeItem('userType');
+    await AsyncStorage.multiRemove(['userId', 'userType', 'sessionExpiry', 'sessionToken', 'userEmail']);
     navigation.replace('Login');
   };
 
-
-
-  // أضف دالة حذف بيانات المستخدم من جميع الجداول عند الرفض
+  // حذف بيانات المستخدم من كل الجداول عند الرفض
   const deleteUserEverywhere = async (email) => {
     await supabase.from('registration_requests').delete().eq('email', email);
     await supabase.from('drivers').delete().eq('email', email);
     await supabase.from('stores').delete().eq('email', email);
-    // أضف أي جداول أخرى مرتبطة إذا لزم الأمر
   };
 
   return (
@@ -252,7 +256,7 @@ export default function LoginScreen({ navigation }) {
     >
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.logoContainer}>
-          <View style={styles.logoWrapper}>
+          <View className="logoWrapper" style={styles.logoWrapper}>
             <Image source={simsimLogo} style={styles.logo} />
           </View>
           <Text style={styles.logoText}>سمسم</Text>
@@ -261,7 +265,7 @@ export default function LoginScreen({ navigation }) {
 
         <View style={styles.formContainer}>
           <Text style={styles.title}>تسجيل الدخول</Text>
-          
+
           <View style={styles.inputContainer}>
             <Ionicons name="mail-outline" size={20} color={colors.dark} style={styles.inputIcon} />
             <TextInput
@@ -314,7 +318,7 @@ export default function LoginScreen({ navigation }) {
           </View>
 
           <Text style={styles.registerTitle}>إنشاء حساب جديد</Text>
-          
+
           <View style={styles.registerButtons}>
             <TouchableOpacity
               style={styles.registerButton}
@@ -487,4 +491,4 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginTop: 5,
   },
-}); 
+});
