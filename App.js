@@ -18,12 +18,7 @@ import DriverRegistrationScreen from './screens/DriverRegistrationScreen';
 import DriverDocumentsScreen from './screens/DriverDocumentsScreen';
 import DriverVehicleScreen from './screens/DriverVehicleScreen';
 import PendingApprovalScreen from './screens/PendingApprovalScreen';
-// تم حذف استيراد StoreRegistrationScreen هنا
 import UnifiedStoreRegistrationScreen from './screens/UnifiedStoreRegistrationScreen';
-import StoreInfoScreen from './screens/StoreInfoScreen';
-import StoreDocumentsScreen from './screens/StoreDocumentsScreen';
-import StorePendingApprovalScreen from './screens/StorePendingApprovalScreen';
-import UpdateStoreLocationScreen from './screens/UpdateStoreLocationScreen';
 import AdminDashboardScreen from './screens/AdminDashboardScreen';
 import DriversScreen from './screens/DriversScreen';
 import StoresScreen from './screens/StoresScreen';
@@ -44,7 +39,6 @@ import StoreNotificationsScreen from './screens/StoreNotificationsScreen';
 import StoreProfileScreen from './screens/StoreProfileScreen';
 import AdminSupportScreen from './screens/AdminSupportScreen';
 import AdminNewOrderScreen from './screens/AdminNewOrderScreen';
-import UnifiedPendingApprovalScreen from './screens/UnifiedPendingApprovalScreen';
 
 // Components
 import UpdateModal from './components/UpdateModal';
@@ -108,10 +102,6 @@ function AuthStack() {
       <Stack.Screen name="DriverVehicle" component={DriverVehicleScreen} />
       <Stack.Screen name="PendingApproval" component={PendingApprovalScreen} />
       <Stack.Screen name="UnifiedStoreRegistration" component={UnifiedStoreRegistrationScreen} />
-      <Stack.Screen name="StoreInfoScreen" component={StoreInfoScreen} />
-      <Stack.Screen name="StoreDocuments" component={StoreDocumentsScreen} />
-      <Stack.Screen name="StorePendingApproval" component={StorePendingApprovalScreen} />
-      <Stack.Screen name="UpdateStoreLocation" component={UpdateStoreLocationScreen} />
     </Stack.Navigator>
   );
 }
@@ -249,13 +239,8 @@ function AppContent() {
           <Stack.Screen name="DriverRegistration" component={DriverRegistrationScreen} />
           <Stack.Screen name="DriverDocuments" component={DriverDocumentsScreen} />
           <Stack.Screen name="DriverVehicle" component={DriverVehicleScreen} />
-          {/* تم حذف شاشة StoreRegistration من هنا */}
+          <Stack.Screen name="PendingApproval" component={PendingApprovalScreen} />
           <Stack.Screen name="UnifiedStoreRegistration" component={UnifiedStoreRegistrationScreen} />
-          <Stack.Screen name="StoreInfoScreen" component={StoreInfoScreen} />
-          <Stack.Screen name="StoreDocuments" component={StoreDocumentsScreen} />
-          <Stack.Screen name="StorePendingApproval" component={StorePendingApprovalScreen} />
-          <Stack.Screen name="UpdateStoreLocation" component={UpdateStoreLocationScreen} />
-          <Stack.Screen name="UnifiedPendingApproval" component={UnifiedPendingApprovalScreen} />
           <Stack.Screen name="AdminNewOrderScreen" component={AdminNewOrderScreen} />
           <Stack.Screen name="Driver" component={DriverDrawer} />
           <Stack.Screen name="Store" component={StoreDrawer} />
