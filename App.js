@@ -18,7 +18,7 @@ import DriverRegistrationScreen from './screens/DriverRegistrationScreen';
 import DriverDocumentsScreen from './screens/DriverDocumentsScreen';
 import DriverVehicleScreen from './screens/DriverVehicleScreen';
 import PendingApprovalScreen from './screens/PendingApprovalScreen';
-import StoreRegistrationScreen from './screens/StoreRegistrationScreen';
+// تم حذف استيراد StoreRegistrationScreen هنا
 import UnifiedStoreRegistrationScreen from './screens/UnifiedStoreRegistrationScreen';
 import StoreInfoScreen from './screens/StoreInfoScreen';
 import StoreDocumentsScreen from './screens/StoreDocumentsScreen';
@@ -107,7 +107,6 @@ function AuthStack() {
       <Stack.Screen name="DriverDocuments" component={DriverDocumentsScreen} />
       <Stack.Screen name="DriverVehicle" component={DriverVehicleScreen} />
       <Stack.Screen name="PendingApproval" component={PendingApprovalScreen} />
-      <Stack.Screen name="StoreRegistration" component={StoreRegistrationScreen} />
       <Stack.Screen name="UnifiedStoreRegistration" component={UnifiedStoreRegistrationScreen} />
       <Stack.Screen name="StoreInfoScreen" component={StoreInfoScreen} />
       <Stack.Screen name="StoreDocuments" component={StoreDocumentsScreen} />
@@ -250,7 +249,7 @@ function AppContent() {
           <Stack.Screen name="DriverRegistration" component={DriverRegistrationScreen} />
           <Stack.Screen name="DriverDocuments" component={DriverDocumentsScreen} />
           <Stack.Screen name="DriverVehicle" component={DriverVehicleScreen} />
-          <Stack.Screen name="StoreRegistration" component={StoreRegistrationScreen} />
+          {/* تم حذف شاشة StoreRegistration من هنا */}
           <Stack.Screen name="UnifiedStoreRegistration" component={UnifiedStoreRegistrationScreen} />
           <Stack.Screen name="StoreInfoScreen" component={StoreInfoScreen} />
           <Stack.Screen name="StoreDocuments" component={StoreDocumentsScreen} />
