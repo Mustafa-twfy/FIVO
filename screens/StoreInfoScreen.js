@@ -11,24 +11,26 @@ const storeIcon = { uri: 'https://i.ibb.co/Myy7sCzX/Picsart-25-07-31-16-12-30-51
 export default function StoreInfoScreen({ navigation, route }) {
   const [formDataLocal, setFormDataLocal] = useState(null);
   const [loadingInit, setLoadingInit] = useState(true);
+  const [fatalError, setFatalError] = useState(false);
 
   useEffect(() => {
-    // Debug: طباعة بيانات التنقل فقط
     console.log('StoreInfoScreen route.params:', route?.params);
     const init = async () => {
       setLoadingInit(true);
       try {
-        // إذا كانت البيانات مرّرت عبر التنقّل فاحتفظ بها
         if (route?.params?.formData) {
           console.log('تم استقبال formData من التنقل:', route.params.formData);
           setFormDataLocal(route.params.formData);
           try { await AsyncStorage.removeItem('pendingStoreRegistration'); } catch (e) { console.error('remove pendingStoreRegistration', e); }
           return;
         }
-
         // خلاف ذلك جرب استعادة بيانات محفوظة مؤقتاً
-        const pending = await AsyncStorage.getItem('pendingStoreRegistration');
-        console.log('pendingStoreRegistration:', pending);
+        let pending = null;
+        try {
+          pending = await AsyncStorage.getItem('pendingStoreRegistration');
+        } catch (e) {
+          console.error('AsyncStorage.getItem error:', e);
+        }
         if (pending) {
           try {
             setFormDataLocal(JSON.parse(pending));
@@ -36,34 +38,45 @@ export default function StoreInfoScreen({ navigation, route }) {
             return;
           } catch (parseErr) {
             console.error('Error parsing pendingStoreRegistration', parseErr);
+            setFormDataLocal({ email: '', password: '' });
           }
         }
-
       } catch (e) {
         console.error('StoreInfoScreen init error:', e);
-        try {
-          setFormDataLocal({ email: '', password: '' });
-        } catch (s) {
-          console.error('Failed to set fallback formDataLocal', s);
-        }
+        setFormDataLocal({ email: '', password: '' });
       } finally {
         setLoadingInit(false);
       }
     };
-    init().catch(err => {
-      console.error('Unhandled error in StoreInfoScreen.init:', err);
-      try { setFormDataLocal({ email: '', password: '' }); } catch (s) { console.error(s); }
-      setLoadingInit(false);
-    });
+    try {
+      init().catch(err => {
+        console.error('Unhandled error in StoreInfoScreen.init:', err);
+        setFormDataLocal({ email: '', password: '' });
+        setLoadingInit(false);
+      });
+    } catch (e) {
+      setFatalError(true);
+    }
   }, [route?.params]);
 
-  if (!formDataLocal) {
-    // عرض رسالة واضحة حتى لو لم تصل بيانات
+  // شاشة خطأ افتراضية لأي استثناء في الريندر
+  if (fatalError) {
+    return (
+      <View style={{flex:1,justifyContent:'center',alignItems:'center',backgroundColor:'#fff'}}>
+        <Text style={{color:'red',fontSize:18}}>حدث خطأ غير متوقع</Text>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={{marginTop:20,padding:12,backgroundColor:'#FF9800',borderRadius:8}}>
+          <Text style={{color:'#fff'}}>العودة</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  if (!formDataLocal || !formDataLocal.email) {
     return (
       <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
           <View style={[styles.content, { justifyContent: 'center', alignItems: 'center' }]}> 
-            <Text style={{ fontSize: 18, color: '#333', marginBottom: 12 }}>لم يتم إرسال بيانات التسجيل. الرجاء العودة وإعادة المحاولة.</Text>
+            <Text style={{ fontSize: 18, color: '#333', marginBottom: 12 }}>لم يتم إرسال بيانات التسجيل أو البيانات ناقصة. الرجاء العودة وإعادة المحاولة.</Text>
             <TouchableOpacity onPress={() => navigation.goBack()} style={{ padding: 12, backgroundColor: '#FF9800', borderRadius: 8 }}>
               <Text style={{ color: '#fff', fontWeight: 'bold' }}>العودة</Text>
             </TouchableOpacity>
@@ -136,13 +149,11 @@ export default function StoreInfoScreen({ navigation, route }) {
           status: 'pending',
           created_at: new Date().toISOString(),
         };
-
         const { error } = await supabase
           .from('registration_requests')
           .insert([payload]);
-
         if (error) {
-          // حفظ البيانات مؤقتًا لإعادة المحاولة
+          console.error('supabase.insert error:', error);
           await AsyncStorage.setItem('pendingStoreRegistration', JSON.stringify(formDataLocal));
           Alert.alert('خطأ', 'فشل في إرسال طلب التسجيل. سيتم حفظ بياناتك لإعادة المحاولة.');
         } else {
@@ -156,6 +167,7 @@ export default function StoreInfoScreen({ navigation, route }) {
           ]);
         }
       } catch (error) {
+        console.error('Exception in handleNext:', error);
         await AsyncStorage.setItem('pendingStoreRegistration', JSON.stringify(formDataLocal));
         Alert.alert('خطأ', 'حدث خطأ أثناء إرسال الطلب. سيتم حفظ بياناتك لإعادة المحاولة.');
       } finally {
