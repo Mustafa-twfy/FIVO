@@ -13,16 +13,14 @@ export default function StoreInfoScreen({ navigation, route }) {
   const [loadingInit, setLoadingInit] = useState(true);
 
   useEffect(() => {
-    // Debug: طباعة بيانات التنقل
+    // Debug: طباعة بيانات التنقل فقط
     console.log('StoreInfoScreen route.params:', route?.params);
-    Alert.alert('Debug', 'route.params: ' + JSON.stringify(route?.params));
     const init = async () => {
       setLoadingInit(true);
       try {
         // إذا كانت البيانات مرّرت عبر التنقّل فاحتفظ بها
         if (route?.params?.formData) {
           console.log('تم استقبال formData من التنقل:', route.params.formData);
-          Alert.alert('Debug', 'تم استقبال formData من التنقل: ' + JSON.stringify(route.params.formData));
           setFormDataLocal(route.params.formData);
           try { await AsyncStorage.removeItem('pendingStoreRegistration'); } catch (e) { console.error('remove pendingStoreRegistration', e); }
           return;
@@ -31,7 +29,6 @@ export default function StoreInfoScreen({ navigation, route }) {
         // خلاف ذلك جرب استعادة بيانات محفوظة مؤقتاً
         const pending = await AsyncStorage.getItem('pendingStoreRegistration');
         console.log('pendingStoreRegistration:', pending);
-        Alert.alert('Debug', 'pendingStoreRegistration: ' + pending);
         if (pending) {
           try {
             setFormDataLocal(JSON.parse(pending));
@@ -39,13 +36,11 @@ export default function StoreInfoScreen({ navigation, route }) {
             return;
           } catch (parseErr) {
             console.error('Error parsing pendingStoreRegistration', parseErr);
-            Alert.alert('Debug', 'Error parsing pendingStoreRegistration: ' + parseErr);
           }
         }
 
       } catch (e) {
         console.error('StoreInfoScreen init error:', e);
-        Alert.alert('خطأ', 'حدث خطأ داخل شاشة بيانات المتجر. الرجاء المحاولة مرة أخرى. ' + e);
         try {
           setFormDataLocal({ email: '', password: '' });
         } catch (s) {
@@ -57,9 +52,7 @@ export default function StoreInfoScreen({ navigation, route }) {
     };
     init().catch(err => {
       console.error('Unhandled error in StoreInfoScreen.init:', err);
-      Alert.alert('Debug', 'Unhandled error in StoreInfoScreen.init: ' + err);
       try { setFormDataLocal({ email: '', password: '' }); } catch (s) { console.error(s); }
-      Alert.alert('خطأ', 'حدث خطأ غير متوقع. الرجاء المحاولة لاحقاً.');
       setLoadingInit(false);
     });
   }, [route?.params]);
@@ -171,6 +164,7 @@ export default function StoreInfoScreen({ navigation, route }) {
     }
   };
 
+  // واجهة إدخال بيانات المتجر الأساسية فقط
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
@@ -182,23 +176,11 @@ export default function StoreInfoScreen({ navigation, route }) {
           <View style={{ width: 24 }} />
         </View>
         <View style={styles.content}>
-          <View style={styles.logoContainer}>
-            <Image source={storeIcon} style={{ width: 80, height: 80, resizeMode: 'contain', marginBottom: 10 }} />
-            <Text style={styles.logoText}>سمسم</Text>
-            <Text style={styles.subtitle}>معلومات المتجر</Text>
-          </View>
           <View style={styles.formContainer}>
             <Text style={styles.sectionTitle}>معلومات المتجر</Text>
-            <View style={styles.infoCard}>
-              <Ionicons name="information-circle-outline" size={20} color="#2196F3" />
-              <Text style={styles.infoText}>
-                لا حاجة لرفع مستندات - سيتم مراجعة طلبك من قبل الإدارة
-              </Text>
-            </View>
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>اسم المتجر</Text>
               <View style={styles.inputContainer}>
-                <Ionicons name="pricetag-outline" size={20} color="#666" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="اسم المتجر"
@@ -211,7 +193,6 @@ export default function StoreInfoScreen({ navigation, route }) {
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>العنوان</Text>
               <View style={styles.inputContainer}>
-                <Ionicons name="location-outline" size={20} color="#666" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="عنوان المتجر"
@@ -224,7 +205,6 @@ export default function StoreInfoScreen({ navigation, route }) {
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>رقم الهاتف</Text>
               <View style={styles.inputContainer}>
-                <Ionicons name="call-outline" size={20} color="#666" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="رقم الهاتف"
@@ -238,7 +218,6 @@ export default function StoreInfoScreen({ navigation, route }) {
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>رابط موقع المتجر من Google Maps</Text>
               <View style={styles.inputContainer}>
-                <Ionicons name="map-outline" size={20} color="#666" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="https://maps.google.com/..."
@@ -249,20 +228,11 @@ export default function StoreInfoScreen({ navigation, route }) {
                 />
               </View>
               {errors.locationUrl && <Text style={styles.errorText}>{errors.locationUrl}</Text>}
-              <View style={styles.infoCard}>
-                <Ionicons name="information-circle-outline" size={20} color="#2196F3" />
-                <Text style={styles.infoText}>
-                  اذهب إلى Google Maps، ابحث عن موقع متجرك، انقر على "مشاركة" ثم انسخ الرابط
-                </Text>
-              </View>
             </View>
             <TouchableOpacity style={styles.nextButton} onPress={handleNext} disabled={loading} activeOpacity={0.7}>
-              <LinearGradient colors={['#FF9800', '#F57C00']} style={styles.gradientButton}>
-                <Text style={styles.nextButtonText}>
-                  {loading ? 'جاري الإرسال...' : 'إرسال الطلب'}
-                </Text>
-                <Ionicons name="arrow-forward" size={20} color="#fff" />
-              </LinearGradient>
+              <Text style={styles.nextButtonText}>
+                {loading ? 'جاري الإرسال...' : 'إرسال الطلب'}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
