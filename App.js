@@ -335,45 +335,26 @@ function AppContent() {
     }
   }, [user, userType, showSplash]);
   
-  if (loading) return <SplashScreen />;
-  
+  if (loading || showSplash) {
+    return <SplashScreen />;
+  }
+
   return (
     <NavigationContainer theme={scheme === 'dark' ? darkTheme : lightTheme}>
-      <Stack.Navigator 
-        screenOptions={{ headerShown: false }}
-        initialRouteName={initialRoute}
-      >
-        <Stack.Screen name="Login" component={LoginScreen} />
-        <Stack.Screen name="DriverRegistration" component={DriverRegistrationScreen} />
-        <Stack.Screen name="DriverDocuments" component={DriverDocumentsScreen} />
-        <Stack.Screen name="DriverVehicle" component={DriverVehicleScreen} />
-        <Stack.Screen name="StoreRegistration" component={StoreRegistrationScreen} />
-        <Stack.Screen name="StoreInfoScreen" component={StoreInfoScreen} />
-        <Stack.Screen name="StoreDocuments" component={StoreDocumentsScreen} />
-        <Stack.Screen name="StorePendingApproval" component={StorePendingApprovalScreen} />
-        <Stack.Screen name="UpdateStoreLocation" component={UpdateStoreLocationScreen} />
-        <Stack.Screen name="UnifiedPendingApproval" component={UnifiedPendingApprovalScreen} />
-        <Stack.Screen name="AdminNewOrderScreen" component={AdminNewOrderScreen} />
-        <Stack.Screen name="Driver" component={DriverDrawer} />
-        <Stack.Screen name="Store" component={StoreDrawer} />
-        <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} />
-        <Stack.Screen name="Drivers" component={DriversScreen} />
-        <Stack.Screen name="Stores" component={StoresScreen} />
-        <Stack.Screen name="BannedUsers" component={BannedUsersScreen} />
-        <Stack.Screen name="RegistrationRequests" component={RegistrationRequestsScreen} />
-        <Stack.Screen name="StoreOrders" component={StoreOrdersScreen} />
-        <Stack.Screen name="NewOrder" component={NewOrderScreen} />
-        <Stack.Screen name="AvailableOrders" component={AvailableOrdersScreen} />
-        <Stack.Screen name="MyOrders" component={MyOrdersScreen} />
-        <Stack.Screen name="DriverProfile" component={DriverProfileScreen} />
-        <Stack.Screen name="FinancialAccounts" component={FinancialAccountsScreen} />
-        <Stack.Screen name="Rewards" component={RewardsScreen} />
-        <Stack.Screen name="SupportChat" component={SupportChatScreen} />
-        <Stack.Screen name="DriverNotifications" component={DriverNotificationsScreen} />
-        <Stack.Screen name="StoreSupportChat" component={StoreSupportChatScreen} />
-        <Stack.Screen name="StoreNotifications" component={StoreNotificationsScreen} />
-        <Stack.Screen name="AdminSupport" component={AdminSupportScreen} />
-        <Stack.Screen name="StoreProfile" component={StoreProfileScreen} />
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        {user ? (
+          userType === 'admin' ? (
+            <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} />
+          ) : userType === 'driver' ? (
+            <Stack.Screen name="Driver" component={DriverDrawer} />
+          ) : userType === 'store' ? (
+            <Stack.Screen name="Store" component={StoreDrawer} />
+          ) : (
+            <Stack.Screen name="Login" component={LoginScreen} />
+          )
+        ) : (
+          <Stack.Screen name="Login" component={LoginScreen} />
+        )}
       </Stack.Navigator>
     </NavigationContainer>
   );

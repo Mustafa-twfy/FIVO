@@ -252,9 +252,14 @@ export default function StoreRegistrationScreen({ navigation }) {
                           await AsyncStorage.setItem('pendingStoreRegistration', JSON.stringify(formData));
                         } catch(e) { console.error('Failed to save pendingStoreRegistration', e); }
                         setDebugModalVisible(false);
-                        // تأخير قصير بعد إغلاق المودال قبل التنقّل
-                        setTimeout(() => {
-                          navigation.navigate('StoreInfoScreen', { formData });
+                        // حاول التنقّل واحتواء أي استثناء: إذا فشل navigate جرب replace
+                        setTimeout(async () => {
+                          try {
+                            navigation.navigate('StoreInfoScreen', { formData });
+                          } catch (navErr) {
+                            console.error('navigation.navigate failed, trying replace', navErr);
+                            try { navigation.replace('StoreInfoScreen', { formData }); } catch (repErr) { console.error('navigation.replace also failed', repErr); Alert.alert('خطأ', 'تعذر الانتقال لصفحة بيانات المتجر'); }
+                          }
                         }, 10);
                       }} style={{padding:10,backgroundColor:'#00C897',borderRadius:6,marginLeft:8}}>
                       <Text style={{color:'#fff'}}>متابعة</Text>

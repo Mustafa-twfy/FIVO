@@ -4,11 +4,9 @@
     "slug": "simsim",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.svg",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.svg",
       "resizeMode": "contain",
       "backgroundColor": "#00C897"
     },
@@ -17,7 +15,9 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.svg",
+    "icon": "./assets/icon.png",
+      "image": "./assets/splash-icon.png",
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#00C897"
       },
       "package": "com.twfy.simsim"

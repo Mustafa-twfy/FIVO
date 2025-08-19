@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 
 // ضع هنا بيانات مشروعك من لوحة تحكم Supabase
 const SUPABASE_URL = 'https://nzxmhpigoeexuadrnith.supabase.co';
-const SUPABASE_KEY = 'REDACTED_SERVICE_ROLE_KEY';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im56eG1ocGlnb2VleHVhZHJuaXRoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA3MTE4MDcsImV4cCI6MjA2NjI4NzgwN30.2m_HhlKIlI1D6TN976zNJT-T8axXLAfUIOcOD1TPgUI';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
