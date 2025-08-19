@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView, KeyboardAvoidingView, Platform, Image, Modal } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView, KeyboardAvoidingView, Platform, Image, Modal, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../supabase';
@@ -17,6 +17,7 @@ export default function StoreRegistrationScreen({ navigation }) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loadingInit, setLoadingInit] = useState(false);
   const [errors, setErrors] = useState({});
 
   const handleInputChange = (field, value) => {
@@ -57,6 +58,7 @@ export default function StoreRegistrationScreen({ navigation }) {
     if (validateForm()) {
       console.log('StoreRegistrationScreen: validation passed');
       setLoading(true);
+      setLoadingInit(true);
       try {
         console.log('StoreRegistrationScreen: checking existing registration_requests...');
         // التحقق من وجود البريد الإلكتروني في طلبات التسجيل
@@ -153,8 +155,10 @@ export default function StoreRegistrationScreen({ navigation }) {
       } catch (error) {
         console.error('StoreRegistrationScreen.handleNext error', error);
         Alert.alert('خطأ', 'حدث خطأ في التحقق من البيانات');
+      } finally {
+        setLoading(false);
+        setLoadingInit(false);
       }
-      setLoading(false);
     }
   };
 
@@ -228,12 +232,20 @@ export default function StoreRegistrationScreen({ navigation }) {
               </View>
               {errors.confirmPassword && <Text style={styles.errorText}>{errors.confirmPassword}</Text>}
             </View>
-            <TouchableOpacity style={styles.nextButton} onPress={handleNext} disabled={loading} activeOpacity={0.7}>
-              <LinearGradient colors={colors.gradient} style={styles.gradientButton}>
-                <Text style={styles.nextButtonText}>التالي</Text>
-                <Ionicons name="arrow-forward" size={20} color={colors.secondary} />
-              </LinearGradient>
-            </TouchableOpacity>
+            <View style={{ marginTop: 12 }}>
+              {(loadingInit || loading) ? (
+                <View style={[styles.nextButton, { alignItems: 'center', justifyContent: 'center' }]}>
+                  <ActivityIndicator size="small" color="#fff" />
+                </View>
+              ) : (
+                <TouchableOpacity style={styles.nextButton} onPress={handleNext} disabled={loading} activeOpacity={0.7}>
+                  <LinearGradient colors={colors.gradient} style={styles.gradientButton}>
+                    <Text style={styles.nextButtonText}>التالي</Text>
+                    <Ionicons name="arrow-forward" size={20} color={colors.secondary} />
+                  </LinearGradient>
+                </TouchableOpacity>
+              )}
+            </View>
             {/* مودال فحص مؤقت لتجنب الشاشة البيضاء: يظهر بيانات formData ويوفر زر للمتابعة */}
             <Modal
               visible={debugModalVisible}
@@ -255,10 +267,16 @@ export default function StoreRegistrationScreen({ navigation }) {
                         // حاول التنقّل واحتواء أي استثناء: إذا فشل navigate جرب replace
                         setTimeout(async () => {
                           try {
+                            console.log('Attempting navigation to StoreInfoScreen with formData=', formData);
                             navigation.navigate('StoreInfoScreen', { formData });
                           } catch (navErr) {
                             console.error('navigation.navigate failed, trying replace', navErr);
-                            try { navigation.replace('StoreInfoScreen', { formData }); } catch (repErr) { console.error('navigation.replace also failed', repErr); Alert.alert('خطأ', 'تعذر الانتقال لصفحة بيانات المتجر'); }
+                            try {
+                              navigation.replace('StoreInfoScreen', { formData });
+                            } catch (repErr) {
+                              console.error('navigation.replace also failed', repErr);
+                              Alert.alert('خطأ', 'تعذر الانتقال لصفحة بيانات المتجر');
+                            }
                           }
                         }, 10);
                       }} style={{padding:10,backgroundColor:'#00C897',borderRadius:6,marginLeft:8}}>

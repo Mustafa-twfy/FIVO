@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Alert, Image } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Alert, Image, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../supabase';
@@ -10,25 +10,27 @@ const storeIcon = { uri: 'https://i.ibb.co/Myy7sCzX/Picsart-25-07-31-16-12-30-51
 
 export default function StoreInfoScreen({ navigation, route }) {
   const [formDataLocal, setFormDataLocal] = useState(null);
+  const [loadingInit, setLoadingInit] = useState(true);
 
   useEffect(() => {
     console.log('StoreInfoScreen route.params:', route?.params);
     const init = async () => {
+      setLoadingInit(true);
       try {
         // إذا كانت البيانات مرّرت عبر التنقّل فاحتفظ بها
         if (route?.params?.formData) {
-          setFormDataLocal(route.params.formData);
-          try { await AsyncStorage.removeItem('pendingStoreRegistration'); } catch (e) { console.error('remove pendingStoreRegistration', e); }
-          return;
-        }
+        setFormDataLocal(route.params.formData);
+        try { await AsyncStorage.removeItem('pendingStoreRegistration'); } catch (e) { console.error('remove pendingStoreRegistration', e); }
+        return;
+      }
 
         // خلاف ذلك جرب استعادة بيانات محفوظة مؤقتاً
         const pending = await AsyncStorage.getItem('pendingStoreRegistration');
         if (pending) {
           try {
-            setFormDataLocal(JSON.parse(pending));
-            await AsyncStorage.removeItem('pendingStoreRegistration');
-            return;
+          setFormDataLocal(JSON.parse(pending));
+          await AsyncStorage.removeItem('pendingStoreRegistration');
+          return;
           } catch (parseErr) {
             console.error('Error parsing pendingStoreRegistration', parseErr);
           }
@@ -42,16 +44,30 @@ export default function StoreInfoScreen({ navigation, route }) {
           console.error('Failed to set fallback formDataLocal', s);
         }
         Alert.alert('خطأ', 'حدث خطأ داخل شاشة بيانات المتجر. الرجاء المحاولة مرة أخرى.');
+      } finally {
+        setLoadingInit(false);
       }
     };
     init().catch(err => {
       console.error('Unhandled error in StoreInfoScreen.init:', err);
       try { setFormDataLocal({ email: '', password: '' }); } catch (s) { console.error(s); }
       Alert.alert('خطأ', 'حدث خطأ غير متوقع. الرجاء المحاولة لاحقاً.');
+      setLoadingInit(false);
     });
   }, [route?.params]);
 
   if (!formDataLocal) {
+    if (loadingInit) {
+      return (
+        <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <View style={[styles.content, { justifyContent: 'center', alignItems: 'center' }]}>
+            <ActivityIndicator size="large" color="#00C897" />
+            <Text style={{ marginTop: 12, color: '#333' }}>جارٍ استرجاع بيانات النموذج...</Text>
+          </View>
+        </KeyboardAvoidingView>
+      );
+    }
+
     return (
       <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
@@ -65,7 +81,7 @@ export default function StoreInfoScreen({ navigation, route }) {
       </KeyboardAvoidingView>
     );
   }
-
+  
   const [info, setInfo] = useState({
     storeName: '',
     address: '',
@@ -95,19 +111,19 @@ export default function StoreInfoScreen({ navigation, route }) {
     if (!info.phone.trim()) {
       newErrors.phone = 'يرجى إدخال رقم الهاتف';
       valid = false;
-    } else if (!/^\d{8,15}$/.test(info.phone)) {
-      newErrors.phone = 'يرجى إدخال رقم هاتف صحيح بدون أحرف';
+    } else if (!/^\+?\d{8,15}$/.test(info.phone)) {
+      newErrors.phone = 'يرجى إدخال رقم هاتف صحيح بدون أحرف (بدءًا بـ + مسموح)';
       valid = false;
     }
     if (!info.locationUrl.trim()) {
       newErrors.locationUrl = 'يرجى إدخال رابط موقع المتجر من Google Maps';
       valid = false;
     } else {
-      const mapUrlRegex = /https?:\/\/(www\.)?google\.[a-z]+\/maps/;
+      const mapUrlRegex = /google.*maps/i;
       if (!mapUrlRegex.test(info.locationUrl.trim())) {
-        newErrors.locationUrl = 'يرجى إدخال رابط صحيح من Google Maps';
-        valid = false;
-      }
+      newErrors.locationUrl = 'يرجى إدخال رابط صحيح من Google Maps';
+      valid = false;
+    }
     }
 
     setErrors(newErrors);

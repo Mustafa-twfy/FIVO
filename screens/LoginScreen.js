@@ -219,9 +219,12 @@ export default function LoginScreen({ navigation }) {
   };
 
   const handleRegister = (userType) => {
+    console.log('handleRegister called with', userType);
     if (userType === 'driver') {
+      console.log('navigating to DriverRegistration');
       navigation.navigate('DriverRegistration');
     } else if (userType === 'store') {
+      console.log('navigating to StoreRegistration');
       navigation.navigate('StoreRegistration');
     }
   };

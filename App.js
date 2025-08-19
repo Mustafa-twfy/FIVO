@@ -342,7 +342,23 @@ function AppContent() {
   return (
     <NavigationContainer theme={scheme === 'dark' ? darkTheme : lightTheme}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {user ? (
+        {!user ? (
+          // شاشات المصادقة والتسجيل متاحة عند عدم وجود جلسة
+          <>
+            <Stack.Screen name="Login" component={LoginScreen} />
+            <Stack.Screen name="DriverRegistration" component={DriverRegistrationScreen} />
+            <Stack.Screen name="DriverDocuments" component={DriverDocumentsScreen} />
+            <Stack.Screen name="DriverVehicle" component={DriverVehicleScreen} />
+            <Stack.Screen name="PendingApproval" component={PendingApprovalScreen} />
+            <Stack.Screen name="StoreRegistration" component={StoreRegistrationScreen} />
+            <Stack.Screen name="StoreInfoScreen" component={StoreInfoScreen} />
+            <Stack.Screen name="StoreDocuments" component={StoreDocumentsScreen} />
+            <Stack.Screen name="StorePendingApproval" component={StorePendingApprovalScreen} />
+            <Stack.Screen name="UpdateStoreLocation" component={UpdateStoreLocationScreen} />
+            <Stack.Screen name="UnifiedPendingApproval" component={UnifiedPendingApprovalScreen} />
+          </>
+        ) : (
+          // شاشات المستخدم بعد تسجيل الدخول حسب الدور
           userType === 'admin' ? (
             <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} />
           ) : userType === 'driver' ? (
@@ -352,8 +368,6 @@ function AppContent() {
           ) : (
             <Stack.Screen name="Login" component={LoginScreen} />
           )
-        ) : (
-          <Stack.Screen name="Login" component={LoginScreen} />
         )}
       </Stack.Navigator>
     </NavigationContainer>
