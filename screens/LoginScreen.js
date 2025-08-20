@@ -18,8 +18,9 @@ import colors from '../colors';
 import { useAuth } from '../context/AuthContext';
 
 const simsimLogo = { uri: 'https://i.ibb.co/Myy7sCzX/Picsart-25-07-31-16-12-30-512.jpg' };
-// رابط دالة المصادقة على Supabase Functions لمشروعك
-const AUTH_API_URL = 'https://nzxmhpigoeexuadrnith.functions.supabase.co';
+// رابط دالة المصادقة على Supabase Functions (اختياري عبر متغير بيئة)
+const AUTH_API_URL = process.env.EXPO_PUBLIC_AUTH_API_URL || '';
+const USE_AUTH_FUNCTION = process.env.EXPO_PUBLIC_USE_AUTH_FUNCTION === 'true';
 const REQUEST_TIMEOUT_MS = 15000;
 
 const fetchWithTimeout = async (url, options = {}, timeoutMs = REQUEST_TIMEOUT_MS) => {
@@ -39,6 +40,13 @@ export default function LoginScreen({ navigation }) {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  // تنظيف الإدخال: إزالة محارف اتجاه النص الخفية، تقليم، وتوحيد الأرقام العربية إلى لاتينية
+  const toWesternDigits = (s) =>
+    s
+      .replace(/[\u0660-\u0669]/g, (d) => String(d.charCodeAt(0) - 0x0660))
+      .replace(/[\u06F0-\u06F9]/g, (d) => String(d.charCodeAt(0) - 0x06F0));
+  const clean = (s) => toWesternDigits((s ?? '').toString().replace(/[\u200e\u200f\u202a-\u202e]/g, '').trim());
 
   // ✅ استعادة جلسة محفوظة (إن وجدت) + توجيه فوري
   useEffect(() => {
@@ -104,16 +112,17 @@ export default function LoginScreen({ navigation }) {
 
     try {
       console.log('=== بداية عملية تسجيل الدخول ===');
-      const normalizedEmail = email.trim().toLowerCase();
+      const normalizedEmail = clean(email).toLowerCase();
+      const cleanedPassword = clean(password);
       console.log('البريد الإلكتروني (بعد التطبيع):', normalizedEmail);
 
-      // 1) محاولة API خارجي إن كنت مفعّله (بمهلة قصيرة)
-      if (AUTH_API_URL && !AUTH_API_URL.includes('YOUR_')) {
+      // 1) محاولة API خارجي إن كانت مفعلة عبر متغير بيئة (بمهلة قصيرة)
+      if (USE_AUTH_FUNCTION && AUTH_API_URL) {
         try {
           const resp = await fetchWithTimeout(`${AUTH_API_URL.replace(/\/$/, '')}/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: normalizedEmail, password })
+            body: JSON.stringify({ email: normalizedEmail, password: cleanedPassword })
           });
           const json = await resp.json();
           if (resp.ok && json.token && json.role && json.user) {
@@ -168,7 +177,7 @@ export default function LoginScreen({ navigation }) {
           .single(),
         supabase
           .from('stores')
-          .select('id,name,email,is_active,status,token,password')
+          .select('id,name,email,is_active,token,password')
           .ilike('email', normalizedEmail)
           .single(),
       ]);
@@ -188,7 +197,7 @@ export default function LoginScreen({ navigation }) {
       }
 
       // أولوية: السائق → المتجر → طلب تسجيل
-      if (driver && (driver.password || '').trim() === password.trim()) {
+      if (driver && clean(driver.password || '') === cleanedPassword) {
         if (driver.status && driver.status !== 'approved') {
           Alert.alert('حساب غير مفعل', 'تم العثور على حساب سائق لكنه غير مفعل بعد. يرجى انتظار الموافقة.');
           navigation.replace('UnifiedPendingApproval', { email: normalizedEmail, user_type: 'driver', password });
@@ -204,8 +213,8 @@ export default function LoginScreen({ navigation }) {
         return;
       }
 
-      if (store && (store.password || '').trim() === password.trim()) {
-        if (store.is_active === false || (store.status && store.status !== 'approved')) {
+      if (store && clean(store.password || '') === cleanedPassword) {
+        if (store.is_active === false) {
           Alert.alert('حسابك غير مفعل', 'يرجى انتظار موافقة الإدارة على حساب المتجر.');
           navigation.replace('UnifiedPendingApproval', { email: normalizedEmail, user_type: 'store', password });
           setLoading(false);
@@ -240,7 +249,7 @@ export default function LoginScreen({ navigation }) {
       // تحقّق إضافي لتقديم رسالة أدقّ
       const [{ data: driverByEmail }, { data: storeByEmail }] = await Promise.all([
         supabase.from('drivers').select('id,status').ilike('email', normalizedEmail).maybeSingle(),
-        supabase.from('stores').select('id,is_active,status').ilike('email', normalizedEmail).maybeSingle(),
+        supabase.from('stores').select('id,is_active').ilike('email', normalizedEmail).maybeSingle(),
       ]);
       if (driverByEmail) {
         if (driverByEmail.status && driverByEmail.status !== 'approved') {
@@ -250,7 +259,7 @@ export default function LoginScreen({ navigation }) {
           Alert.alert('خطأ في كلمة المرور', 'كلمة المرور غير صحيحة.');
         }
       } else if (storeByEmail) {
-        if (storeByEmail.is_active === false || (storeByEmail.status && storeByEmail.status !== 'approved')) {
+        if (storeByEmail.is_active === false) {
           Alert.alert('انتظار الموافقة', 'تم العثور على حساب متجر لكن لم تتم الموافقة بعد.');
           navigation.replace('UnifiedPendingApproval', { email: normalizedEmail, user_type: 'store', password });
         } else {

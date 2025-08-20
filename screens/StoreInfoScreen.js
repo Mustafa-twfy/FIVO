@@ -77,8 +77,22 @@ export default function StoreInfoScreen({ navigation, route }) {
   // التحقق الذكي من روابط خرائط Google + تطبيع الرابط
   const normalizeUrl = (raw) => {
     if (!raw) return '';
-    let s = raw.trim();
-    if (!/^https?:\/\//i.test(s)) s = 'https://' + s;
+    let s = String(raw).trim();
+    // إزالة محارف بادئة غير مرغوبة كالنقطتين أو الفراغات
+    s = s.replace(/^[\s:]+/, '');
+    // إصلاح أخطاء شائعة في بداية البروتوكول
+    if (/^tps:\/\//i.test(s)) s = 'h' + s;        // tps:// -> https://
+    else if (/^ps:\/\//i.test(s)) s = 'htt' + s;  // ps://  -> https://
+    else if (/^s:\/\//i.test(s)) s = 'http' + s;  // s://   -> http://
+
+    // إضافة https:// إذا غاب البروتوكول
+    if (!/^https?:\/\//i.test(s)) {
+      if (/^(maps\.app\.goo\.gl|goo\.gl\/maps|www\.google\.com\/maps|google\.com\/maps)/i.test(s)) {
+        s = 'https://' + s;
+      } else if (/^[\w.-]+\.[a-z]{2,}/i.test(s)) {
+        s = 'https://' + s;
+      }
+    }
     return s;
   };
 
