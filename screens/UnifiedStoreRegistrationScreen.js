@@ -251,7 +251,9 @@ export default function UnifiedStoreRegistrationScreen({ navigation }) {
         {/* لوجو وعنوان */}
         <View style={styles.content}>
           <View style={styles.logoContainer}>
-            <Image source={storeIcon} style={{ width: 100, height: 100, resizeMode: 'contain', marginBottom: 10 }} />
+            <View style={{ width: 120, height: 120, borderRadius: 60, backgroundColor: '#fff', justifyContent:'center', alignItems:'center', borderWidth: 3, borderColor: colors.primary, marginBottom: 10 }}>
+              <Image source={storeIcon} style={{ width: 100, height: 100, borderRadius: 50, resizeMode: 'cover' }} />
+            </View>
             <Text style={styles.logoText}>سمسم</Text>
             <Text style={styles.subtitle}>انضم إلينا كمتجر</Text>
           </View>

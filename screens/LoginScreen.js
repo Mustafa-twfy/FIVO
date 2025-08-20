@@ -20,7 +20,7 @@ import { useAuth } from '../context/AuthContext';
 const simsimLogo = { uri: 'https://i.ibb.co/Myy7sCzX/Picsart-25-07-31-16-12-30-512.jpg' };
 // رابط دالة المصادقة على Supabase Functions لمشروعك
 const AUTH_API_URL = 'https://nzxmhpigoeexuadrnith.functions.supabase.co';
-const REQUEST_TIMEOUT_MS = 5000;
+const REQUEST_TIMEOUT_MS = 15000;
 
 const fetchWithTimeout = async (url, options = {}, timeoutMs = REQUEST_TIMEOUT_MS) => {
   const controller = new AbortController();
@@ -159,19 +159,17 @@ export default function LoginScreen({ navigation }) {
         supabase
           .from('registration_requests')
           .select('email,status,user_type,password')
-          .eq('email', normalizedEmail)
+          .ilike('email', normalizedEmail)
           .single(),
         supabase
           .from('drivers')
-          .select('id,name,email,phone,status,is_suspended,is_active,token')
-          .eq('email', normalizedEmail)
-          .eq('password', password)
+          .select('id,name,email,phone,status,is_suspended,is_active,token,password')
+          .ilike('email', normalizedEmail)
           .single(),
         supabase
           .from('stores')
-          .select('id,name,email,is_active,status,token')
-          .eq('email', normalizedEmail)
-          .eq('password', password)
+          .select('id,name,email,is_active,status,token,password')
+          .ilike('email', normalizedEmail)
           .single(),
       ]);
 
@@ -190,7 +188,7 @@ export default function LoginScreen({ navigation }) {
       }
 
       // أولوية: السائق → المتجر → طلب تسجيل
-      if (driver) {
+      if (driver && (driver.password || '').trim() === password.trim()) {
         if (driver.status && driver.status !== 'approved') {
           Alert.alert('حساب غير مفعل', 'تم العثور على حساب سائق لكنه غير مفعل بعد. يرجى انتظار الموافقة.');
           navigation.replace('UnifiedPendingApproval', { email: normalizedEmail, user_type: 'driver', password });
@@ -206,7 +204,7 @@ export default function LoginScreen({ navigation }) {
         return;
       }
 
-      if (store) {
+      if (store && (store.password || '').trim() === password.trim()) {
         if (store.is_active === false || (store.status && store.status !== 'approved')) {
           Alert.alert('حسابك غير مفعل', 'يرجى انتظار موافقة الإدارة على حساب المتجر.');
           navigation.replace('UnifiedPendingApproval', { email: normalizedEmail, user_type: 'store', password });
@@ -241,8 +239,8 @@ export default function LoginScreen({ navigation }) {
       // 6) لا يوجد حساب صالح
       // تحقّق إضافي لتقديم رسالة أدقّ
       const [{ data: driverByEmail }, { data: storeByEmail }] = await Promise.all([
-        supabase.from('drivers').select('id,status').eq('email', normalizedEmail).maybeSingle(),
-        supabase.from('stores').select('id,is_active,status').eq('email', normalizedEmail).maybeSingle(),
+        supabase.from('drivers').select('id,status').ilike('email', normalizedEmail).maybeSingle(),
+        supabase.from('stores').select('id,is_active,status').ilike('email', normalizedEmail).maybeSingle(),
       ]);
       if (driverByEmail) {
         if (driverByEmail.status && driverByEmail.status !== 'approved') {

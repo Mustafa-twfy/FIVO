@@ -182,7 +182,9 @@ export default function DriverRegistrationScreen({ navigation }) {
 
         <View style={styles.content}>
           <View style={styles.logoContainer}>
-            <Image source={driverIcon} style={{ width: 80, height: 80, resizeMode: 'contain', marginBottom: 10 }} />
+            <View style={{ width: 120, height: 120, borderRadius: 60, backgroundColor: '#fff', justifyContent:'center', alignItems:'center', borderWidth: 3, borderColor: colors.primary, marginBottom: 10 }}>
+              <Image source={driverIcon} style={{ width: 100, height: 100, borderRadius: 50, resizeMode: 'cover' }} />
+            </View>
             <Text style={styles.logoText}>سمسم</Text>
             <Text style={styles.subtitle}>انضم إلينا ككابتن</Text>
           </View>
