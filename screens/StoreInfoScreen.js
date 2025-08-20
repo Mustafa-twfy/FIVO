@@ -82,29 +82,8 @@ export default function StoreInfoScreen({ navigation, route }) {
     return s;
   };
 
-  const isValidGoogleMapsUrl = (raw) => {
-    try {
-      const s = normalizeUrl(raw);
-      const u = new URL(s);
-      const host = u.host.toLowerCase();
-      const path = (u.pathname || '').toLowerCase();
-      const okHost = (
-        host.endsWith('google.com') ||
-        host === 'maps.google.com' ||
-        host === 'www.google.com' ||
-        host === 'maps.app.goo.gl' ||
-        host === 'goo.gl' ||
-        host === 'g.page' ||
-        host === 'g.co'
-      );
-      const okPathOrParams = /\/maps|\/place|\/dir|\/search/i.test(path) || u.searchParams.has('q');
-      // روابط goo.gl / g.page / g.co تُعتبر صالحة لمجرّد أنها من خدمة خرائط مختصرة
-      const isShortHost = host === 'goo.gl' || host === 'maps.app.goo.gl' || host === 'g.page' || host === 'g.co';
-      return okHost && (okPathOrParams || isShortHost);
-    } catch (_) {
-      return false;
-    }
-  };
+  // لمتطلباتك الحالية: قبول أي رابط (مع تطبيع https://) دون تحقق صارم
+  const isValidGoogleMapsUrl = (_raw) => true;
 
   const handleInputChange = (field, value) => {
     setInfo(prev => ({ ...prev, [field]: value }));
@@ -130,10 +109,7 @@ export default function StoreInfoScreen({ navigation, route }) {
       valid = false;
     }
     if (!info.locationUrl.trim()) {
-      newErrors.locationUrl = 'يرجى إدخال رابط موقع المتجر من Google Maps';
-      valid = false;
-    } else if (!isValidGoogleMapsUrl(info.locationUrl)) {
-      newErrors.locationUrl = 'يرجى إدخال رابط صحيح من Google Maps (يدعم maps.google.com و maps.app.goo.gl و goo.gl)';
+      newErrors.locationUrl = 'يرجى إدخال رابط موقع المتجر';
       valid = false;
     }
     setErrors(newErrors);
@@ -152,7 +128,7 @@ export default function StoreInfoScreen({ navigation, route }) {
           name: info.storeName,
           phone: info.phone,
           address: info.address,
-          location_url: isValidGoogleMapsUrl(normalizedLocation) ? normalizedLocation : undefined,
+          location_url: normalizedLocation,
           status: 'pending',
           created_at: new Date().toISOString(),
         };
