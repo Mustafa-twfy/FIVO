@@ -11,7 +11,8 @@ import {
   ActivityIndicator,
   RefreshControl,
   Platform,
-  FlatList
+  FlatList,
+  Image
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase, ordersAPI } from '../supabase';
@@ -183,10 +184,10 @@ export default function StoreOrdersScreen({ navigation }) {
 
   const getOrderStatusColor = (status) => {
     switch (status) {
-      case 'pending': return colors.primary;
-      case 'accepted': return colors.accepted;
-      case 'completed': return colors.completed;
-      case 'cancelled': return colors.cancelled;
+      case 'pending': return colors.warning;
+      case 'accepted': return colors.success;
+      case 'completed': return colors.info;
+      case 'cancelled': return colors.danger;
       default: return colors.dark;
     }
   };
@@ -202,7 +203,12 @@ export default function StoreOrdersScreen({ navigation }) {
   };
 
   if (loading) {
-    return null;
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={styles.loadingText}>جاري تحميل الطلبات...</Text>
+      </View>
+    );
   }
   if (error) {
     return <ErrorMessage message={error} suggestion="يرجى التحقق من اتصالك بالإنترنت أو إعادة المحاولة." />;
@@ -244,15 +250,17 @@ export default function StoreOrdersScreen({ navigation }) {
                   <View style={{ flex: 1 }}>
                     <View style={styles.infoRowCustom}>
                       <Ionicons name="location-outline" size={18} color={colors.primary} />
-                      <Text style={styles.infoTextCustom}>منطقة التوصيل: {item.address?.split('،')[0] || 'غير محدد'}</Text>
+                      <Text style={styles.infoTextCustom}>
+                        منطقة التوصيل: {(item.delivery_address || item.pickup_address || 'غير محدد').toString().split('،')[0]}
+                      </Text>
                     </View>
                     <View style={styles.infoRowCustom}>
                       <Ionicons name="cash-outline" size={16} color={colors.primary} />
-                      <Text style={styles.infoTextCustom}>سعر الطلب: {((item.amount || 0) / 1000).toFixed(2)} ألف دينار</Text>
+                      <Text style={styles.infoTextCustom}>سعر الطلب: {(item.total_amount || 0)} دينار</Text>
                     </View>
                     <View style={styles.infoRowCustom}>
-                      <Ionicons name="cash-outline" size={16} color={colors.accepted} />
-                      <Text style={styles.infoTextCustom}>سعر التوصيل: {((item.deliveryPrice || 0) / 1000).toFixed(2)} ألف دينار</Text>
+                      <Ionicons name="cash-outline" size={16} color={colors.success} />
+                      <Text style={styles.infoTextCustom}>سعر التوصيل: {(item.delivery_fee || 0)} دينار</Text>
                     </View>
                     <Text style={styles.customerTextCustom}>تفاصيل الطلب: {item.description}</Text>
                   </View>

@@ -16,16 +16,24 @@ export const AuthProvider = ({ children }) => {
   // تسجيل الدخول
   // login now accepts optional token (from server) and saves it securely
   const login = async (userData, type, expiryDate, token = null) => {
+    // تحديد انتهاء افتراضي إذا لم يُمرر
+    let normalizedExpiry = expiryDate;
+    if (!normalizedExpiry) {
+      const d = new Date();
+      d.setDate(d.getDate() + 7); // 7 أيام افتراضيًا
+      normalizedExpiry = d.toISOString();
+    }
+
     setUser(userData);
     setUserType(type);
-    setSessionExpiry(expiryDate || null);
+    setSessionExpiry(normalizedExpiry);
     if (token) setUserToken(token);
 
     // حفظ بيانات الجلسة بشكل مشفر (يشمل التوكن إن وُجد)
     const sessionObj = {
       user: userData,
       userType: type,
-      sessionExpiry: expiryDate || null,
+      sessionExpiry: normalizedExpiry,
     };
     if (token) sessionObj.token = token;
 

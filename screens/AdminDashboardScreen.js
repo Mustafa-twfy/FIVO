@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Alert, Modal, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { adminSupportAPI, driversAPI, storesAPI, updatesAPI } from '../supabase';
+import { supportAPI, driversAPI, storesAPI, updatesAPI } from '../supabase';
 import { registrationRequestsAPI } from '../supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../supabase';
@@ -89,7 +89,7 @@ export default function AdminDashboardScreen({ navigation }) {
       // جلب عدد رسائل الدعم الفني
       let supportCount = 0;
       try {
-        const { data: supportData } = await adminSupportAPI.getUnreadSupportCount();
+        const { data: supportData } = await supportAPI.getUnreadSupportCount();
         supportCount = supportData || 0;
       } catch (error) {
         console.error('Support count error:', error);

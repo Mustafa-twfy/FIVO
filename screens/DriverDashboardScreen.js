@@ -373,14 +373,12 @@ export default function DriverDashboardScreen({ navigation }) {
 
   const completeOrder = async (orderId) => {
     try {
-      // استخدام دالة ordersAPI.completeOrder المحسنة التي تحسب النقاط تلقائياً
       const { data, error } = await ordersAPI.completeOrder(orderId);
-
       if (error) {
         Alert.alert('خطأ', 'فشل في إكمال الطلب: ' + error.message);
       } else {
-        Alert.alert('نجح', 'تم إكمال الطلب بنجاح! تم حساب النقاط تلقائياً.');
-        loadDriverData(driverId); // إعادة تحميل البيانات
+        Alert.alert('نجح', 'تم إكمال الطلب بنجاح! تم حساب النقاط وتحديث الإحصائيات.');
+        await loadDriverData(driverId);
       }
     } catch (error) {
       Alert.alert('خطأ', 'حدث خطأ غير متوقع: ' + error.message);
@@ -526,91 +524,14 @@ export default function DriverDashboardScreen({ navigation }) {
           onPress: async () => {
             setLoading(true);
             try {
-              console.log('تحديث حالة الطلب إلى مكتمل...');
-              
-              // تحديث حالة الطلب
-              const { error: updateError } = await supabase
-                .from('orders')
-                .update({ 
-                  status: 'completed', 
-                  actual_delivery_time: new Date().toISOString() 
-                })
-                .eq('id', currentOrder.id);
-
-              if (updateError) {
-                console.error('خطأ في تحديث الطلب:', updateError);
-                throw new Error('فشل في تحديث حالة الطلب: ' + updateError.message + ' - ' + JSON.stringify(updateError));
+              const { error } = await ordersAPI.completeOrder(currentOrder.id);
+              if (error) {
+                throw new Error('فشل في إكمال الطلب: ' + error.message);
               }
-
-              console.log('تم تحديث الطلب بنجاح');
-
-              // إرسال إشعار للمتجر
-              if (currentOrder.store_id) {
-                console.log('إرسال إشعار للمتجر...');
-                await supabase.from('store_notifications').insert({
-                  store_id: currentOrder.store_id,
-                  title: 'تم إكمال الطلب',
-                  message: `تم إكمال طلبك رقم ${currentOrder.id} من قبل السائق.`,
-                  type: 'order',
-                  created_at: new Date().toISOString()
-                });
-              }
-
-              // تحديث إحصائيات السائق
-              if (driverId) {
-                console.log('تحديث إحصائيات السائق...');
-                const { data: driver, error: driverError } = await supabase
-                  .from('drivers')
-                  .select('total_orders, total_earnings, debt_points')
-                  .eq('id', driverId)
-                  .single();
-
-                if (driverError) {
-                  console.error('خطأ في جلب بيانات السائق:', driverError);
-                } else {
-                  const total_orders = (driver?.total_orders || 0) + 1;
-                  const total_earnings = (driver?.total_earnings || 0) + (currentOrder.delivery_fee || 0);
-                  const debt_points = Math.max(0, (driver?.debt_points || 0) - 1); // تقليل نقطة دين
-
-                  await supabase
-                    .from('drivers')
-                    .update({ 
-                      total_orders, 
-                      total_earnings,
-                      debt_points
-                    })
-                    .eq('id', driverId);
-                }
-              }
-
-              console.log('تم إكمال الطلب بنجاح');
-              
-              // إعادة تعيين الطلب الحالي
+              // إعادة تعيين الطلب الحالي وتحديث البيانات
               setCurrentOrder(null);
-              
-              // إعادة تحميل بيانات السائق والطلبات المتاحة
               await loadDriverData(driverId);
-              
-              // إعادة تحميل الطلبات المتاحة
-              const { data: newAvailableOrders } = await supabase
-                .from('orders')
-                .select(`
-                  *,
-                  stores (
-                    id,
-                    name,
-                    phone,
-                    address,
-                    description
-                  )
-                `)
-                .eq('status', 'pending')
-                .order('created_at', { ascending: false });
-              
-              setAvailableOrders(newAvailableOrders || []);
-              
               Alert.alert('نجح', 'تم إكمال الطلب بنجاح!');
-              
             } catch (error) {
               console.error('خطأ في إكمال الطلب:', error);
               Alert.alert('خطأ', error.message || 'حدث خطأ أثناء إكمال الطلب');

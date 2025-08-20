@@ -13,8 +13,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../supabase';
 import colors from '../colors';
+import { useAuth } from '../context/AuthContext';
 
 export default function DriverDrawerContent({ navigation, state }) {
+  const { logout } = useAuth();
   const [driverInfo, setDriverInfo] = useState(null);
   const [stats, setStats] = useState({
     totalOrders: 0,
@@ -84,12 +86,13 @@ export default function DriverDrawerContent({ navigation, state }) {
         {
           text: 'تأكيد',
           onPress: async () => {
-            await AsyncStorage.removeItem('userId');
-            await AsyncStorage.removeItem('userType');
-            navigation.reset({
-              index: 0,
-              routes: [{ name: 'Login' }],
-            });
+            try {
+              await AsyncStorage.removeItem('userId');
+              await AsyncStorage.removeItem('userType');
+            } catch (_) {}
+            // توحيد الخروج عبر AuthContext
+            try { if (logout) await logout(); } catch (_) {}
+            navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
           }
         }
       ]
@@ -114,7 +117,7 @@ export default function DriverDrawerContent({ navigation, state }) {
     );
   }
 
-  const maxDebtPoints = 10; // Assuming a default max debt points for this example
+  const maxDebtPoints = 20; // قيمة افتراضية منطقية، وسيتم استبدالها من قاعدة البيانات في أماكن أخرى
   function isWithinWorkHours() {
     if (!driverInfo?.work_start_time || !driverInfo?.work_end_time) return true;
     const now = new Date();

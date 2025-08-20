@@ -182,79 +182,29 @@ export default function AvailableOrdersScreen({ navigation }) {
 
   const acceptOrder = async (orderId) => {
     try {
-      console.log('=== بداية قبول الطلب ===');
-      console.log('معرف الطلب:', orderId);
-      console.log('معرف السائق:', driverInfo?.id);
+      if (!driverInfo?.id) throw new Error('لم يتم العثور على معرف السائق');
+      if (!driverInfo.is_active) return Alert.alert('خطأ', 'حسابك غير مفعل. لا يمكنك قبول الطلبات.');
+      if (driverInfo.debt_points >= maxDebtPoints) return Alert.alert('خطأ', 'لا يمكنك العمل - تجاوزت الحد الأقصى لنقاط الديون');
 
-      if (!driverInfo?.id) {
-        throw new Error('لم يتم العثور على معرف السائق');
-      }
-
-      // التحقق من حالة السائق مرة أخرى
-      if (!driverInfo.is_active) {
-        Alert.alert('خطأ', 'حسابك غير مفعل. لا يمكنك قبول الطلبات.');
-        return;
-      }
-
-      if (driverInfo.debt_points >= maxDebtPoints) {
-        Alert.alert('خطأ', 'لا يمكنك العمل - تجاوزت الحد الأقصى لنقاط الديون');
-        return;
-      }
-
-      // التحقق من أن الطلب لا يزال متاحاً
+      // تحقق سريع من توفر الطلب
       const { data: orderCheck, error: checkError } = await supabase
         .from('orders')
         .select('status')
         .eq('id', orderId)
         .single();
-
-      if (checkError) {
-        throw new Error('فشل في التحقق من حالة الطلب');
-      }
-
+      if (checkError) throw new Error('فشل في التحقق من حالة الطلب');
       if (orderCheck.status !== 'pending') {
         Alert.alert('خطأ', 'هذا الطلب لم يعد متاحاً');
-        loadAvailableOrders(); // إعادة تحميل الطلبات
+        loadAvailableOrders();
         return;
       }
 
-      // قبول الطلب باستخدام API الجديد
+      // قبول الطلب عبر API الموحد (يقوم بكل الآثار الجانبية)
       const { error } = await ordersAPI.acceptOrder(orderId, driverInfo.id);
-
-      if (error) {
-        console.error('خطأ في قبول الطلب:', error);
-        throw new Error('فشل في قبول الطلب: ' + error.message);
-      }
-
-      // زيادة نقطة للسائق عند قبول الطلب
-      // جلب قيمة النقطة من إعدادات النظام
-      const { data: settings, error: settingsError } = await systemSettingsAPI.getSystemSettings();
-      if (settingsError) {
-        throw new Error('فشل في جلب إعدادات النظام: ' + settingsError.message);
-      }
-      const debtPointValue = settings?.debt_point_value || 250;
-      const newDebtPoints = (driverInfo.debt_points || 0) + 1;
-      const newDebt = newDebtPoints * debtPointValue;
-      await supabase
-        .from('drivers')
-        .update({
-          debt_points: newDebtPoints,
-          debt: newDebt
-        })
-        .eq('id', driverInfo.id);
-
-      // إرسال إشعار للمتجر
-      await supabase
-        .from('store_notifications')
-        .insert({
-          store_id: orders.find(o => o.id === orderId)?.store_id,
-          title: 'تم قبول طلبك',
-          message: `تم قبول طلبك رقم #${orderId} من قبل السائق ${driverInfo.name}`,
-          type: 'order'
-        });
+      if (error) throw new Error('فشل في قبول الطلب: ' + error.message);
 
       Alert.alert('نجح', 'تم قبول الطلب بنجاح');
-      loadAvailableOrders(); // إعادة تحميل البيانات
+      loadAvailableOrders();
     } catch (error) {
       console.error('خطأ في قبول الطلب:', error);
       Alert.alert('خطأ', error.message || 'حدث خطأ غير متوقع في قبول الطلب');

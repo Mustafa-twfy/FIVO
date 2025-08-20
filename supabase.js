@@ -1,8 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
 
-// ضع هنا بيانات مشروعك من لوحة تحكم Supabase
-const SUPABASE_URL = 'https://nzxmhpigoeexuadrnith.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im56eG1ocGlnb2VleHVhZHJuaXRoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA3MTE4MDcsImV4cCI6MjA2NjI4NzgwN30.2m_HhlKIlI1D6TN976zNJT-T8axXLAfUIOcOD1TPgUI';
+// مفاتيح Supabase: تُقرأ من متغيرات بيئة Expo العامة، مع بديل آمن للتوافق
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://nzxmhpigoeexuadrnith.supabase.co';
+const SUPABASE_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im56eG1ocGlnb2VleHVhZHJuaXRoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA3MTE4MDcsImV4cCI6MjA2NjI4NzgwN30.2m_HhlKIlI1D6TN976zNJT-T8axXLAfUIOcOD1TPgUI';
+
+if (!process.env.EXPO_PUBLIC_SUPABASE_URL || !process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY) {
+  // تحذير فقط أثناء التطوير لتشجيع استخدام متغيرات البيئة
+  try { console.warn('[supabase] Using fallback SUPABASE credentials from code. Set EXPO_PUBLIC_SUPABASE_URL/EXPO_PUBLIC_SUPABASE_ANON_KEY for production.'); } catch (_) {}
+}
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -842,6 +847,7 @@ export const ordersAPI = {
 
   // قبول طلب
   acceptOrder: async (orderId, driverId) => {
+    // قبول الطلب وتحديث السائق وإشعار المتجر بشكل مركزي
     const { data, error } = await supabase
       .from('orders')
       .update({
@@ -853,16 +859,37 @@ export const ordersAPI = {
       .eq('status', 'pending')
       .select()
       .single();
-    return { data, error };
+
+    if (error) return { data: null, error };
+
+    try {
+      // إشعار المتجر بأن الطلب تم قبوله
+      if (data?.store_id) {
+        await supabase
+          .from('store_notifications')
+          .insert({
+            store_id: data.store_id,
+            title: 'تم قبول طلبك',
+            message: `تم قبول طلبك رقم #${orderId} من قبل أحد السائقين.`,
+            type: 'order',
+            created_at: new Date().toISOString()
+          });
+      }
+    } catch (e) {
+      // تجاهل أخطاء جانبية وعدم كسر نجاح القبول
+      console.warn('[ordersAPI.acceptOrder] side-effect error:', e?.message || e);
+    }
+
+    return { data, error: null };
   },
 
-  // إكمال طلب مع حساب النقاط التلقائي
+  // إكمال طلب مع حساب النقاط التلقائي + إشعار المتجر + تحديث إحصائيات السائق
   completeOrder: async (orderId) => {
     try {
       // جلب بيانات الطلب والسائق
       const { data: order, error: orderError } = await supabase
         .from('orders')
-        .select('*, drivers(id, debt_points, is_suspended)')
+        .select('*, drivers(id, debt_points, is_suspended, total_orders, total_earnings)')
         .eq('id', orderId)
         .eq('status', 'accepted')
         .single();
@@ -917,6 +944,14 @@ export const ordersAPI = {
             `تم إكمال الطلب بنجاح! نقاطك الحالية: ${newPoints} نقطة (${newPoints * debtPointValue} دينار)`
           );
 
+          // تحديث إحصائيات السائق (إجمالي الطلبات والأرباح من أجرة التوصيل)
+          const newTotalOrders = (driver.total_orders || 0) + 1;
+          const newTotalEarnings = (driver.total_earnings || 0) + (order.delivery_fee || 0);
+          await supabase
+            .from('drivers')
+            .update({ total_orders: newTotalOrders, total_earnings: newTotalEarnings })
+            .eq('id', order.driver_id);
+
           // التحقق من تجاوز الحد الأقصى
           if (newPoints >= maxDebtPoints && !driver.is_suspended) {
             // إيقاف السائق تلقائياً
@@ -931,6 +966,21 @@ export const ordersAPI = {
             );
           }
         }
+      }
+
+      // إشعار المتجر بإكمال الطلب
+      if (order.store_id) {
+        try {
+          await supabase
+            .from('store_notifications')
+            .insert({
+              store_id: order.store_id,
+              title: 'تم توصيل الطلب',
+              message: `تم توصيل طلبك رقم #${orderId} بنجاح من قبل السائق.`,
+              type: 'order',
+              created_at: new Date().toISOString()
+            });
+        } catch (_) {}
       }
 
       return { data: updateData, error: null };

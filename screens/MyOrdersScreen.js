@@ -67,19 +67,7 @@ export default function MyOrdersScreen({ navigation }) {
       .order('created_at', { ascending: false });
 
     if (!error && !isEqual(orders, data)) {
-      const now = new Date();
-      const filtered = (data || []).filter(order => {
-        if (order.status === 'completed' && order.actual_delivery_time) {
-          const completedAt = new Date(order.actual_delivery_time);
-          const diff = now - completedAt;
-          if (diff > 86400000) {
-            supabase.from('orders').delete().eq('id', order.id);
-            return false;
-          }
-        }
-        return true;
-      });
-      setOrders(filtered);
+      setOrders((data || []).filter(o => o.status === 'completed'));
     }
   }, [orders]);
 
@@ -117,26 +105,9 @@ export default function MyOrdersScreen({ navigation }) {
 
       if (error) throw new Error('تعذر جلب الطلبات: ' + error.message);
 
-      const now = new Date();
-      const filtered = (data || []).filter(order => {
-        if (order.status === 'completed' && order.actual_delivery_time) {
-          const completedAt = new Date(order.actual_delivery_time);
-          const diff = now - completedAt;
-          if (diff > 86400000) {
-            supabase.from('orders').delete().eq('id', order.id);
-            return false;
-          }
-          return true;
-        }
-        return false;
-      });
-
-      if (filtered.length === 0) {
-        const allCompleted = (data || []).filter(order => order.status === 'completed');
-        setOrders(allCompleted);
-      } else {
-        setOrders(filtered);
-      }
+      // إلغاء حذف الطلبات من جانب العميل والاكتفاء بعرض الطلبات المكتملة كلها
+      const completed = (data || []).filter(order => order.status === 'completed');
+      setOrders(completed);
     } catch (error) {
       setError(error.message || 'حدث خطأ غير متوقع في تحميل الطلبات');
     }
@@ -181,34 +152,7 @@ export default function MyOrdersScreen({ navigation }) {
         throw new Error('فشل في إكمال الطلب: ' + error.message);
       }
 
-      console.log('تم تحديث الطلب بنجاح، تحديث إحصائيات السائق...');
-
-      const deliveryFee = currentOrder.delivery_fee || 0;
-      const { error: driverError } = await supabase
-        .from('drivers')
-        .update({ 
-          total_orders: (driverInfo?.total_orders || 0) + 1,
-          total_earnings: (driverInfo?.total_earnings || 0) + deliveryFee
-        })
-        .eq('id', driverId);
-
-      if (driverError) {
-        console.error('خطأ في تحديث إحصائيات السائق:', driverError);
-      }
-
-      // إشعار المتجر بإكمال الطلب
-      if (currentOrder.store_id) {
-        await supabase
-          .from('store_notifications')
-          .insert({
-            store_id: currentOrder.store_id,
-            title: 'تم توصيل الطلب',
-            message: `تم توصيل طلبك رقم #${orderId} بنجاح من قبل السائق.`,
-            type: 'order'
-          });
-      }
-
-      console.log('تم إكمال الطلب بنجاح مع حساب النقاط التلقائي');
+      console.log('تم إكمال الطلب بنجاح مع حساب النقاط والإحصائيات (عبر API)');
       Alert.alert('نجح', 'تم إكمال الطلب بنجاح! تم حساب النقاط تلقائياً.');
       
       // إعادة تحميل بيانات السائق والطلبات

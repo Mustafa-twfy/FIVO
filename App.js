@@ -253,13 +253,20 @@ function AppContent() {
         const sessionStr = await EncryptedStorage.getItem('session');
         if (sessionStr) {
           const session = JSON.parse(sessionStr);
+          // إذا لا يوجد تاريخ انتهاء مضبوط، اضبطه افتراضيًا 7 أيام من الآن
+          if (!session.sessionExpiry) {
+            const d = new Date();
+            d.setDate(d.getDate() + 7);
+            session.sessionExpiry = d.toISOString();
+            await EncryptedStorage.setItem('session', JSON.stringify(session));
+          }
           // تحقق من صلاحية الجلسة
           if (session.sessionExpiry) {
             const now = new Date();
             const expiry = new Date(session.sessionExpiry);
             if (now < expiry) {
               // الجلسة صالحة - استخدم login لتحميل البيانات في AuthContext
-              await login(session.user, session.userType, session.sessionExpiry);
+              await login(session.user, session.userType, session.sessionExpiry, session.token || null);
               if (session.userType === 'admin') {
                 setInitialRoute('AdminDashboard');
               } else if (session.userType === 'driver') {
@@ -300,9 +307,11 @@ function AppContent() {
       checkUserSession();
     }, 800);
 
-    // فحص قاعدة البيانات وتهيئة الجداول في الخلفية
+    // فحص/تهيئة قاعدة البيانات يمكن تعطيله بإعداد بيئة لتفادي العمل في الإنتاج
     const backgroundInit = async () => {
       try {
+        const shouldInit = process.env.EXPO_PUBLIC_ENABLE_DB_INIT === 'true';
+        if (!shouldInit) return;
         const connectionTest = await testDatabaseConnection();
         if (!connectionTest) {
           console.error('فشل في اختبار الاتصال بقاعدة البيانات');

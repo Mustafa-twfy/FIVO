@@ -138,7 +138,7 @@ export default function LoginScreen({ navigation }) {
       
       console.log('نتيجة البحث في جدول السائقين:', { driver, driverError });
       console.log('البريد الإلكتروني المدخل:', email);
-      console.log('كلمة المرور المدخلة:', password);
+      // عدم طباعة كلمة المرور لحماية الخصوصية
       
       if (driverError && driverError.code !== 'PGRST116') {
         console.error('خطأ في البحث في جدول السائقين:', driverError);

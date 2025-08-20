@@ -125,9 +125,42 @@ export default function StoreInfoScreen({ navigation, route }) {
         };
         const { error } = await supabase.from('registration_requests').insert([payload]);
         if (error) {
-          console.error('supabase.insert error:', error);
+          // معالجة أخطاء شائعة: عمود غير موجود أو RLS
+          const message = (error?.message || '').toLowerCase();
+          const details = (error?.details || '').toLowerCase();
+          const hint = (error?.hint || '').toLowerCase();
+
+          // إذا كان عمود location_url غير موجود، أعد المحاولة بدون هذا الحقل
+          if (message.includes('column') && message.includes('location_url')) {
+            try {
+              const { error: retryError } = await supabase
+                .from('registration_requests')
+                .insert([{ ...payload, location_url: undefined }]);
+              if (!retryError) {
+                Alert.alert(
+                  'تم الإرسال',
+                  'تم إرسال الطلب بدون حقل رابط الموقع. يُفضّل إضافة العمود وتشغيل add_location_url_fields.sql لاحقاً.',
+                  [ { text: 'حسناً', onPress: () => navigation.replace('UnifiedPendingApproval', { email: payload.email, user_type: 'store' }) } ]
+                );
+                setLoading(false);
+                return;
+              }
+            } catch (retryEx) {
+              // متابعة إلى مسار الحفظ المؤقت
+            }
+          }
+
+          // إذا كانت سياسة RLS تمنع الإدخال
+          if (message.includes('violates row-level security') || details.includes('rls') || hint.includes('rls')) {
+            Alert.alert(
+              'خطأ سياسات الأمان',
+              'منع الأمن (RLS) عملية الإدخال. يرجى تفعيل سياسة إدخال على جدول registration_requests أو إنشاء Function للتسجيل.',
+              [{ text: 'حسناً' }]
+            );
+          } else {
+            Alert.alert('خطأ', 'فشل في إرسال طلب التسجيل. سيتم حفظ بياناتك لإعادة المحاولة.');
+          }
           await AsyncStorage.setItem('pendingStoreRegistration', JSON.stringify(formDataLocal));
-          Alert.alert('خطأ', 'فشل في إرسال طلب التسجيل. سيتم حفظ بياناتك لإعادة المحاولة.');
         } else {
           Alert.alert('نجاح', 'تم إرسال طلب التسجيل بنجاح! سيتم مراجعة طلبك من قبل الإدارة.', [
             { text: 'حسناً', onPress: () => navigation.replace('UnifiedPendingApproval', { email: payload.email, user_type: 'store' }) }
