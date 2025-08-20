@@ -1,14 +1,25 @@
 import * as React from 'react';
 import { I18nManager, useColorScheme } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createDrawerNavigator } from '@react-navigation/drawer';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import EncryptedStorage from 'react-native-encrypted-storage';
+import { Ionicons } from '@expo/vector-icons';
+import { useState, useEffect } from 'react';
+
+import { supabase, initializeDatabase, updatesAPI } from './supabase';
+import { AuthProvider, useAuth } from './context/AuthContext';
+
+// Screens
 import LoginScreen from './screens/LoginScreen';
-import OrderScreen from './screens/OrderScreen';
-import OrderListScreen from './screens/OrderListScreen';
+import DriverRegistrationScreen from './screens/DriverRegistrationScreen';
+import DriverDocumentsScreen from './screens/DriverDocumentsScreen';
+import DriverVehicleScreen from './screens/DriverVehicleScreen';
+import PendingApprovalScreen from './screens/PendingApprovalScreen';
+import UnifiedStoreRegistrationScreen from './screens/UnifiedStoreRegistrationScreen';
 import AdminDashboardScreen from './screens/AdminDashboardScreen';
-import StoreDashboardScreen from './screens/StoreDashboardScreen';
-import SplashScreen from './screens/SplashScreen';
 import DriversScreen from './screens/DriversScreen';
 import StoresScreen from './screens/StoresScreen';
 import BannedUsersScreen from './screens/BannedUsersScreen';
@@ -25,29 +36,13 @@ import SupportChatScreen from './screens/SupportChatScreen';
 import DriverNotificationsScreen from './screens/DriverNotificationsScreen';
 import StoreSupportChatScreen from './screens/StoreSupportChatScreen';
 import StoreNotificationsScreen from './screens/StoreNotificationsScreen';
-import DriverRegistrationScreen from './screens/DriverRegistrationScreen';
-import DriverDocumentsScreen from './screens/DriverDocumentsScreen';
-import DriverVehicleScreen from './screens/DriverVehicleScreen';
-import PendingApprovalScreen from './screens/PendingApprovalScreen';
-import AdminSupportScreen from './screens/AdminSupportScreen';
-import StoreRegistrationScreen from './screens/StoreRegistrationScreen';
-import StoreInfoScreen from './screens/StoreInfoScreen';
-import StorePendingApprovalScreen from './screens/StorePendingApprovalScreen';
-import StoreDocumentsScreen from './screens/StoreDocumentsScreen';
-import UpdateStoreLocationScreen from './screens/UpdateStoreLocationScreen';
 import StoreProfileScreen from './screens/StoreProfileScreen';
-import { Ionicons } from '@expo/vector-icons';
-import { useState, useEffect } from 'react';
-import { createDrawerNavigator } from '@react-navigation/drawer';
-import { DefaultTheme, DarkTheme } from '@react-navigation/native';
-import { supabase, initializeDatabase, updatesAPI } from './supabase';
-import UnifiedPendingApprovalScreen from './screens/UnifiedPendingApprovalScreen';
+import AdminSupportScreen from './screens/AdminSupportScreen';
+import AdminNewOrderScreen from './screens/AdminNewOrderScreen';
+
+// Components
 import UpdateModal from './components/UpdateModal';
 import DriverDrawerContent from './components/DriverDrawerContent';
-import { AuthProvider, useAuth } from './context/AuthContext';
-import AdminNewOrderScreen from './screens/AdminNewOrderScreen';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import EncryptedStorage from 'react-native-encrypted-storage';
 
 I18nManager.forceRTL(true);
 
@@ -80,6 +75,24 @@ const darkTheme = {
   },
 };
 
+// دالة اختبار الاتصال بقاعدة البيانات
+const testDatabaseConnection = async () => {
+  console.log('=== بداية اختبار قاعدة البيانات ===');
+  try {
+    const { data, error } = await supabase.from('drivers').select('count').limit(1);
+    if (error) {
+      console.error('❌ خطأ في الاتصال:', error);
+      return false;
+    }
+    console.log('✅ الاتصال بقاعدة البيانات ناجح');
+    return true;
+  } catch (error) {
+    console.error('❌ خطأ عام في اختبار قاعدة البيانات:', error);
+    return false;
+  }
+};
+
+// Auth Stack
 function AuthStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
@@ -88,15 +101,12 @@ function AuthStack() {
       <Stack.Screen name="DriverDocuments" component={DriverDocumentsScreen} />
       <Stack.Screen name="DriverVehicle" component={DriverVehicleScreen} />
       <Stack.Screen name="PendingApproval" component={PendingApprovalScreen} />
-      <Stack.Screen name="StoreRegistration" component={StoreRegistrationScreen} />
-      <Stack.Screen name="StoreInfoScreen" component={StoreInfoScreen} />
-      <Stack.Screen name="StoreDocuments" component={StoreDocumentsScreen} />
-      <Stack.Screen name="StorePendingApproval" component={StorePendingApprovalScreen} />
-      <Stack.Screen name="UpdateStoreLocation" component={UpdateStoreLocationScreen} />
+      <Stack.Screen name="UnifiedStoreRegistration" component={UnifiedStoreRegistrationScreen} />
     </Stack.Navigator>
   );
 }
 
+// Driver Drawer
 function DriverDrawer() {
   return (
     <Drawer.Navigator 
@@ -123,6 +133,7 @@ function DriverDrawer() {
   );
 }
 
+// Store Drawer
 function StoreDrawer() {
   return (
     <Drawer.Navigator initialRouteName="StoreDashboard" screenOptions={{
@@ -143,113 +154,26 @@ function StoreDrawer() {
   );
 }
 
-// دالة اختبار الاتصال بقاعدة البيانات
-const testDatabaseConnection = async () => {
-  console.log('=== بداية اختبار قاعدة البيانات ===');
-  
-  try {
-    // اختبار الاتصال
-    console.log('اختبار الاتصال بقاعدة البيانات...');
-    const { data, error } = await supabase
-      .from('drivers')
-      .select('count')
-      .limit(1);
-    
-    if (error) {
-      console.error('❌ خطأ في الاتصال:', error);
-      return false;
-    }
-    
-    console.log('✅ الاتصال بقاعدة البيانات ناجح');
-    
-    // اختبار البيانات التجريبية
-    console.log('اختبار البيانات التجريبية...');
-    
-    // اختبار السائقين
-    const { data: drivers, error: driversError } = await supabase
-      .from('drivers')
-      .select('*')
-      .limit(5);
-    
-    if (driversError) {
-      console.error('❌ خطأ في جلب السائقين:', driversError);
-    } else {
-      console.log(`✅ تم العثور على ${drivers?.length || 0} سائق`);
-      if (drivers && drivers.length > 0) {
-        console.log('مثال على سائق:', drivers[0]);
-      }
-    }
-    
-    // اختبار المتاجر
-    const { data: stores, error: storesError } = await supabase
-      .from('stores')
-      .select('*')
-      .limit(5);
-    
-    if (storesError) {
-      console.error('❌ خطأ في جلب المتاجر:', storesError);
-    } else {
-      console.log(`✅ تم العثور على ${stores?.length || 0} متجر`);
-      if (stores && stores.length > 0) {
-        console.log('مثال على متجر:', stores[0]);
-      }
-    }
-    
-    // اختبار طلبات التسجيل
-    const { data: requests, error: requestsError } = await supabase
-      .from('registration_requests')
-      .select('*')
-      .limit(5);
-    
-    if (requestsError) {
-      console.error('❌ خطأ في جلب طلبات التسجيل:', requestsError);
-    } else {
-      console.log(`✅ تم العثور على ${requests?.length || 0} طلب تسجيل`);
-      if (requests && requests.length > 0) {
-        console.log('مثال على طلب تسجيل:', requests[0]);
-      }
-    }
-    
-    console.log('=== انتهاء اختبار قاعدة البيانات ===');
-    return true;
-    
-  } catch (error) {
-    console.error('❌ خطأ عام في اختبار قاعدة البيانات:', error);
-    return false;
-  }
-};
-
+// App Content
 function AppContent() {
   const [showSplash, setShowSplash] = useState(true);
   const [databaseInitialized, setDatabaseInitialized] = useState(false);
   const [initialRoute, setInitialRoute] = useState('Login');
   const scheme = useColorScheme();
   const { login, user, userType, loading } = useAuth();
-
-  // تحديث: عرض تحديثات التطبيق المعلنة من الأدمن
   const [pendingUpdate, setPendingUpdate] = useState(null);
   const [updateVisible, setUpdateVisible] = useState(false);
-    useEffect(() => {
+
+  useEffect(() => {
     const checkUserSession = async () => {
       try {
-        // انتظر قليلاً حتى يتم تحميل AuthContext
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        // استخدم البيانات من AuthContext أولاً
         if (user && userType) {
-          if (userType === 'admin') {
-            setInitialRoute('AdminDashboard');
-          } else if (userType === 'driver') {
-            setInitialRoute('Driver');
-          } else if (userType === 'store') {
-            setInitialRoute('Store');
-          } else {
-            setInitialRoute('Login');
-          }
+          if (userType === 'admin') setInitialRoute('AdminDashboard');
+          else if (userType === 'driver') setInitialRoute('Driver');
+          else if (userType === 'store') setInitialRoute('Store');
           return;
         }
-        
-        // إذا لم توجد بيانات في AuthContext، جرب استعادة الجلسة من EncryptedStorage
+
         const sessionStr = await EncryptedStorage.getItem('session');
         if (sessionStr) {
           const session = JSON.parse(sessionStr);
@@ -280,18 +204,12 @@ function AppContent() {
             }
           }
         }
-        
-        // إذا لم توجد جلسة مشفرة أو انتهت صلاحيتها، fallback إلى AsyncStorage
-        const userId = await AsyncStorage.getItem('userId');
-        const userType = await AsyncStorage.getItem('userType');
-        if (userId && userType) {
-          if (userType === 'admin') {
-            setInitialRoute('AdminDashboard');
-          } else if (userType === 'driver') {
-            setInitialRoute('Driver');
-          } else if (userType === 'store') {
-            setInitialRoute('Store');
-          }
+
+        const storedUserType = await AsyncStorage.getItem('userType');
+        if (storedUserType) {
+          if (storedUserType === 'admin') setInitialRoute('AdminDashboard');
+          else if (storedUserType === 'driver') setInitialRoute('Driver');
+          else if (storedUserType === 'store') setInitialRoute('Store');
         } else {
           setInitialRoute('Login');
         }
@@ -301,7 +219,6 @@ function AppContent() {
       }
     };
 
-    // إظهار شاشة البداية لمدة ثابتة فقط
     const splashTimeout = setTimeout(() => {
       setShowSplash(false);
       checkUserSession();
@@ -313,15 +230,10 @@ function AppContent() {
         const shouldInit = process.env.EXPO_PUBLIC_ENABLE_DB_INIT === 'true';
         if (!shouldInit) return;
         const connectionTest = await testDatabaseConnection();
-        if (!connectionTest) {
-          console.error('فشل في اختبار الاتصال بقاعدة البيانات');
-        }
+        if (!connectionTest) console.error('فشل في اختبار الاتصال بقاعدة البيانات');
         const result = await initializeDatabase();
-        if (result.success) {
-          setDatabaseInitialized(true);
-        } else {
-          console.error('فشل في تهيئة قاعدة البيانات:', result.error);
-        }
+        if (result.success) setDatabaseInitialized(true);
+        else console.error('فشل في تهيئة قاعدة البيانات:', result.error);
       } catch (error) {
         console.error('خطأ في تهيئة التطبيق:', error);
       }
@@ -330,61 +242,56 @@ function AppContent() {
 
     return () => clearTimeout(splashTimeout);
   }, []);
-  
-  // مراقبة تغييرات user و userType في AuthContext
+
   useEffect(() => {
     if (user && userType && !showSplash) {
-      if (userType === 'admin') {
-        setInitialRoute('AdminDashboard');
-      } else if (userType === 'driver') {
-        setInitialRoute('Driver');
-      } else if (userType === 'store') {
-        setInitialRoute('Store');
-      }
+      if (userType === 'admin') setInitialRoute('AdminDashboard');
+      else if (userType === 'driver') setInitialRoute('Driver');
+      else if (userType === 'store') setInitialRoute('Store');
     }
   }, [user, userType, showSplash]);
-  
-  if (loading) return <SplashScreen />;
-  
+
+  if (loading || showSplash || !databaseInitialized) return <LoginScreen />;
+
   return (
-    <NavigationContainer theme={scheme === 'dark' ? darkTheme : lightTheme}>
-      <Stack.Navigator 
-        screenOptions={{ headerShown: false }}
-        initialRouteName={initialRoute}
-      >
-        <Stack.Screen name="Login" component={LoginScreen} />
-        <Stack.Screen name="DriverRegistration" component={DriverRegistrationScreen} />
-        <Stack.Screen name="DriverDocuments" component={DriverDocumentsScreen} />
-        <Stack.Screen name="DriverVehicle" component={DriverVehicleScreen} />
-        <Stack.Screen name="StoreRegistration" component={StoreRegistrationScreen} />
-        <Stack.Screen name="StoreInfoScreen" component={StoreInfoScreen} />
-        <Stack.Screen name="StoreDocuments" component={StoreDocumentsScreen} />
-        <Stack.Screen name="StorePendingApproval" component={StorePendingApprovalScreen} />
-        <Stack.Screen name="UpdateStoreLocation" component={UpdateStoreLocationScreen} />
-        <Stack.Screen name="UnifiedPendingApproval" component={UnifiedPendingApprovalScreen} />
-        <Stack.Screen name="AdminNewOrderScreen" component={AdminNewOrderScreen} />
-        <Stack.Screen name="Driver" component={DriverDrawer} />
-        <Stack.Screen name="Store" component={StoreDrawer} />
-        <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} />
-        <Stack.Screen name="Drivers" component={DriversScreen} />
-        <Stack.Screen name="Stores" component={StoresScreen} />
-        <Stack.Screen name="BannedUsers" component={BannedUsersScreen} />
-        <Stack.Screen name="RegistrationRequests" component={RegistrationRequestsScreen} />
-        <Stack.Screen name="StoreOrders" component={StoreOrdersScreen} />
-        <Stack.Screen name="NewOrder" component={NewOrderScreen} />
-        <Stack.Screen name="AvailableOrders" component={AvailableOrdersScreen} />
-        <Stack.Screen name="MyOrders" component={MyOrdersScreen} />
-        <Stack.Screen name="DriverProfile" component={DriverProfileScreen} />
-        <Stack.Screen name="FinancialAccounts" component={FinancialAccountsScreen} />
-        <Stack.Screen name="Rewards" component={RewardsScreen} />
-        <Stack.Screen name="SupportChat" component={SupportChatScreen} />
-        <Stack.Screen name="DriverNotifications" component={DriverNotificationsScreen} />
-        <Stack.Screen name="StoreSupportChat" component={StoreSupportChatScreen} />
-        <Stack.Screen name="StoreNotifications" component={StoreNotificationsScreen} />
-        <Stack.Screen name="AdminSupport" component={AdminSupportScreen} />
-        <Stack.Screen name="StoreProfile" component={StoreProfileScreen} />
-      </Stack.Navigator>
-    </NavigationContainer>
+    <>
+      <NavigationContainer theme={scheme === 'dark' ? darkTheme : lightTheme}>
+        <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName={initialRoute}>
+          <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="DriverRegistration" component={DriverRegistrationScreen} />
+          <Stack.Screen name="DriverDocuments" component={DriverDocumentsScreen} />
+          <Stack.Screen name="DriverVehicle" component={DriverVehicleScreen} />
+          <Stack.Screen name="PendingApproval" component={PendingApprovalScreen} />
+          <Stack.Screen name="UnifiedStoreRegistration" component={UnifiedStoreRegistrationScreen} />
+          <Stack.Screen name="AdminNewOrderScreen" component={AdminNewOrderScreen} />
+          <Stack.Screen name="Driver" component={DriverDrawer} />
+          <Stack.Screen name="Store" component={StoreDrawer} />
+          <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} />
+          <Stack.Screen name="Drivers" component={DriversScreen} />
+          <Stack.Screen name="Stores" component={StoresScreen} />
+          <Stack.Screen name="BannedUsers" component={BannedUsersScreen} />
+          <Stack.Screen name="RegistrationRequests" component={RegistrationRequestsScreen} />
+          <Stack.Screen name="StoreOrders" component={StoreOrdersScreen} />
+          <Stack.Screen name="NewOrder" component={NewOrderScreen} />
+          <Stack.Screen name="AvailableOrders" component={AvailableOrdersScreen} />
+          <Stack.Screen name="MyOrders" component={MyOrdersScreen} />
+          <Stack.Screen name="DriverProfile" component={DriverProfileScreen} />
+          <Stack.Screen name="FinancialAccounts" component={FinancialAccountsScreen} />
+          <Stack.Screen name="Rewards" component={RewardsScreen} />
+          <Stack.Screen name="SupportChat" component={SupportChatScreen} />
+          <Stack.Screen name="DriverNotifications" component={DriverNotificationsScreen} />
+          <Stack.Screen name="StoreSupportChat" component={StoreSupportChatScreen} />
+          <Stack.Screen name="StoreNotifications" component={StoreNotificationsScreen} />
+          <Stack.Screen name="AdminSupport" component={AdminSupportScreen} />
+          <Stack.Screen name="StoreProfile" component={StoreProfileScreen} />
+        </Stack.Navigator>
+      </NavigationContainer>
+
+      {/* Update Modal */}
+      {pendingUpdate && updateVisible && (
+        <UpdateModal update={pendingUpdate} onClose={() => setUpdateVisible(false)} />
+      )}
+    </>
   );
 }
 
