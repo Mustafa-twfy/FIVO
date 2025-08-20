@@ -18,7 +18,7 @@ import DriverRegistrationScreen from './screens/DriverRegistrationScreen';
 import DriverDocumentsScreen from './screens/DriverDocumentsScreen';
 import DriverVehicleScreen from './screens/DriverVehicleScreen';
 import PendingApprovalScreen from './screens/PendingApprovalScreen';
-import UnifiedStoreRegistrationScreen from './screens/UnifiedStoreRegistrationScreen';
+import StoreRegistrationScreen from './screens/StoreRegistrationScreen';
 import AdminDashboardScreen from './screens/AdminDashboardScreen';
 import DriversScreen from './screens/DriversScreen';
 import StoresScreen from './screens/StoresScreen';
@@ -101,7 +101,7 @@ function AuthStack() {
       <Stack.Screen name="DriverDocuments" component={DriverDocumentsScreen} />
       <Stack.Screen name="DriverVehicle" component={DriverVehicleScreen} />
       <Stack.Screen name="PendingApproval" component={PendingApprovalScreen} />
-      <Stack.Screen name="UnifiedStoreRegistration" component={UnifiedStoreRegistrationScreen} />
+      <Stack.Screen name="StoreRegistration" component={StoreRegistrationScreen} />
     </Stack.Navigator>
   );
 }
@@ -228,7 +228,11 @@ function AppContent() {
     const backgroundInit = async () => {
       try {
         const shouldInit = process.env.EXPO_PUBLIC_ENABLE_DB_INIT === 'true';
-        if (!shouldInit) return;
+        if (!shouldInit) {
+          // لا تقطع التطبيق عن الـ Navigator؛ اعتبر التهيئة منتهية عند التعطيل
+          setDatabaseInitialized(true);
+          return;
+        }
         const connectionTest = await testDatabaseConnection();
         if (!connectionTest) console.error('فشل في اختبار الاتصال بقاعدة البيانات');
         const result = await initializeDatabase();
@@ -251,7 +255,7 @@ function AppContent() {
     }
   }, [user, userType, showSplash]);
 
-  if (loading || showSplash || !databaseInitialized) return <LoginScreen />;
+  if (loading || showSplash) return <LoginScreen />;
 
   return (
     <>
@@ -262,7 +266,7 @@ function AppContent() {
           <Stack.Screen name="DriverDocuments" component={DriverDocumentsScreen} />
           <Stack.Screen name="DriverVehicle" component={DriverVehicleScreen} />
           <Stack.Screen name="PendingApproval" component={PendingApprovalScreen} />
-          <Stack.Screen name="UnifiedStoreRegistration" component={UnifiedStoreRegistrationScreen} />
+          <Stack.Screen name="StoreRegistration" component={StoreRegistrationScreen} />
           <Stack.Screen name="AdminNewOrderScreen" component={AdminNewOrderScreen} />
           <Stack.Screen name="Driver" component={DriverDrawer} />
           <Stack.Screen name="Store" component={StoreDrawer} />

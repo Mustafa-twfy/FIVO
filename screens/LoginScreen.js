@@ -236,8 +236,7 @@ export default function LoginScreen({ navigation }) {
     if (userType === 'driver') {
       navigation.navigate('DriverRegistration');
     } else if (userType === 'store') {
-      // ✅ صار يفتح شاشتنا الجديدة الموحّدة
-      navigation.navigate('UnifiedStoreRegistrationScreen');
+      navigation.navigate('StoreRegistration');
     }
   };
 
