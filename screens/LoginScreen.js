@@ -20,6 +20,18 @@ import { useAuth } from '../context/AuthContext';
 const simsimLogo = { uri: 'https://i.ibb.co/Myy7sCzX/Picsart-25-07-31-16-12-30-512.jpg' };
 // رابط دالة المصادقة على Supabase Functions لمشروعك
 const AUTH_API_URL = 'https://nzxmhpigoeexuadrnith.functions.supabase.co';
+const REQUEST_TIMEOUT_MS = 5000;
+
+const fetchWithTimeout = async (url, options = {}, timeoutMs = REQUEST_TIMEOUT_MS) => {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const resp = await fetch(url, { ...options, signal: controller.signal });
+    return resp;
+  } finally {
+    clearTimeout(id);
+  }
+};
 
 export default function LoginScreen({ navigation }) {
   const { login } = useAuth();
@@ -94,10 +106,10 @@ export default function LoginScreen({ navigation }) {
       console.log('=== بداية عملية تسجيل الدخول ===');
       console.log('البريد الإلكتروني:', email);
 
-      // 1) محاولة API خارجي إن كنت مفعّله
+      // 1) محاولة API خارجي إن كنت مفعّله (بمهلة قصيرة)
       if (AUTH_API_URL && !AUTH_API_URL.includes('YOUR_')) {
         try {
-          const resp = await fetch(`${AUTH_API_URL.replace(/\/$/, '')}/auth/login`, {
+          const resp = await fetchWithTimeout(`${AUTH_API_URL.replace(/\/$/, '')}/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password })
@@ -137,17 +149,69 @@ export default function LoginScreen({ navigation }) {
         return;
       }
 
-      // 3) التحقق من طلبات التسجيل
-      const { data: pendingRequest, error: requestError } = await supabase
-        .from('registration_requests')
-        .select('*')
-        .eq('email', email)
-        .eq('password', password)
-        .single();
+      // 3) التحقق من الحسابات بالتوازي لتقليل التأخير
+      const [
+        { data: pendingRequest, error: requestError },
+        { data: driver, error: driverError },
+        { data: store, error: storeError },
+      ] = await Promise.all([
+        supabase
+          .from('registration_requests')
+          .select('email,status,user_type,password')
+          .eq('email', email)
+          .single(),
+        supabase
+          .from('drivers')
+          .select('id,name,email,phone,status,is_suspended,is_active,token')
+          .eq('email', email)
+          .eq('password', password)
+          .eq('status', 'approved')
+          .single(),
+        supabase
+          .from('stores')
+          .select('id,name,email,is_active,status,token')
+          .eq('email', email)
+          .eq('password', password)
+          .single(),
+      ]);
 
-      if (requestError && requestError.code !== 'PGRST116') {
-        console.error('خطأ في البحث في طلبات التسجيل:', requestError);
-        Alert.alert('خطأ', 'حدث خطأ في التحقق من طلبات التسجيل');
+      console.log('نتيجة السائق:', { driver, driverError });
+      console.log('نتيجة المتجر:', { store, storeError });
+      console.log('نتيجة طلب التسجيل:', { pendingRequest, requestError });
+
+      if (driverError && driverError.code && driverError.code !== 'PGRST116') {
+        console.error('خطأ في جدول السائقين:', driverError);
+      }
+      if (storeError && storeError.code && storeError.code !== 'PGRST116') {
+        console.error('خطأ في جدول المتاجر:', storeError);
+      }
+      if (requestError && requestError.code && requestError.code !== 'PGRST116') {
+        console.error('خطأ في طلبات التسجيل:', requestError);
+      }
+
+      // أولوية: السائق → المتجر → طلب تسجيل
+      if (driver) {
+        const expiry = new Date();
+        expiry.setDate(expiry.getDate() + 7);
+        const token = driver.token || 'driver-token-placeholder';
+        await persistSession(driver, 'driver', expiry.toISOString(), token);
+        navigation.replace('Driver', { driverId: driver.id });
+        setLoading(false);
+        return;
+      }
+
+      if (store) {
+        if (store.is_active === false || (store.status && store.status !== 'approved')) {
+          Alert.alert('حسابك غير مفعل', 'يرجى انتظار موافقة الإدارة على حساب المتجر.');
+          navigation.replace('UnifiedPendingApproval', { email, user_type: 'store', password });
+          setLoading(false);
+          return;
+        }
+        const expiry = new Date();
+        expiry.setDate(expiry.getDate() + 7);
+        const token = store.token || 'store-token-placeholder';
+        await persistSession(store, 'store', expiry.toISOString(), token);
+        navigation.replace('Store', { storeId: store.id });
         setLoading(false);
         return;
       }
@@ -166,60 +230,6 @@ export default function LoginScreen({ navigation }) {
           setLoading(false);
           return;
         }
-      }
-
-      // 4) التحقق من السائق المعتمد
-      const { data: driver, error: driverError } = await supabase
-        .from('drivers')
-        .select('*')
-        .eq('email', email)
-        .eq('password', password)
-        .eq('status', 'approved')
-        .single();
-      
-      console.log('نتيجة البحث في جدول السائقين:', { driver, driverError });
-      console.log('البريد الإلكتروني المدخل:', email);
-      // عدم طباعة كلمة المرور لحماية الخصوصية
-      
-      if (driverError && driverError.code !== 'PGRST116') {
-        console.error('خطأ في البحث في جدول السائقين:', driverError);
-      }
-
-      if (driver) {
-        const expiry = new Date();
-        expiry.setDate(expiry.getDate() + 7);
-        const token = driver.token || 'driver-token-placeholder';
-
-        await persistSession(driver, 'driver', expiry.toISOString(), token);
-        Alert.alert('نجح تسجيل الدخول', `مرحباً بك ${driver.name || ''}!`);
-        navigation.replace('Driver', { driverId: driver.id });
-        setLoading(false);
-        return;
-      }
-
-      // 5) التحقق من المتجر النشط
-      const { data: store, error: storeError } = await supabase
-        .from('stores')
-        .select('*')
-        .eq('email', email)
-        .eq('password', password)
-        .eq('is_active', true)
-        .single();
-
-      if (storeError && storeError.code !== 'PGRST116') {
-        console.error('خطأ في البحث في جدول المتاجر:', storeError);
-      }
-
-      if (store) {
-        const expiry = new Date();
-        expiry.setDate(expiry.getDate() + 7);
-        const token = store.token || 'store-token-placeholder';
-
-        await persistSession(store, 'store', expiry.toISOString(), token);
-        Alert.alert('نجح تسجيل الدخول', `مرحباً بك ${store.name || ''}!`);
-        navigation.replace('Store', { storeId: store.id });
-        setLoading(false);
-        return;
       }
 
       // 6) لا يوجد حساب صالح

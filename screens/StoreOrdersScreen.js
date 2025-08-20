@@ -217,7 +217,7 @@ export default function StoreOrdersScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.navigate('AdminDashboardScreen')} style={styles.backButton}>
+        <TouchableOpacity onPress={() => navigation.navigate('AdminDashboard')} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={colors.secondary} />
         </TouchableOpacity>
         <View style={styles.headerContent}>
@@ -266,10 +266,16 @@ export default function StoreOrdersScreen({ navigation }) {
                   </View>
                 </View>
                 <View style={styles.btnRowCustom}>
-                  <TouchableOpacity style={styles.cancelBtnCustom}>
+                  <TouchableOpacity 
+                    style={styles.cancelBtnCustom}
+                    onPress={() => openModal(item, 'cancel_order')}
+                  >
                     <Text style={styles.cancelTextCustom}>إلغاء الطلب</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.readyBtnCustom}>
+                  <TouchableOpacity 
+                    style={styles.readyBtnCustom}
+                    onPress={() => { setInputValue('accepted'); openModal(item, 'update_status'); }}
+                  >
                     <Text style={styles.readyTextCustom}>قيد التجهيز</Text>
                   </TouchableOpacity>
                 </View>

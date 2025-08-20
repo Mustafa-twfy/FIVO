@@ -12,9 +12,11 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../supabase';
+import { useAuth } from '../context/AuthContext';
 import colors from '../colors';
 
 export default function UnifiedPendingApprovalScreen({ navigation, route }) {
+  const { login } = useAuth();
   const [loading, setLoading] = useState(false);
   const [requestStatus, setRequestStatus] = useState('pending');
   const [userType, setUserType] = useState('driver');
@@ -97,16 +99,18 @@ export default function UnifiedPendingApprovalScreen({ navigation, route }) {
         );
         return;
       }
+      // تسجيل الدخول للسياق لربط الجلسة ثم التوجيه للمسار الصحيح
+      try {
+        const expiry = new Date();
+        expiry.setDate(expiry.getDate() + 7);
+        const token = user.token || `${request.user_type}-token`;
+        await login(user, request.user_type, expiry.toISOString(), token);
+      } catch (_) {}
+
       if (request.user_type === 'driver') {
-        navigation.reset({
-          index: 0,
-          routes: [{ name: 'DriverDashboardScreen', params: { user } }],
-        });
+        navigation.replace('Driver', { driverId: user.id });
       } else if (request.user_type === 'store') {
-        navigation.reset({
-          index: 0,
-          routes: [{ name: 'StoreDashboardScreen', params: { user } }],
-        });
+        navigation.replace('Store', { storeId: user.id });
       }
     } catch (error) {
       console.error('Error handling approved user:', error);

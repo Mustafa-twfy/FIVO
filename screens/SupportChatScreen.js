@@ -60,7 +60,7 @@ export default function SupportChatScreen({ navigation }) {
   return (
     <KeyboardAvoidingView style={{flex:1,backgroundColor:colors.secondary}} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('AdminDashboardScreen')} style={{padding: 8}}>
+        <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('AdminDashboard')} style={{padding: 8}}>
           <Ionicons name="arrow-back" size={26} color={colors.primary} />
         </TouchableOpacity>
         <Text style={styles.title}>الدعم الفني</Text>

@@ -17,9 +17,11 @@ import { driversAPI } from '../supabase';
 import { supabase } from '../supabase';
 import colors from '../colors';
 import { systemSettingsAPI } from '../supabase';
+import { useAuth } from '../context/AuthContext';
 import driverIcon from '../assets/driver-icon.png';
 
 export default function DriversScreen({ navigation }) {
+  const { userType } = useAuth();
   const [drivers, setDrivers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedDriver, setSelectedDriver] = useState(null);
@@ -36,6 +38,13 @@ export default function DriversScreen({ navigation }) {
   const [settingsLoading, setSettingsLoading] = useState(true);
 
   useEffect(() => {
+    // حارس صلاحيات: هذه الشاشة للمشرف فقط
+    if (userType && userType !== 'admin') {
+      Alert.alert('صلاحيات غير كافية', 'هذه الشاشة مخصصة للمشرفين فقط.', [
+        { text: 'حسناً', onPress: () => navigation.replace('Login') }
+      ]);
+      return;
+    }
     loadDrivers();
     const fetchSettings = async () => {
       setSettingsLoading(true);
@@ -99,36 +108,52 @@ export default function DriversScreen({ navigation }) {
     if (!selectedDriver) return;
 
     try {
-      let result;
-      switch (modalType) {
-        case 'debt':
-          result = await driversAPI.updateDriverDebt(selectedDriver.id, parseFloat(inputValue));
-          break;
-        case 'clear_debt':
-          result = await driversAPI.clearDriverDebt(selectedDriver.id);
-          break;
-        case 'work_hours':
-          result = await driversAPI.updateWorkHours(selectedDriver.id, inputValue, inputValue2);
-          break;
-        case 'fine':
-          result = await driversAPI.fineDriver(selectedDriver.id, parseFloat(inputValue), inputValue2);
-          break;
-        case 'suspend':
-          result = await driversAPI.suspendDriver(selectedDriver.id, inputValue);
-          break;
-        case 'unsuspend':
-          result = await driversAPI.unsuspendDriver(selectedDriver.id);
-          break;
-        case 'notification':
-          result = await driversAPI.sendNotification(selectedDriver.id, inputValue, inputValue2);
-          break;
-      }
+      const doAction = async () => {
+        let result;
+        switch (modalType) {
+          case 'debt':
+            result = await driversAPI.updateDriverDebt(selectedDriver.id, parseFloat(inputValue));
+            break;
+          case 'clear_debt':
+            result = await driversAPI.clearDriverDebt(selectedDriver.id);
+            break;
+          case 'work_hours':
+            result = await driversAPI.updateWorkHours(selectedDriver.id, inputValue, inputValue2);
+            break;
+          case 'fine':
+            result = await driversAPI.fineDriver(selectedDriver.id, parseFloat(inputValue), inputValue2);
+            break;
+          case 'suspend':
+            result = await driversAPI.suspendDriver(selectedDriver.id, inputValue);
+            break;
+          case 'unsuspend':
+            result = await driversAPI.unsuspendDriver(selectedDriver.id);
+            break;
+          case 'notification':
+            result = await driversAPI.sendNotification(selectedDriver.id, inputValue, inputValue2);
+            break;
+        }
 
-      if (result?.error) {
-        Alert.alert('خطأ', 'فشل في تنفيذ العملية');
+        if (result?.error) {
+          Alert.alert('خطأ', 'فشل في تنفيذ العملية');
+        } else {
+          Alert.alert('نجح', 'تم تنفيذ العملية بنجاح');
+          loadDrivers(); // إعادة تحميل البيانات
+        }
+      };
+
+      // تأكيد نهائي إضافي قبل تصفية النقاط
+      if (modalType === 'clear_debt') {
+        Alert.alert(
+          'تأكيد نهائي',
+          `هل أنت متأكد من تصفير جميع نقاط الديون للسائق: ${selectedDriver?.name || selectedDriver?.email || selectedDriver?.id}?`,
+          [
+            { text: 'إلغاء', style: 'cancel' },
+            { text: 'تأكيد', style: 'destructive', onPress: () => { doAction(); } }
+          ]
+        );
       } else {
-        Alert.alert('نجح', 'تم تنفيذ العملية بنجاح');
-        loadDrivers(); // إعادة تحميل البيانات
+        await doAction();
       }
     } catch (error) {
       Alert.alert('خطأ', 'حدث خطأ غير متوقع');

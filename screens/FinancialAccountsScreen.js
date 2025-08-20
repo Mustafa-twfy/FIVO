@@ -65,19 +65,7 @@ export default function FinancialAccountsScreen({ navigation }) {
     setLoading(false);
   };
 
-  const handleClearDebt = async () => {
-    setLoading(true);
-    if (!driverId) { Alert.alert('خطأ', 'معرّف السائق غير متوفر'); setLoading(false); return; }
-    const { error } = await driversAPI.clearDriverDebt(driverId);
-    if (error) {
-      Alert.alert('خطأ', 'تعذر تصفير الحساب');
-    } else {
-      // إعادة الجلب بعد التصفير لضمان تزامن البيانات مع الخادم
-      await fetchDriverDebt();
-      Alert.alert('تم', 'تم تصفير الحساب بنجاح');
-    }
-    setLoading(false);
-  };
+  // إزالة خيار تصفير الديون من الواجهة وفق طلبك
 
   const handleSendSupport = async () => {
     if (!supportMessage.trim()) return;
@@ -109,16 +97,10 @@ export default function FinancialAccountsScreen({ navigation }) {
         <Text style={styles.value}>{debtPoints || 0} نقطة</Text>
         <Text style={styles.label}>قيمة الديون:</Text>
         <Text style={styles.value}>{debtValue || 0} ألف دينار</Text>
-        <Text style={styles.info}>كل نقطة = 250 دينار</Text>
-        <Text style={styles.info}>تزداد النقاط عند أخذ كل طلب جديد.</Text>
-        {/* زر تصفير الحساب للسائق */}
-        {debtPoints > 0 && (
-          <TouchableOpacity style={styles.clearButton} onPress={handleClearDebt} disabled={loading}>
-            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.clearButtonText}>تصفير الحساب</Text>}
-          </TouchableOpacity>
-        )}
+        <Text style={styles.info}>كل نقطة = {debtValue && debtPoints ? Math.round(debtValue / debtPoints) : 250} دينار</Text>
+        <Text style={styles.info}>تزداد النقاط فقط عند إكمال الطلب.</Text>
       </View>
-      <Text style={styles.supportNote}>لتصفير حسابك يمكنك الضغط على الزر أعلاه أو مراسلة الدعم الفني عبر الأيقونة.</Text>
+      <Text style={styles.supportNote}>لتقليل/تصفير الديون تواصل مع الدعم الفني عبر الأيقونة.</Text>
       <Modal visible={supportModalVisible} transparent animationType="slide" onRequestClose={() => setSupportModalVisible(false)}>
         <View style={{flex:1,backgroundColor:'rgba(0,0,0,0.3)',justifyContent:'center',alignItems:'center'}}>
           <View style={{backgroundColor:'#fff',borderRadius:16,padding:24,width:'85%',maxWidth:400,alignItems:'center'}}>
@@ -152,6 +134,5 @@ const styles = StyleSheet.create({
   value: { fontSize: 24, fontWeight: 'bold', color: '#2196F3', marginTop: 4 },
   info: { fontSize: 14, color: '#888', marginTop: 8, textAlign: 'center' },
   supportNote: { fontSize: 15, color: '#F44336', marginTop: 24, textAlign: 'center', fontWeight: 'bold' },
-  clearButton: { marginTop: 18, backgroundColor: '#FF9800', borderRadius: 8, paddingVertical: 10, paddingHorizontal: 32 },
-  clearButtonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+  // أزيلت أنماط زر التصفير
 }); 

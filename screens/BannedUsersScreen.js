@@ -107,7 +107,7 @@ export default function BannedUsersScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('AdminDashboardScreen')} style={styles.backButton}>
+        <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('AdminDashboard')} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={colors.secondary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>قائمة المحظورين</Text>

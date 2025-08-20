@@ -6,7 +6,9 @@
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
+    "icon": "./assets/icon.png",
     "splash": {
+      "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#00C897"
     },
@@ -15,8 +17,6 @@
     },
     "android": {
       "adaptiveIcon": {
-    "icon": "./assets/icon.png",
-      "image": "./assets/splash-icon.png",
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#00C897"
       },

@@ -53,6 +53,7 @@ export default function DriverDashboardScreen({ navigation }) {
   const [quizLoading, setQuizLoading] = useState(false);
   const [acceptLoading, setAcceptLoading] = useState(false);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [isUpdatingOnline, setIsUpdatingOnline] = useState(false);
 
   useEffect(() => {
     const initializeDriver = async () => {
@@ -229,7 +230,9 @@ export default function DriverDashboardScreen({ navigation }) {
       
       // تحديث بيانات السائق
       setDriverInfo(driver);
-      setIsOnline(driver.is_active || false);
+      if (!isUpdatingOnline) {
+        setIsOnline(driver.is_active || false);
+      }
       console.log('DriverDashboardScreen: loaded driver debt_points=', driver.debt_points);
       
       // جلب الطلبات المرتبطة بالسائق
@@ -313,16 +316,25 @@ export default function DriverDashboardScreen({ navigation }) {
   };
 
   const toggleOnlineStatus = async (value) => {
+    if (isUpdatingOnline) return;
+    setIsUpdatingOnline(true);
+    const previous = isOnline;
+    // تحديث متفائل لتقليل الوميض
     setIsOnline(value);
+    setDriverInfo((prev) => (prev ? { ...prev, is_active: value } : prev));
     try {
       await supabase
         .from('drivers')
         .update({ is_active: value })
         .eq('id', driverInfo?.id);
-      // إعادة تحميل بيانات السائق بعد التحديث
-      await loadDriverData(driverInfo?.id);
+      // لا تعِد التحميل فورًا لتجنب سباق القيم من قاعدة البيانات
     } catch (error) {
+      // تراجع عند الفشل
+      setIsOnline(previous);
+      setDriverInfo((prev) => (prev ? { ...prev, is_active: previous } : prev));
       Alert.alert('خطأ', 'فشل في تحديث حالة العمل');
+    } finally {
+      setIsUpdatingOnline(false);
     }
   };
 
@@ -583,16 +595,6 @@ export default function DriverDashboardScreen({ navigation }) {
           throw new Error('فشل في قبول الطلب: ' + orderError.message);
         }
 
-        // زيادة نقطة للسائق
-        const { error: driverError } = await supabase
-          .from('drivers')
-          .update({ debt_points: (driverInfo?.debt_points || 0) + 1 })
-          .eq('id', parseInt(driverId)); // تأكيد أنه رقم صحيح
-
-        if (driverError) {
-          console.error('خطأ في تحديث نقاط السائق:', driverError);
-        }
-
         setCurrentOrder(pendingOrderToAccept);
         Alert.alert('تم قبول الطلب', 'تم تعيين الطلب لك بنجاح!');
       } catch (error) {
@@ -666,7 +668,7 @@ export default function DriverDashboardScreen({ navigation }) {
       </View>
       {/* معلومات السائق */}
       <View style={{backgroundColor:'#fff', flexDirection:'row', alignItems:'center', justifyContent:'space-between', paddingHorizontal:16, paddingVertical:8, borderBottomWidth:1, borderColor:'#F5F5F5'}}>
-        <Text style={{color:colors.primary, fontWeight:'bold'}}>غير متصل</Text>
+        <Text style={{color:colors.primary, fontWeight:'bold'}}>{isOnline ? 'متصل' : 'غير متصل'}</Text>
         <Text style={{color: isAvailable ? colors.success : colors.danger, fontWeight: 'bold'}}>
           {isAvailable ? '✅ متوفر' : '⛔ غير متوفر'}
         </Text>
@@ -819,13 +821,20 @@ export default function DriverDashboardScreen({ navigation }) {
                 setLoading(false);
               }
             }}
-            disabled={isBlocked}
+            disabled={isBlocked || isUpdatingOnline}
           >
             <Text style={{color: isAvailable ? '#fff' : colors.primary, fontWeight:'bold'}}>متوفر</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={{paddingVertical:10, paddingHorizontal:32, backgroundColor: !isAvailable ? colors.primary : '#fff'}}
-            onPress={()=>setIsOnline(false)}
+            onPress={async ()=>{
+              if (!isBlocked) {
+                setLoading(true);
+                await toggleOnlineStatus(false);
+                setLoading(false);
+              }
+            }}
+            disabled={isUpdatingOnline}
           >
             <Text style={{color: !isAvailable ? '#fff' : colors.primary, fontWeight:'bold'}}>غير متوفر</Text>
           </TouchableOpacity>

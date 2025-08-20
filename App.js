@@ -18,6 +18,7 @@ import DriverRegistrationScreen from './screens/DriverRegistrationScreen';
 import DriverDocumentsScreen from './screens/DriverDocumentsScreen';
 import DriverVehicleScreen from './screens/DriverVehicleScreen';
 import PendingApprovalScreen from './screens/PendingApprovalScreen';
+import UnifiedPendingApprovalScreen from './screens/UnifiedPendingApprovalScreen';
 import UnifiedStoreRegistrationScreen from './screens/UnifiedStoreRegistrationScreen';
 import AdminDashboardScreen from './screens/AdminDashboardScreen';
 import DriversScreen from './screens/DriversScreen';
@@ -39,6 +40,7 @@ import StoreNotificationsScreen from './screens/StoreNotificationsScreen';
 import StoreProfileScreen from './screens/StoreProfileScreen';
 import AdminSupportScreen from './screens/AdminSupportScreen';
 import AdminNewOrderScreen from './screens/AdminNewOrderScreen';
+import UpdateStoreLocationScreen from './screens/UpdateStoreLocationScreen';
 
 // Components
 import UpdateModal from './components/UpdateModal';
@@ -255,6 +257,44 @@ function AppContent() {
     }
   }, [user, userType, showSplash]);
 
+  // فحص التحديثات النشطة للمستخدم الحالي وإظهار نافذة منبثقة مع رابط
+  useEffect(() => {
+    const checkUpdates = async () => {
+      try {
+        if (!userType || showSplash) return;
+        const { data, error } = await updatesAPI.getActiveUpdatesForUser(userType);
+        if (error) return;
+        if (data && data.length > 0) {
+          const latest = data[0];
+          const ackKey = `ack_update_${latest.id}_${userType}_${user?.id || 'anon'}`;
+          const alreadyAck = await AsyncStorage.getItem(ackKey);
+          if (!alreadyAck) {
+            setPendingUpdate(latest);
+            setUpdateVisible(true);
+          }
+        }
+      } catch (_) {}
+    };
+    checkUpdates();
+  }, [userType, user, showSplash]);
+
+  const acknowledgeUpdate = async () => {
+    try {
+      if (pendingUpdate) {
+        const ackKey = `ack_update_${pendingUpdate.id}_${userType}_${user?.id || 'anon'}`;
+        await AsyncStorage.setItem(ackKey, '1');
+        try {
+          if (user && userType) {
+            await updatesAPI.acknowledgeUpdate(pendingUpdate.id, user.id, userType, { dismissed: false });
+          }
+        } catch (_) {}
+      }
+    } finally {
+      setUpdateVisible(false);
+      setPendingUpdate(null);
+    }
+  };
+
   if (loading || showSplash) return <LoginScreen />;
 
   return (
@@ -266,6 +306,7 @@ function AppContent() {
           <Stack.Screen name="DriverDocuments" component={DriverDocumentsScreen} />
           <Stack.Screen name="DriverVehicle" component={DriverVehicleScreen} />
           <Stack.Screen name="PendingApproval" component={PendingApprovalScreen} />
+          <Stack.Screen name="UnifiedPendingApproval" component={UnifiedPendingApprovalScreen} />
           <Stack.Screen name="StoreRegistration" component={UnifiedStoreRegistrationScreen} />
           <Stack.Screen name="AdminNewOrderScreen" component={AdminNewOrderScreen} />
           <Stack.Screen name="Driver" component={DriverDrawer} />
@@ -288,12 +329,13 @@ function AppContent() {
           <Stack.Screen name="StoreNotifications" component={StoreNotificationsScreen} />
           <Stack.Screen name="AdminSupport" component={AdminSupportScreen} />
           <Stack.Screen name="StoreProfile" component={StoreProfileScreen} />
+          <Stack.Screen name="UpdateStoreLocation" component={UpdateStoreLocationScreen} />
         </Stack.Navigator>
       </NavigationContainer>
 
       {/* Update Modal */}
-      {pendingUpdate && updateVisible && (
-        <UpdateModal update={pendingUpdate} onClose={() => setUpdateVisible(false)} />
+      {pendingUpdate && (
+        <UpdateModal visible={updateVisible} update={pendingUpdate} onAcknowledge={acknowledgeUpdate} />
       )}
     </>
   );

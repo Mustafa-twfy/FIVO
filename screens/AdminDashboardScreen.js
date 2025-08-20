@@ -569,7 +569,7 @@ export default function AdminDashboardScreen({ navigation }) {
                   <Text style={{fontSize:20,fontWeight:'bold',marginBottom:12,textAlign:'center'}}>إنشاء تحديث للتطبيق</Text>
                   <TextInput placeholder="عنوان التحديث" value={updateTitle} onChangeText={setUpdateTitle} style={{borderWidth:1,borderColor:'#ccc',borderRadius:8,padding:8,marginBottom:10,fontSize:16}} />
                   <TextInput placeholder="نص التحديث" value={updateMessage} onChangeText={setUpdateMessage} multiline numberOfLines={3} style={{borderWidth:1,borderColor:'#ccc',borderRadius:8,padding:8,marginBottom:10,fontSize:16,minHeight:80}} />
-                  <TextInput placeholder="رابط التحديث (اختياري)" value={updateLink} onChangeText={setUpdateLink} style={{borderWidth:1,borderColor:'#ccc',borderRadius:8,padding:8,marginBottom:10,fontSize:16}} />
+                  <TextInput placeholder="رابط التحديث (مطلوب)" value={updateLink} onChangeText={setUpdateLink} style={{borderWidth:1,borderColor:'#ccc',borderRadius:8,padding:8,marginBottom:10,fontSize:16}} />
                   <TextInput placeholder="النسخة (اختياري)" value={updateVersion} onChangeText={setUpdateVersion} style={{borderWidth:1,borderColor:'#ccc',borderRadius:8,padding:8,marginBottom:10,fontSize:16}} />
                   <View style={{flexDirection:'row',justifyContent:'space-between',marginBottom:12}}>
                     <TouchableOpacity onPress={()=>setUpdateTarget('drivers')} style={{flex:1,backgroundColor:updateTarget==='drivers'?'#00C897':'#eee',padding:10,borderRadius:8,marginHorizontal:2}}>
@@ -583,12 +583,12 @@ export default function AdminDashboardScreen({ navigation }) {
                     </TouchableOpacity>
                   </View>
                   <TouchableOpacity style={{backgroundColor:'#00C897',padding:12,borderRadius:8,alignItems:'center',marginBottom:8,opacity:sendingUpdate?0.6:1}} disabled={sendingUpdate} onPress={async()=>{
-                    if(!updateTitle||!updateMessage){Alert.alert('تنبيه','يرجى إدخال العنوان والنص');return;} setSendingUpdate(true);
+                    if(!updateTitle||!updateMessage||!updateLink){Alert.alert('تنبيه','يرجى إدخال العنوان والنص والرابط');return;} setSendingUpdate(true);
                     try{
                       const payload = { title: updateTitle, message: updateMessage, link_url: updateLink || null, target_roles: updateTarget==='all'?['driver','store']:(updateTarget==='drivers'?['driver']:['store']), version: updateVersion || null };
                       const { data, error } = await updatesAPI.createUpdate(payload);
                       if(error){ Alert.alert('خطأ','فشل في إنشاء التحديث: ' + (error.message||JSON.stringify(error))); }
-                      else{ Alert.alert('تم','تم إنشاء التحديث بنجاح'); setUpdateModalVisible(false); setUpdateTitle(''); setUpdateMessage(''); setUpdateLink(''); setUpdateVersion(''); setUpdateTarget('all'); }
+                      else{ Alert.alert('تم','تم إنشاء التحديث بنجاح وسيظهر تنبيه التحديث للمستخدمين عند فتح التطبيق'); setUpdateModalVisible(false); setUpdateTitle(''); setUpdateMessage(''); setUpdateLink(''); setUpdateVersion(''); setUpdateTarget('all'); }
                     }catch(e){ console.error('create update error', e); Alert.alert('خطأ','حدث خطأ'); }
                     setSendingUpdate(false);
                   }}>
