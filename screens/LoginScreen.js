@@ -203,84 +203,13 @@ export default function LoginScreen({ navigation }) {
         .ilike('email', normalizedEmail)
         .single();
 
-      // مطابقة السائق على الخادم بدون جلب كلمة المرور
-      let driver = null;
-      let driverError = null;
-      try {
-        // تطابق صارم بالبريد (بعد التطبيع) + كلمة المرور كما هي
-        const { data: d1, error: e1 } = await supabase
-          .from('drivers')
-          .select('id,name,email,phone,status,is_suspended,is_active,token')
-          .eq('email', normalizedEmail)
-          .eq('password', password)
-          .maybeSingle();
-        if (d1) driver = d1; else {
-          // تطابق صارم بالبريد + كلمة المرور المنظّفة
-          const { data: d2, error: e2 } = await supabase
-            .from('drivers')
-            .select('id,name,email,phone,status,is_suspended,is_active,token')
-            .eq('email', normalizedEmail)
-            .eq('password', cleanedPassword)
-            .maybeSingle();
-          if (d2) driver = d2; else {
-            // fallback: ilike على البريد تحسبًا لاختلاف حالة الأحرف في قاعدة قديمة
-            const { data: d3, error: e3 } = await supabase
-              .from('drivers')
-              .select('id,name,email,phone,status,is_suspended,is_active,token')
-              .ilike('email', normalizedEmail)
-              .eq('password', cleanedPassword)
-              .maybeSingle();
-            if (d3) driver = d3; else driverError = e3 || e2 || e1 || null;
-          }
-        }
-      } catch (e) {
-        driverError = e;
-      }
+      // 4) مطابقة متسامحة أولًا: نجلب السجل ثم نقارن clean(password)
+      const driver = await tolerantFetchByEmail('drivers', normalizedEmail, password);
+      const store = driver ? null : await tolerantFetchByEmail('stores', normalizedEmail, password);
 
-      // مطابقة المتجر على الخادم بدون جلب كلمة المرور
-      let store = null;
-      let storeError = null;
-      try {
-        const { data: s1, error: se1 } = await supabase
-          .from('stores')
-          .select('id,name,email,is_active,token')
-          .eq('email', normalizedEmail)
-          .eq('password', password)
-          .maybeSingle();
-        if (s1) store = s1; else {
-          const { data: s2, error: se2 } = await supabase
-            .from('stores')
-            .select('id,name,email,is_active,token')
-            .eq('email', normalizedEmail)
-            .eq('password', cleanedPassword)
-            .maybeSingle();
-          if (s2) store = s2; else {
-            const { data: s3, error: se3 } = await supabase
-              .from('stores')
-              .select('id,name,email,is_active,token')
-              .ilike('email', normalizedEmail)
-              .eq('password', cleanedPassword)
-              .maybeSingle();
-            if (s3) store = s3; else storeError = se3 || se2 || se1 || null;
-          }
-        }
-      } catch (e) {
-        storeError = e;
-      }
-
-      console.log('نتيجة السائق:', { driver, driverError });
-      console.log('نتيجة المتجر:', { store, storeError });
+      console.log('نتيجة السائق:', { found: !!driver });
+      console.log('نتيجة المتجر:', { found: !!store });
       console.log('نتيجة طلب التسجيل:', { pendingRequest, requestError });
-
-      if (driverError && driverError.code && driverError.code !== 'PGRST116') {
-        console.error('خطأ في جدول السائقين:', driverError);
-      }
-      if (storeError && storeError.code && storeError.code !== 'PGRST116') {
-        console.error('خطأ في جدول المتاجر:', storeError);
-      }
-      if (requestError && requestError.code && requestError.code !== 'PGRST116') {
-        console.error('خطأ في طلبات التسجيل:', requestError);
-      }
 
       // أولوية: السائق → المتجر → طلب تسجيل
       if (driver) {
@@ -315,42 +244,7 @@ export default function LoginScreen({ navigation }) {
         return;
       }
 
-      // محاولة متسامحة: جلب السجل وتنظيف كلمة المرور من DB ثم المقارنة
-      if (!driver && !store) {
-        const tolerantDriver = await tolerantFetchByEmail('drivers', normalizedEmail, password);
-        if (tolerantDriver) {
-          if (tolerantDriver.status && tolerantDriver.status !== 'approved') {
-            Alert.alert('حساب غير مفعل', 'تم العثور على حساب سائق لكنه غير مفعل بعد. يرجى انتظار الموافقة.');
-            navigation.replace('UnifiedPendingApproval', { email: normalizedEmail, user_type: 'driver', password });
-            setLoading(false);
-            return;
-          }
-          const expiry = new Date();
-          expiry.setDate(expiry.getDate() + 7);
-          const token = tolerantDriver.token || 'driver-token-placeholder';
-          await persistSession(tolerantDriver, 'driver', expiry.toISOString(), token);
-          navigation.replace('Driver', { driverId: tolerantDriver.id });
-          setLoading(false);
-          return;
-        }
-
-        const tolerantStore = await tolerantFetchByEmail('stores', normalizedEmail, password);
-        if (tolerantStore) {
-          if (tolerantStore.is_active === false) {
-            Alert.alert('حسابك غير مفعل', 'يرجى انتظار موافقة الإدارة على حساب المتجر.');
-            navigation.replace('UnifiedPendingApproval', { email: normalizedEmail, user_type: 'store', password });
-            setLoading(false);
-            return;
-          }
-          const expiry = new Date();
-          expiry.setDate(expiry.getDate() + 7);
-          const token = tolerantStore.token || 'store-token-placeholder';
-          await persistSession(tolerantStore, 'store', expiry.toISOString(), token);
-          navigation.replace('Store', { storeId: tolerantStore.id });
-          setLoading(false);
-          return;
-        }
-      }
+      // لا حاجة لمحاولة متسامحة ثانية؛ تم تطبيقها مسبقًا
 
       if (pendingRequest) {
         if (pendingRequest.status === 'pending') {
