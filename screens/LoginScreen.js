@@ -123,6 +123,7 @@ export default function LoginScreen({ navigation }) {
         .from(table)
         .select(sel)
         .ilike('email', email)
+        .limit(1)
         .maybeSingle();
       if (!data) return null;
 

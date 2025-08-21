@@ -686,10 +686,14 @@ export const registrationRequestsAPI = {
         .from('drivers')
         .insert({
           email: request.email,
+          password: request.password, // نقل كلمة المرور كما هي من الطلب
           name: request.name,
           phone: request.phone,
           work_start_time: startTime,
           work_end_time: endTime,
+          vehicle_type: request.vehicle_type || null,
+          vehicle_number: request.vehicle_number || null,
+          status: 'approved',
           is_active: true
         });
 
@@ -705,6 +709,70 @@ export const registrationRequestsAPI = {
       }
 
       return { data: driver, error: driverError };
+    }
+  },
+
+  // قبول طلب تسجيل متجر
+  approveStoreRequest: async (requestId) => {
+    const { data: request } = await supabase
+      .from('registration_requests')
+      .select('*')
+      .eq('id', requestId)
+      .single();
+
+    if (!request) return { data: null, error: 'الطلب غير موجود' };
+
+    try {
+      // محاولة إدراج مع location_url إن كان العمود موجودًا
+      const { data: store, error: storeError } = await supabase
+        .from('stores')
+        .insert({
+          email: request.email,
+          password: request.password, // نقل كلمة المرور كما هي من الطلب
+          name: request.name,
+          phone: request.phone,
+          address: request.address,
+          category: request.category || null,
+          location_url: request.location_url,
+          is_active: true
+        })
+        .select()
+        .single();
+
+      if (storeError) {
+        // fallback بدون location_url في حال عدم وجود العمود
+        const { data: store2, error: storeError2 } = await supabase
+          .from('stores')
+          .insert({
+            email: request.email,
+            password: request.password,
+            name: request.name,
+            phone: request.phone,
+            address: request.address,
+            category: request.category || null,
+            is_active: true
+          })
+          .select()
+          .single();
+
+        if (storeError2) return { data: null, error: storeError2 };
+
+        await supabase
+          .from('registration_requests')
+          .update({ status: 'approved', approved_at: new Date().toISOString() })
+          .eq('id', requestId);
+
+        return { data: store2, error: null };
+      }
+
+      await supabase
+        .from('registration_requests')
+        .update({ status: 'approved', approved_at: new Date().toISOString() })
+        .eq('id', requestId);
+
+      return { data: store, error: null };
+    } catch (e) {
+      return { data: null, error: e };
     }
   },
 
