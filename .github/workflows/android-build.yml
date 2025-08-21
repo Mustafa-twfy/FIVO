@@ -9,6 +9,10 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+      EXPO_PUBLIC_USE_AUTH_FUNCTION: 'false'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -25,6 +29,20 @@ jobs:
 
       - name: Install dependencies
         run: npm install
+
+      - name: Fallback Supabase env from supabase.js if secrets missing
+        shell: bash
+        run: |
+          if [ -z "${EXPO_PUBLIC_SUPABASE_URL}" ]; then
+            URL=$(sed -n "s/.*EXPO_PUBLIC_SUPABASE_URL.*'|| *'\(https:[^']*\)'.*/\1/p" supabase.js)
+            if [ -z "$URL" ]; then URL=$(grep -oE "https://[a-z0-9.-]+\.supabase\.co" supabase.js | head -n1); fi
+            echo "EXPO_PUBLIC_SUPABASE_URL=$URL" >> $GITHUB_ENV
+          fi
+          if [ -z "${EXPO_PUBLIC_SUPABASE_ANON_KEY}" ]; then
+            KEY=$(sed -n "s/.*EXPO_PUBLIC_SUPABASE_ANON_KEY.*'|| *'\([^']*\)'.*/\1/p" supabase.js)
+            echo "EXPO_PUBLIC_SUPABASE_ANON_KEY=$KEY" >> $GITHUB_ENV
+          fi
+          echo "EXPO_PUBLIC_USE_AUTH_FUNCTION=false" >> $GITHUB_ENV
 
       - name: Build Release APK
         working-directory: ./android
