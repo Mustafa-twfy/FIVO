@@ -18,25 +18,8 @@ import colors from '../colors';
 import { useAuth } from '../context/AuthContext';
 
 const simsimLogo = { uri: 'https://i.ibb.co/Myy7sCzX/Picsart-25-07-31-16-12-30-512.jpg' };
-// رابط دالة المصادقة على Supabase Functions (اختياري عبر متغير بيئة)
-const AUTH_API_URL = process.env.EXPO_PUBLIC_AUTH_API_URL || '';
-const USE_AUTH_FUNCTION = process.env.EXPO_PUBLIC_USE_AUTH_FUNCTION === 'true';
-// تعطيل مهلة تسجيل الدخول: اجعل المهلة غير مفعلة افتراضيًا
-const REQUEST_TIMEOUT_MS = 0;
-
-const fetchWithTimeout = async (url, options = {}, timeoutMs = REQUEST_TIMEOUT_MS) => {
-  const controller = new AbortController();
-  let id = null;
-  if (timeoutMs && timeoutMs > 0) {
-    id = setTimeout(() => controller.abort(), timeoutMs);
-  }
-  try {
-    const resp = await fetch(url, { ...options, signal: controller.signal });
-    return resp;
-  } finally {
-    if (id) clearTimeout(id);
-  }
-};
+// رابط دالة المصادقة على Supabase Functions لمشروعك
+const AUTH_API_URL = 'https://nzxmhpigoeexuadrnith.functions.supabase.co';
 
 export default function LoginScreen({ navigation }) {
   const { login } = useAuth();
@@ -44,20 +27,6 @@ export default function LoginScreen({ navigation }) {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-
-  // تنظيف الإدخال: إزالة محارف اتجاه النص الخفية، تقليم، وتوحيد الأرقام العربية إلى لاتينية
-  const toWesternDigits = (s) =>
-    s
-      .replace(/[\u0660-\u0669]/g, (d) => String(d.charCodeAt(0) - 0x0660))
-      .replace(/[\u06F0-\u06F9]/g, (d) => String(d.charCodeAt(0) - 0x06F0));
-  // تنظيف موسّع: محارف RTL المخفية + ZWJ + NBSP + BOM + isolates
-  const clean = (s) =>
-    toWesternDigits(
-      (s ?? '')
-        .toString()
-        .replace(/[\u200e\u200f\u200d\u202a-\u202e\u2066-\u2069\ufeff\u00a0]/g, '')
-        .trim()
-    );
 
   // ✅ استعادة جلسة محفوظة (إن وجدت) + توجيه فوري
   useEffect(() => {
@@ -113,32 +82,6 @@ export default function LoginScreen({ navigation }) {
     await login(user, role, expiryDate || null, token || null);
   };
 
-  // مطابقة متسامحة: تجلب السجل ثم تنظّف كلمة المرور من قاعدة البيانات وتقارن
-  const tolerantFetchByEmail = async (table, email, rawPassword) => {
-    try {
-      const sel = table === 'drivers'
-        ? 'id,name,email,phone,status,is_suspended,is_active,token,password'
-        : 'id,name,email,is_active,token,password';
-      const { data } = await supabase
-        .from(table)
-        .select(sel)
-        .ilike('email', email)
-        .limit(1)
-        .maybeSingle();
-      if (!data) return null;
-
-      const dbRaw = ((data.password ?? '') + '');
-      const dbClean = clean(dbRaw);
-      const inputRaw = (rawPassword ?? '') + '';
-      const inputClean = clean(inputRaw);
-      if (dbRaw && dbRaw === inputRaw) return data;
-      if (dbClean && dbClean === inputClean) return data;
-      return null;
-    } catch (_) {
-      return null;
-    }
-  };
-
   const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert('خطأ', 'يرجى إدخال البريد الإلكتروني وكلمة المرور');
@@ -149,38 +92,9 @@ export default function LoginScreen({ navigation }) {
 
     try {
       console.log('=== بداية عملية تسجيل الدخول ===');
-      const normalizedEmail = clean(email).toLowerCase();
-      const cleanedPassword = clean(password);
-      console.log('البريد الإلكتروني (بعد التطبيع):', normalizedEmail);
+      console.log('البريد الإلكتروني:', email);
 
-      // 1) محاولة API خارجي إن كانت مفعلة عبر متغير بيئة (بمهلة قصيرة)
-      if (USE_AUTH_FUNCTION && AUTH_API_URL) {
-        try {
-          const resp = await fetchWithTimeout(`${AUTH_API_URL.replace(/\/$/, '')}/auth/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: normalizedEmail, password: cleanedPassword })
-          });
-          const json = await resp.json();
-          if (resp.ok && json.token && json.role && json.user) {
-            const { token, role, user, expires_at } = json;
-
-            // حفظ الجلسة
-            await persistSession(user, role, expires_at || null, token);
-
-            // توجيه
-            redirectByRole(role, user.id);
-            setLoading(false);
-            return;
-          } else {
-            console.warn('Auth API rejected credentials or responded unexpectedly', json);
-            // نكمل للمنطق الداخلي
-          }
-        } catch (apiErr) {
-          console.warn('Auth API call failed, falling back to built-in checks', apiErr);
-          // نكمل للمنطق الداخلي
-        }
-      }
+      // لا يوجد استدعاء API خارجي هنا؛ نعتمد فقط على الجداول الأساسية
 
       // 2) حساب أدمن ثابت (إن وجد)
       if (email === 'nmcmilli07@gmail.com' && password === 'admin1234') {
@@ -196,64 +110,29 @@ export default function LoginScreen({ navigation }) {
         return;
       }
 
-      // 3) التحقق من الحسابات
+      // 3) التحقق من طلبات التسجيل
       const { data: pendingRequest, error: requestError } = await supabase
         .from('registration_requests')
-        .select('email,status,user_type,password,rejection_reason')
-        .ilike('email', normalizedEmail)
+        .select('*')
+        .eq('email', email)
+        .eq('password', password)
         .single();
 
-      // 4) مطابقة متسامحة أولًا: نجلب السجل ثم نقارن clean(password)
-      const driver = await tolerantFetchByEmail('drivers', normalizedEmail, password);
-      const store = driver ? null : await tolerantFetchByEmail('stores', normalizedEmail, password);
-
-      console.log('نتيجة السائق:', { found: !!driver });
-      console.log('نتيجة المتجر:', { found: !!store });
-      console.log('نتيجة طلب التسجيل:', { pendingRequest, requestError });
-
-      // أولوية: السائق → المتجر → طلب تسجيل
-      if (driver) {
-        if (driver.status && driver.status !== 'approved') {
-          Alert.alert('حساب غير مفعل', 'تم العثور على حساب سائق لكنه غير مفعل بعد. يرجى انتظار الموافقة.');
-          navigation.replace('UnifiedPendingApproval', { email: normalizedEmail, user_type: 'driver', password });
-          setLoading(false);
-          return;
-        }
-        const expiry = new Date();
-        expiry.setDate(expiry.getDate() + 7);
-        const token = driver.token || 'driver-token-placeholder';
-        await persistSession(driver, 'driver', expiry.toISOString(), token);
-        navigation.replace('Driver', { driverId: driver.id });
+      if (requestError && requestError.code !== 'PGRST116') {
+        console.error('خطأ في البحث في طلبات التسجيل:', requestError);
+        Alert.alert('خطأ', 'حدث خطأ في التحقق من طلبات التسجيل');
         setLoading(false);
         return;
       }
-
-      if (store) {
-        if (store.is_active === false) {
-          Alert.alert('حسابك غير مفعل', 'يرجى انتظار موافقة الإدارة على حساب المتجر.');
-          navigation.replace('UnifiedPendingApproval', { email: normalizedEmail, user_type: 'store', password });
-          setLoading(false);
-          return;
-        }
-        const expiry = new Date();
-        expiry.setDate(expiry.getDate() + 7);
-        const token = store.token || 'store-token-placeholder';
-        await persistSession(store, 'store', expiry.toISOString(), token);
-        navigation.replace('Store', { storeId: store.id });
-        setLoading(false);
-        return;
-      }
-
-      // لا حاجة لمحاولة متسامحة ثانية؛ تم تطبيقها مسبقًا
 
       if (pendingRequest) {
         if (pendingRequest.status === 'pending') {
           Alert.alert('انتظار الموافقة', 'يرجى انتظار موافقة الإدارة على حسابك');
-          navigation.replace('UnifiedPendingApproval', { email: normalizedEmail, user_type: pendingRequest.user_type, password });
+          navigation.replace('UnifiedPendingApproval', { email, user_type: pendingRequest.user_type, password });
           setLoading(false);
           return;
         } else if (pendingRequest.status === 'rejected') {
-          await deleteUserEverywhere(normalizedEmail);
+          await deleteUserEverywhere(email);
           Alert.alert('تم رفض طلبك', `تم رفض طلب تسجيلك. السبب: ${pendingRequest.rejection_reason || 'غير محدد'}`, [
             { text: 'حسناً', onPress: () => navigation.replace('Login') }
           ]);
@@ -262,29 +141,58 @@ export default function LoginScreen({ navigation }) {
         }
       }
 
-      // 6) لا يوجد حساب صالح
-      // تحقّق إضافي لتقديم رسالة أدقّ
-      const [{ data: driverByEmail }, { data: storeByEmail }] = await Promise.all([
-        supabase.from('drivers').select('id,status').ilike('email', normalizedEmail).maybeSingle(),
-        supabase.from('stores').select('id,is_active').ilike('email', normalizedEmail).maybeSingle(),
-      ]);
-      if (driverByEmail) {
-        if (driverByEmail.status && driverByEmail.status !== 'approved') {
-          Alert.alert('انتظار الموافقة', 'تم العثور على حساب سائق لكن لم تتم الموافقة بعد.');
-          navigation.replace('UnifiedPendingApproval', { email: normalizedEmail, user_type: 'driver', password });
-        } else {
-          Alert.alert('خطأ في كلمة المرور', 'كلمة المرور غير صحيحة.');
-        }
-      } else if (storeByEmail) {
-        if (storeByEmail.is_active === false) {
-          Alert.alert('انتظار الموافقة', 'تم العثور على حساب متجر لكن لم تتم الموافقة بعد.');
-          navigation.replace('UnifiedPendingApproval', { email: normalizedEmail, user_type: 'store', password });
-        } else {
-          Alert.alert('خطأ في كلمة المرور', 'كلمة المرور غير صحيحة.');
-        }
-      } else {
-        Alert.alert('خطأ في تسجيل الدخول', 'لا يوجد حساب بهذا البريد. يرجى إنشاء حساب أولاً.');
+      // 4) التحقق من السائق المعتمد
+      const { data: driver, error: driverError } = await supabase
+        .from('drivers')
+        .select('*')
+        .eq('email', email)
+        .eq('password', password)
+        .eq('status', 'approved')
+        .single();
+
+      if (driverError && driverError.code !== 'PGRST116') {
+        console.error('خطأ في البحث في جدول السائقين:', driverError);
       }
+
+      if (driver) {
+        const expiry = new Date();
+        expiry.setDate(expiry.getDate() + 7);
+        const token = driver.token || 'driver-token-placeholder';
+
+        await persistSession(driver, 'driver', expiry.toISOString(), token);
+        Alert.alert('نجح تسجيل الدخول', `مرحباً بك ${driver.name || ''}!`);
+        navigation.replace('Driver', { driverId: driver.id });
+        setLoading(false);
+        return;
+      }
+
+      // 5) التحقق من المتجر النشط
+      const { data: store, error: storeError } = await supabase
+        .from('stores')
+        .select('*')
+        .eq('email', email)
+        .eq('password', password)
+        .eq('is_active', true)
+        .single();
+
+      if (storeError && storeError.code !== 'PGRST116') {
+        console.error('خطأ في البحث في جدول المتاجر:', storeError);
+      }
+
+      if (store) {
+        const expiry = new Date();
+        expiry.setDate(expiry.getDate() + 7);
+        const token = store.token || 'store-token-placeholder';
+
+        await persistSession(store, 'store', expiry.toISOString(), token);
+        Alert.alert('نجح تسجيل الدخول', `مرحباً بك ${store.name || ''}!`);
+        navigation.replace('Store', { storeId: store.id });
+        setLoading(false);
+        return;
+      }
+
+      // 6) لا يوجد حساب صالح
+      Alert.alert('خطأ في تسجيل الدخول', 'بيانات الدخول غير صحيحة أو لم تتم الموافقة بعد');
     } catch (error) {
       console.error('=== خطأ عام في عملية تسجيل الدخول ===', error);
       Alert.alert('خطأ', 'حدث خطأ أثناء تسجيل الدخول: ' + error.message);
@@ -297,7 +205,8 @@ export default function LoginScreen({ navigation }) {
     if (userType === 'driver') {
       navigation.navigate('DriverRegistration');
     } else if (userType === 'store') {
-      navigation.navigate('StoreRegistration');
+      // ✅ صار يفتح شاشتنا الجديدة الموحّدة
+      navigation.navigate('UnifiedStoreRegistrationScreen');
     }
   };
 
