@@ -349,9 +349,9 @@ export default function DriverDashboardScreen({ navigation }) {
       const updateTime = Date.now();
       setLastOnlineUpdate(updateTime);
       
-      // تحديث متفائل لتقليل الوميض
-      setIsOnline(value);
-      setDriverInfo((prev) => (prev ? { ...prev, is_active: value } : prev));
+    // تحديث متفائل لتقليل الوميض
+    setIsOnline(value);
+    setDriverInfo((prev) => (prev ? { ...prev, is_active: value } : prev));
       
       // تحديث قاعدة البيانات
       const { error } = await supabase
