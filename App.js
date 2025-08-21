@@ -104,7 +104,7 @@ function AuthStack() {
       <Stack.Screen name="DriverDocuments" component={DriverDocumentsScreen} />
       <Stack.Screen name="DriverVehicle" component={DriverVehicleScreen} />
       <Stack.Screen name="PendingApproval" component={PendingApprovalScreen} />
-      <Stack.Screen name="StoreRegistration" component={UnifiedStoreRegistrationScreen} />
+      <Stack.Screen name="UnifiedStoreRegistrationScreen" component={UnifiedStoreRegistrationScreen} />
     </Stack.Navigator>
   );
 }
@@ -308,7 +308,7 @@ function AppContent() {
           <Stack.Screen name="DriverVehicle" component={DriverVehicleScreen} />
           <Stack.Screen name="PendingApproval" component={PendingApprovalScreen} />
           <Stack.Screen name="UnifiedPendingApproval" component={UnifiedPendingApprovalScreen} />
-          <Stack.Screen name="StoreRegistration" component={UnifiedStoreRegistrationScreen} />
+          <Stack.Screen name="UnifiedStoreRegistrationScreen" component={UnifiedStoreRegistrationScreen} />
           <Stack.Screen name="AdminNewOrderScreen" component={AdminNewOrderScreen} />
           <Stack.Screen name="Driver" component={DriverDrawer} />
           <Stack.Screen name="Store" component={StoreDrawer} />

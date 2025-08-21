@@ -54,6 +54,7 @@ export default function DriverDashboardScreen({ navigation }) {
   const [acceptLoading, setAcceptLoading] = useState(false);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [isUpdatingOnline, setIsUpdatingOnline] = useState(false);
+  const [lastOnlineUpdate, setLastOnlineUpdate] = useState(0);
 
   useEffect(() => {
     const initializeDriver = async () => {
@@ -122,7 +123,7 @@ export default function DriverDashboardScreen({ navigation }) {
 
     // تحديث بيانات السائق كل 10 ثواني مع مقارنة ذكية (تحديث صامت)
     const interval = setInterval(async () => {
-      if (driverId) {
+      if (driverId && !isUpdatingOnline) {
         // جلب البيانات الجديدة بدون setLoading
         const { data: currentOrderDb } = await supabase
           .from('orders')
@@ -151,11 +152,34 @@ export default function DriverDashboardScreen({ navigation }) {
         if (!notificationsError) {
           setUnreadNotifications(notifications?.length || 0);
         }
+        
+        // تحديث بيانات السائق بدون تعديل حالة is_active إذا كان المستخدم يقوم بالتحديث
+        const { data: driverData } = await supabase
+          .from('drivers')
+          .select('*')
+          .eq('id', parseInt(driverId))
+          .single();
+        
+        if (driverData && !isUpdatingOnline) {
+          setDriverInfo(prev => {
+            if (!isEqual(prev, driverData)) {
+              // فقط تحديث is_active إذا لم يكن هناك تحديث جاري من المستخدم
+              return driverData;
+            }
+            return prev;
+          });
+          
+          // تحديث حالة الاتصال فقط إذا كانت مختلفة وليس هناك تحديث جاري
+          // وفقط إذا لم يتم تغييرها مؤخراً (لتجنب الصراع مع التحديث اليدوي)
+          if (driverData.is_active !== isOnline && Math.abs(Date.now() - lastOnlineUpdate) > 3000) {
+            setIsOnline(driverData.is_active || false);
+          }
+        }
         // لا يوجد setLoading هنا إطلاقًا
       }
     }, 10000);
     return () => clearInterval(interval);
-  }, [driverId, currentOrder, availableOrders, user, userType]);
+  }, [driverId, user, userType]); // إزالة currentOrder و availableOrders لتجنب التحديثات الزائدة
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -319,22 +343,38 @@ export default function DriverDashboardScreen({ navigation }) {
     if (isUpdatingOnline) return;
     setIsUpdatingOnline(true);
     const previous = isOnline;
-    // تحديث متفائل لتقليل الوميض
-    setIsOnline(value);
-    setDriverInfo((prev) => (prev ? { ...prev, is_active: value } : prev));
+    
     try {
-      await supabase
+      // تسجيل وقت التحديث
+      const updateTime = Date.now();
+      setLastOnlineUpdate(updateTime);
+      
+      // تحديث متفائل لتقليل الوميض
+      setIsOnline(value);
+      setDriverInfo((prev) => (prev ? { ...prev, is_active: value } : prev));
+      
+      // تحديث قاعدة البيانات
+      const { error } = await supabase
         .from('drivers')
         .update({ is_active: value })
         .eq('id', driverInfo?.id);
-      // لا تعِد التحميل فورًا لتجنب سباق القيم من قاعدة البيانات
+      
+      if (error) {
+        throw error;
+      }
+      
+      // إنتظار قصير قبل السماح بالتحديثات التلقائية مرة أخرى
+      setTimeout(() => {
+        setIsUpdatingOnline(false);
+      }, 2000);
+      
     } catch (error) {
       // تراجع عند الفشل
       setIsOnline(previous);
       setDriverInfo((prev) => (prev ? { ...prev, is_active: previous } : prev));
-      Alert.alert('خطأ', 'فشل في تحديث حالة العمل');
-    } finally {
       setIsUpdatingOnline(false);
+      Alert.alert('خطأ', 'فشل في تحديث حالة العمل');
+      console.error('Toggle online status error:', error);
     }
   };
 
