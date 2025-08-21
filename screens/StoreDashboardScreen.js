@@ -41,8 +41,15 @@ export default function StoreDashboardScreen({ navigation }) {
   useEffect(() => {
     const fetchStoreId = async () => {
       const id = await AsyncStorage.getItem('userId');
-      setStoreId(id);
-      if (id) loadStoreData(id); // هنا فقط setLoading
+      const numericId = id ? Number(id) : null;
+      setStoreId(numericId);
+      if (numericId) {
+        loadStoreData(numericId); // هنا فقط setLoading
+      } else {
+        Alert.alert('لم يتم العثور على بيانات الحساب', 'يرجى تسجيل الدخول مرة أخرى', [
+          { text: 'حسناً', onPress: () => navigation.replace('Login') }
+        ]);
+      }
     };
     fetchStoreId();
 
@@ -52,8 +59,11 @@ export default function StoreDashboardScreen({ navigation }) {
         const { data: store, error: storeError } = await supabase
           .from('stores')
           .select('*')
-          .eq('id', storeId)
+          .eq('id', Number(storeId))
           .single();
+        if (storeError) {
+          console.error('[StoreDashboard] interval stores error:', storeError);
+        }
         if (!storeError && !isEqual(storeInfo, store)) {
           setStoreInfo(store);
         }
@@ -62,7 +72,7 @@ export default function StoreDashboardScreen({ navigation }) {
         const { data: notifications, error: notificationsError } = await supabase
           .from('store_notifications')
           .select('*')
-          .eq('store_id', storeId)
+          .eq('store_id', Number(storeId))
           .eq('is_read', false);
         if (!notificationsError) {
           setUnreadNotifications(notifications?.length || 0);
@@ -70,7 +80,7 @@ export default function StoreDashboardScreen({ navigation }) {
       }
     }, 5000);
     return () => clearInterval(interval);
-  }, [storeId, storeInfo]);
+  }, [storeId]);
 
   const loadStoreData = async (id) => {
     setLoading(true);
@@ -79,8 +89,11 @@ export default function StoreDashboardScreen({ navigation }) {
       const { data: store, error: storeError } = await supabase
         .from('stores')
         .select('*')
-        .eq('id', id)
+        .eq('id', Number(id))
         .single();
+      if (storeError) {
+        console.error('[StoreDashboard] load stores error:', storeError);
+      }
       // تحقق من حالة الحساب
       if (!store || store.is_active === false) {
         Alert.alert(
@@ -99,9 +112,10 @@ export default function StoreDashboardScreen({ navigation }) {
       const { data: ordersData, error: ordersError } = await supabase
         .from('orders')
         .select('*')
-        .eq('store_id', id);
+        .eq('store_id', Number(id));
         
       if (ordersError) {
+        console.error('[StoreDashboard] orders error:', ordersError);
         setOrders([]);
       } else {
         setOrders(ordersData || []);
@@ -114,7 +128,7 @@ export default function StoreDashboardScreen({ navigation }) {
         const { data: notifications, error: notificationsError } = await supabase
           .from('store_notifications')
           .select('*')
-          .eq('store_id', id)
+          .eq('store_id', Number(id))
           .eq('is_read', false);
         if (!notificationsError) {
           setUnreadNotifications(notifications?.length || 0);
@@ -200,7 +214,7 @@ export default function StoreDashboardScreen({ navigation }) {
         navigation.navigate('StoreNotifications');
         break;
       case 'support':
-        setSupportModalVisible(true);
+        navigation.navigate('StoreSupportChat');
         break;
     }
   };
@@ -251,6 +265,12 @@ export default function StoreDashboardScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
+      {loading && (
+        <View style={{ position: 'absolute', zIndex: 10, top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.secondary }}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={{ marginTop: 10, color: colors.primary }}>جاري تحميل البيانات...</Text>
+        </View>
+      )}
       <View style={{backgroundColor: colors.primary, paddingTop: 40, paddingBottom: 20, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'}}>
         <TouchableOpacity onPress={() => navigation.openDrawer()} style={{padding: 8}}>
           <Ionicons name="menu" size={28} color={colors.secondary} />
