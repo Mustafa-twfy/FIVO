@@ -29,6 +29,9 @@ yarn-error.log*
 
 # macOS
 .DS_Store
+
+# منع ملفات splash screen الفاسدة
+android/app/src/main/res/drawable-*/splashscreen_logo.png
 Thumbs.db
 *.pem
 
