@@ -28,6 +28,7 @@ import RegistrationRequestsScreen from './screens/RegistrationRequestsScreen';
 import StoreOrdersScreen from './screens/StoreOrdersScreen';
 import NewOrderScreen from './screens/NewOrderScreen';
 import DriverDashboardScreen from './screens/DriverDashboardScreen';
+import StoreDashboardScreen from './screens/StoreDashboardScreen';
 import AvailableOrdersScreen from './screens/AvailableOrdersScreen';
 import MyOrdersScreen from './screens/MyOrdersScreen';
 import DriverProfileScreen from './screens/DriverProfileScreen';

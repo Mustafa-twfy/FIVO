@@ -54,7 +54,7 @@ export default function StoreOrdersScreen({ navigation }) {
       const { data, error } = await supabase
         .from('stores')
         .select('*')
-        .eq('id', storeId)
+        .eq('id', Number(storeId))
         .single();
 
       if (error) {
@@ -76,7 +76,7 @@ export default function StoreOrdersScreen({ navigation }) {
         throw new Error('لم يتم العثور على معرف المتجر');
       }
 
-      const { data, error } = await ordersAPI.getStoreOrders(storeId);
+      const { data, error } = await ordersAPI.getStoreOrders(Number(storeId));
 
       if (error) {
         throw new Error('تعذر جلب الطلبات: ' + error.message);

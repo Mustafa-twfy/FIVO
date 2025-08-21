@@ -263,14 +263,17 @@ export default function StoreDashboardScreen({ navigation }) {
     // Implementation of handleSendSupport function
   };
 
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={styles.loadingText}>جاري تحميل بيانات المتجر...</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
-      {loading && (
-        <View style={{ position: 'absolute', zIndex: 10, top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.secondary }}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={{ marginTop: 10, color: colors.primary }}>جاري تحميل البيانات...</Text>
-        </View>
-      )}
       <View style={{backgroundColor: colors.primary, paddingTop: 40, paddingBottom: 20, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'}}>
         <TouchableOpacity onPress={() => navigation.openDrawer()} style={{padding: 8}}>
           <Ionicons name="menu" size={28} color={colors.secondary} />
