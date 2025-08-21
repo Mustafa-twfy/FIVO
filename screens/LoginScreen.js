@@ -181,20 +181,31 @@ export default function LoginScreen({ navigation }) {
       let driver = null;
       let driverError = null;
       try {
+        // تطابق صارم بالبريد (بعد التطبيع) + كلمة المرور كما هي
         const { data: d1, error: e1 } = await supabase
           .from('drivers')
           .select('id,name,email,phone,status,is_suspended,is_active,token')
-          .ilike('email', normalizedEmail)
+          .eq('email', normalizedEmail)
           .eq('password', password)
           .maybeSingle();
         if (d1) driver = d1; else {
+          // تطابق صارم بالبريد + كلمة المرور المنظّفة
           const { data: d2, error: e2 } = await supabase
             .from('drivers')
             .select('id,name,email,phone,status,is_suspended,is_active,token')
-            .ilike('email', normalizedEmail)
+            .eq('email', normalizedEmail)
             .eq('password', cleanedPassword)
             .maybeSingle();
-          if (d2) driver = d2; else driverError = e2 || e1 || null;
+          if (d2) driver = d2; else {
+            // fallback: ilike على البريد تحسبًا لاختلاف حالة الأحرف في قاعدة قديمة
+            const { data: d3, error: e3 } = await supabase
+              .from('drivers')
+              .select('id,name,email,phone,status,is_suspended,is_active,token')
+              .ilike('email', normalizedEmail)
+              .eq('password', cleanedPassword)
+              .maybeSingle();
+            if (d3) driver = d3; else driverError = e3 || e2 || e1 || null;
+          }
         }
       } catch (e) {
         driverError = e;
@@ -207,17 +218,25 @@ export default function LoginScreen({ navigation }) {
         const { data: s1, error: se1 } = await supabase
           .from('stores')
           .select('id,name,email,is_active,token')
-          .ilike('email', normalizedEmail)
+          .eq('email', normalizedEmail)
           .eq('password', password)
           .maybeSingle();
         if (s1) store = s1; else {
           const { data: s2, error: se2 } = await supabase
             .from('stores')
             .select('id,name,email,is_active,token')
-            .ilike('email', normalizedEmail)
+            .eq('email', normalizedEmail)
             .eq('password', cleanedPassword)
             .maybeSingle();
-          if (s2) store = s2; else storeError = se2 || se1 || null;
+          if (s2) store = s2; else {
+            const { data: s3, error: se3 } = await supabase
+              .from('stores')
+              .select('id,name,email,is_active,token')
+              .ilike('email', normalizedEmail)
+              .eq('password', cleanedPassword)
+              .maybeSingle();
+            if (s3) store = s3; else storeError = se3 || se2 || se1 || null;
+          }
         }
       } catch (e) {
         storeError = e;
