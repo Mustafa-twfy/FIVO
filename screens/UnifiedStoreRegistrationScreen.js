@@ -43,6 +43,20 @@ export default function UnifiedStoreRegistrationScreen({ navigation }) {
     setErrors(prev => ({ ...prev, [field]: undefined }));
   };
 
+  // تطبيع رابط الموقع: إصلاح بدايات مثل tps:// وإضافة https:// عند اللزوم
+  const normalizeUrl = (raw) => {
+    if (!raw) return '';
+    let s = String(raw).trim();
+    s = s.replace(/^[\s:]+/, '');
+    if (/^tps:\/\//i.test(s)) s = 'h' + s;
+    else if (/^ps:\/\//i.test(s)) s = 'htt' + s;
+    else if (/^s:\/\//i.test(s)) s = 'http' + s;
+    if (!/^https?:\/\//i.test(s)) {
+      if (/^[\w.-]+\.[a-z]{2,}/i.test(s)) s = 'https://' + s;
+    }
+    return s;
+  };
+
   const validateAll = () => {
     let valid = true;
     const newErrors = {};
@@ -89,10 +103,7 @@ export default function UnifiedStoreRegistrationScreen({ navigation }) {
       valid = false;
     }
     if (!info.locationUrl.trim()) {
-      newErrors.locationUrl = 'يرجى إدخال رابط موقع المتجر من Google Maps';
-      valid = false;
-    } else if (!/google.*maps/i.test(info.locationUrl.trim())) {
-      newErrors.locationUrl = 'يرجى إدخال رابط صحيح من Google Maps';
+      newErrors.locationUrl = 'يرجى إدخال رابط موقع المتجر';
       valid = false;
     }
 
@@ -187,7 +198,8 @@ export default function UnifiedStoreRegistrationScreen({ navigation }) {
         return;
       }
 
-      // إدراج الطلب في registration_requests (نفس الحقول القديمة)
+      // إدراج الطلب في registration_requests (مع تطبيع الرابط)
+      const normalizedLocation = normalizeUrl(info.locationUrl);
       const payload = {
         email: formData.email,
         password: formData.password,
@@ -195,7 +207,7 @@ export default function UnifiedStoreRegistrationScreen({ navigation }) {
         name: info.storeName,
         phone: info.phone,
         address: info.address,
-        location_url: info.locationUrl,
+        location_url: normalizedLocation,
         status: 'pending',
         created_at: new Date().toISOString(),
       };

@@ -21,16 +21,20 @@ const simsimLogo = { uri: 'https://i.ibb.co/Myy7sCzX/Picsart-25-07-31-16-12-30-5
 // رابط دالة المصادقة على Supabase Functions (اختياري عبر متغير بيئة)
 const AUTH_API_URL = process.env.EXPO_PUBLIC_AUTH_API_URL || '';
 const USE_AUTH_FUNCTION = process.env.EXPO_PUBLIC_USE_AUTH_FUNCTION === 'true';
-const REQUEST_TIMEOUT_MS = 15000;
+// تعطيل مهلة تسجيل الدخول: اجعل المهلة غير مفعلة افتراضيًا
+const REQUEST_TIMEOUT_MS = 0;
 
 const fetchWithTimeout = async (url, options = {}, timeoutMs = REQUEST_TIMEOUT_MS) => {
   const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), timeoutMs);
+  let id = null;
+  if (timeoutMs && timeoutMs > 0) {
+    id = setTimeout(() => controller.abort(), timeoutMs);
+  }
   try {
     const resp = await fetch(url, { ...options, signal: controller.signal });
     return resp;
   } finally {
-    clearTimeout(id);
+    if (id) clearTimeout(id);
   }
 };
 
@@ -197,7 +201,7 @@ export default function LoginScreen({ navigation }) {
       }
 
       // أولوية: السائق → المتجر → طلب تسجيل
-      if (driver && clean(driver.password || '') === cleanedPassword) {
+      if (driver && (((driver.password || '') === password) || (clean(driver.password || '') === cleanedPassword))) {
         if (driver.status && driver.status !== 'approved') {
           Alert.alert('حساب غير مفعل', 'تم العثور على حساب سائق لكنه غير مفعل بعد. يرجى انتظار الموافقة.');
           navigation.replace('UnifiedPendingApproval', { email: normalizedEmail, user_type: 'driver', password });
@@ -213,7 +217,7 @@ export default function LoginScreen({ navigation }) {
         return;
       }
 
-      if (store && clean(store.password || '') === cleanedPassword) {
+      if (store && (((store.password || '') === password) || (clean(store.password || '') === cleanedPassword))) {
         if (store.is_active === false) {
           Alert.alert('حسابك غير مفعل', 'يرجى انتظار موافقة الإدارة على حساب المتجر.');
           navigation.replace('UnifiedPendingApproval', { email: normalizedEmail, user_type: 'store', password });
