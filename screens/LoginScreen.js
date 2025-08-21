@@ -113,6 +113,31 @@ export default function LoginScreen({ navigation }) {
     await login(user, role, expiryDate || null, token || null);
   };
 
+  // مطابقة متسامحة: تجلب السجل ثم تنظّف كلمة المرور من قاعدة البيانات وتقارن
+  const tolerantFetchByEmail = async (table, email, rawPassword) => {
+    try {
+      const sel = table === 'drivers'
+        ? 'id,name,email,phone,status,is_suspended,is_active,token,password'
+        : 'id,name,email,is_active,token,password';
+      const { data } = await supabase
+        .from(table)
+        .select(sel)
+        .ilike('email', email)
+        .maybeSingle();
+      if (!data) return null;
+
+      const dbRaw = ((data.password ?? '') + '');
+      const dbClean = clean(dbRaw);
+      const inputRaw = (rawPassword ?? '') + '';
+      const inputClean = clean(inputRaw);
+      if (dbRaw && dbRaw === inputRaw) return data;
+      if (dbClean && dbClean === inputClean) return data;
+      return null;
+    } catch (_) {
+      return null;
+    }
+  };
+
   const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert('خطأ', 'يرجى إدخال البريد الإلكتروني وكلمة المرور');
@@ -173,7 +198,7 @@ export default function LoginScreen({ navigation }) {
       // 3) التحقق من الحسابات
       const { data: pendingRequest, error: requestError } = await supabase
         .from('registration_requests')
-        .select('email,status,user_type,password')
+        .select('email,status,user_type,password,rejection_reason')
         .ilike('email', normalizedEmail)
         .single();
 
@@ -287,6 +312,43 @@ export default function LoginScreen({ navigation }) {
         navigation.replace('Store', { storeId: store.id });
         setLoading(false);
         return;
+      }
+
+      // محاولة متسامحة: جلب السجل وتنظيف كلمة المرور من DB ثم المقارنة
+      if (!driver && !store) {
+        const tolerantDriver = await tolerantFetchByEmail('drivers', normalizedEmail, password);
+        if (tolerantDriver) {
+          if (tolerantDriver.status && tolerantDriver.status !== 'approved') {
+            Alert.alert('حساب غير مفعل', 'تم العثور على حساب سائق لكنه غير مفعل بعد. يرجى انتظار الموافقة.');
+            navigation.replace('UnifiedPendingApproval', { email: normalizedEmail, user_type: 'driver', password });
+            setLoading(false);
+            return;
+          }
+          const expiry = new Date();
+          expiry.setDate(expiry.getDate() + 7);
+          const token = tolerantDriver.token || 'driver-token-placeholder';
+          await persistSession(tolerantDriver, 'driver', expiry.toISOString(), token);
+          navigation.replace('Driver', { driverId: tolerantDriver.id });
+          setLoading(false);
+          return;
+        }
+
+        const tolerantStore = await tolerantFetchByEmail('stores', normalizedEmail, password);
+        if (tolerantStore) {
+          if (tolerantStore.is_active === false) {
+            Alert.alert('حسابك غير مفعل', 'يرجى انتظار موافقة الإدارة على حساب المتجر.');
+            navigation.replace('UnifiedPendingApproval', { email: normalizedEmail, user_type: 'store', password });
+            setLoading(false);
+            return;
+          }
+          const expiry = new Date();
+          expiry.setDate(expiry.getDate() + 7);
+          const token = tolerantStore.token || 'store-token-placeholder';
+          await persistSession(tolerantStore, 'store', expiry.toISOString(), token);
+          navigation.replace('Store', { storeId: tolerantStore.id });
+          setLoading(false);
+          return;
+        }
       }
 
       if (pendingRequest) {
