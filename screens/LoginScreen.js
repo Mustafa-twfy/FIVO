@@ -50,7 +50,14 @@ export default function LoginScreen({ navigation }) {
     s
       .replace(/[\u0660-\u0669]/g, (d) => String(d.charCodeAt(0) - 0x0660))
       .replace(/[\u06F0-\u06F9]/g, (d) => String(d.charCodeAt(0) - 0x06F0));
-  const clean = (s) => toWesternDigits((s ?? '').toString().replace(/[\u200e\u200f\u202a-\u202e]/g, '').trim());
+  // تنظيف موسّع: محارف RTL المخفية + ZWJ + NBSP + BOM + isolates
+  const clean = (s) =>
+    toWesternDigits(
+      (s ?? '')
+        .toString()
+        .replace(/[\u200e\u200f\u200d\u202a-\u202e\u2066-\u2069\ufeff\u00a0]/g, '')
+        .trim()
+    );
 
   // ✅ استعادة جلسة محفوظة (إن وجدت) + توجيه فوري
   useEffect(() => {
@@ -163,28 +170,58 @@ export default function LoginScreen({ navigation }) {
         return;
       }
 
-      // 3) التحقق من الحسابات بالتوازي لتقليل التأخير
-      const [
-        { data: pendingRequest, error: requestError },
-        { data: driver, error: driverError },
-        { data: store, error: storeError },
-      ] = await Promise.all([
-        supabase
-          .from('registration_requests')
-          .select('email,status,user_type,password')
-          .ilike('email', normalizedEmail)
-          .single(),
-        supabase
+      // 3) التحقق من الحسابات
+      const { data: pendingRequest, error: requestError } = await supabase
+        .from('registration_requests')
+        .select('email,status,user_type,password')
+        .ilike('email', normalizedEmail)
+        .single();
+
+      // مطابقة السائق على الخادم بدون جلب كلمة المرور
+      let driver = null;
+      let driverError = null;
+      try {
+        const { data: d1, error: e1 } = await supabase
           .from('drivers')
-          .select('id,name,email,phone,status,is_suspended,is_active,token,password')
+          .select('id,name,email,phone,status,is_suspended,is_active,token')
           .ilike('email', normalizedEmail)
-          .single(),
-        supabase
+          .eq('password', password)
+          .maybeSingle();
+        if (d1) driver = d1; else {
+          const { data: d2, error: e2 } = await supabase
+            .from('drivers')
+            .select('id,name,email,phone,status,is_suspended,is_active,token')
+            .ilike('email', normalizedEmail)
+            .eq('password', cleanedPassword)
+            .maybeSingle();
+          if (d2) driver = d2; else driverError = e2 || e1 || null;
+        }
+      } catch (e) {
+        driverError = e;
+      }
+
+      // مطابقة المتجر على الخادم بدون جلب كلمة المرور
+      let store = null;
+      let storeError = null;
+      try {
+        const { data: s1, error: se1 } = await supabase
           .from('stores')
-          .select('id,name,email,is_active,token,password')
+          .select('id,name,email,is_active,token')
           .ilike('email', normalizedEmail)
-          .single(),
-      ]);
+          .eq('password', password)
+          .maybeSingle();
+        if (s1) store = s1; else {
+          const { data: s2, error: se2 } = await supabase
+            .from('stores')
+            .select('id,name,email,is_active,token')
+            .ilike('email', normalizedEmail)
+            .eq('password', cleanedPassword)
+            .maybeSingle();
+          if (s2) store = s2; else storeError = se2 || se1 || null;
+        }
+      } catch (e) {
+        storeError = e;
+      }
 
       console.log('نتيجة السائق:', { driver, driverError });
       console.log('نتيجة المتجر:', { store, storeError });
@@ -201,7 +238,7 @@ export default function LoginScreen({ navigation }) {
       }
 
       // أولوية: السائق → المتجر → طلب تسجيل
-      if (driver && (((driver.password || '') === password) || (clean(driver.password || '') === cleanedPassword))) {
+      if (driver) {
         if (driver.status && driver.status !== 'approved') {
           Alert.alert('حساب غير مفعل', 'تم العثور على حساب سائق لكنه غير مفعل بعد. يرجى انتظار الموافقة.');
           navigation.replace('UnifiedPendingApproval', { email: normalizedEmail, user_type: 'driver', password });
@@ -217,7 +254,7 @@ export default function LoginScreen({ navigation }) {
         return;
       }
 
-      if (store && (((store.password || '') === password) || (clean(store.password || '') === cleanedPassword))) {
+      if (store) {
         if (store.is_active === false) {
           Alert.alert('حسابك غير مفعل', 'يرجى انتظار موافقة الإدارة على حساب المتجر.');
           navigation.replace('UnifiedPendingApproval', { email: normalizedEmail, user_type: 'store', password });
