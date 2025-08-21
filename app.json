@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
-    "icon": "https://i.ibb.co/rR0dP6W3/1.jpg",
+    "icon": "./assets/icon.png",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -17,7 +17,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "https://i.ibb.co/rR0dP6W3/1.jpg",
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#00C897"
       },
       "package": "com.twfy.simsim"
