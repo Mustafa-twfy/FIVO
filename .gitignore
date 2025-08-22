@@ -62,3 +62,7 @@ coverage/
 # تجاهل ملفات إعدادات بناء قديمة أو خاصة بمشاريع أخرى
 # مثال: تجاهل أي ملفات workflow قديمة غير مستخدمة
 # .github/old_workflows/
+
+# منع ملفات PNG المُسببة لأخطاء AAPT2
+android/app/src/main/res/mipmap-*/ic_launcher*.png
+android/app/src/main/res/drawable-*/splashscreen_logo.png
