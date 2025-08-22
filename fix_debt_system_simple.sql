@@ -77,7 +77,7 @@ BEGIN
     IF p_new_points >= v_max_points AND NOT v_is_suspended THEN
         UPDATE drivers 
         SET is_suspended = true, 
-            suspension_reason = 'تم إيقافك مؤقتًا بسبب تجاوز حد الديون',
+            suspension_reason = 'تم إيقافك مؤقتًا بسبب تجاوز حد الديون. يرجى التواصل مع الدعم الفني لتصفير الديون.',
             suspended_at = NOW(),
             updated_at = NOW()
         WHERE id = p_driver_id;

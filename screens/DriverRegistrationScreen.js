@@ -9,7 +9,8 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Image
+  Image,
+  Linking
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -166,6 +167,14 @@ export default function DriverRegistrationScreen({ navigation }) {
     }
   };
 
+  const handleSupportContact = () => {
+    Alert.alert(
+      'تواصل مع الدعم الفني',
+      'للتواصل مع الدعم الفني، يرجى الاتصال على الرقم: 0599999999',
+      [{ text: 'إلغاء' }, { text: 'الاتصال الآن', onPress: () => Linking.openURL('tel:0599999999') }]
+    );
+  };
+
   return (
     <KeyboardAvoidingView 
       style={styles.container} 
@@ -177,7 +186,11 @@ export default function DriverRegistrationScreen({ navigation }) {
             <Ionicons name="arrow-back" size={24} color={colors.primary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>تسجيل كابتن جديد</Text>
-          <View style={{width: 24}} />
+          
+          {/* أيقونة الدعم الفني */}
+          <TouchableOpacity onPress={() => handleSupportContact()} style={styles.supportButton}>
+            <Ionicons name="headset-outline" size={24} color={colors.primary} />
+          </TouchableOpacity>
         </View>
 
         <View style={styles.content}>
@@ -313,6 +326,9 @@ const styles = StyleSheet.create({
     color: colors.primary,
   },
   backButton: {
+    padding: 8,
+  },
+  supportButton: {
     padding: 8,
   },
   content: {

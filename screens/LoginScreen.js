@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Image,
+  Linking,
 } from 'react-native';
 import { supabase } from '../supabase';
 import { Ionicons } from '@expo/vector-icons';
@@ -222,6 +223,15 @@ export default function LoginScreen({ navigation }) {
     await supabase.from('stores').delete().eq('email', email);
   };
 
+  const handleSupportContact = () => {
+    Alert.alert(
+      'تواصل مع الدعم الفني',
+      'للتواصل مع الدعم الفني، يرجى الاتصال على الرقم: 0599999999',
+      [{ text: 'إلغاء', style: 'cancel' }, { text: 'اتصال', onPress: () => Linking.openURL('tel:0599999999') }],
+      { cancelable: false }
+    );
+  };
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -234,6 +244,13 @@ export default function LoginScreen({ navigation }) {
           </View>
           <Text style={styles.logoText}>سمسم</Text>
           <Text style={styles.subtitle}>خدمة التوصيل الأسرع والأفضل</Text>
+          
+          {/* أيقونة الدعم الفني */}
+          <TouchableOpacity style={styles.supportButton} onPress={() => handleSupportContact()}>
+            <Ionicons name="headset-outline" size={24} color={colors.primary} />
+            <Text style={styles.supportText}>الدعم الفني</Text>
+            <Text style={styles.supportName}>مجرب محمد</Text>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.formContainer}>
@@ -463,5 +480,27 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     marginTop: 5,
+  },
+  supportButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  supportText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.primary,
+    marginLeft: 10,
+  },
+  supportName: {
+    fontSize: 14,
+    color: colors.dark,
+    marginLeft: 10,
   },
 });

@@ -228,8 +228,8 @@ export const driversAPI = {
         // إذا تجاوز الحد، أوقف السائق
         if (newPoints >= maxDebtPoints) {
           try {
-            await driversAPI.suspendDriver(driverId, 'تم إيقافك مؤقتًا بسبب تجاوز حد الديون. يرجى تصفير الديون للعودة للعمل.');
-            await driversAPI.sendNotification(driverId, 'إيقاف مؤقت', 'تم إيقافك مؤقتًا بسبب تجاوز حد الديون. يرجى تصفير الديون للعودة للعمل.');
+            await driversAPI.suspendDriver(driverId, 'تم إيقافك مؤقتًا بسبب تجاوز حد الديون. يرجى التواصل مع الدعم الفني لتصفير الديون.');
+            await driversAPI.sendNotification(driverId, 'إيقاف مؤقت', 'تم إيقافك مؤقتًا بسبب تجاوز حد الديون. يرجى التواصل مع الدعم الفني لتصفير الديون.');
             isSuspended = true;
           } catch (suspendError) {
             console.error('خطأ في إيقاف السائق:', suspendError);
@@ -423,8 +423,8 @@ export const driversAPI = {
         // إذا تجاوز الحد، أوقف السائق
         if (newPoints >= maxDebtPoints) {
           try {
-            await driversAPI.suspendDriver(driverId, 'تم إيقافك مؤقتًا بسبب تجاوز حد الديون. يرجى تصفير الديون للعودة للعمل.');
-            await driversAPI.sendNotification(driverId, 'إيقاف مؤقت', 'تم إيقافك مؤقتًا بسبب تجاوز حد الديون. يرجى تصفير الديون للعودة للعمل.');
+            await driversAPI.suspendDriver(driverId, 'تم إيقافك مؤقتًا بسبب تجاوز حد الديون. يرجى التواصل مع الدعم الفني لتصفير الديون.');
+            await driversAPI.sendNotification(driverId, 'إيقاف مؤقت', 'تم إيقافك مؤقتًا بسبب تجاوز حد الديون. يرجى التواصل مع الدعم الفني لتصفير الديون.');
             isSuspended = true;
           } catch (suspendError) {
             console.error('خطأ في إيقاف السائق بعد التغريم:', suspendError);
@@ -1106,12 +1106,12 @@ export const ordersAPI = {
               // إيقاف السائق تلقائياً
               await driversAPI.suspendDriver(
                 order.driver_id, 
-                'تم إيقافك مؤقتًا بسبب تجاوز حد الديون. يرجى تصفير الديون للعودة للعمل.'
+                'تم إيقافك مؤقتًا بسبب تجاوز حد الديون. يرجى التواصل مع الدعم الفني لتصفير الديون.'
               );
               await driversAPI.sendNotification(
                 order.driver_id,
                 'إيقاف مؤقت',
-                `تم إيقافك مؤقتًا بسبب تجاوز حد الديون (${maxDebtPoints} نقطة). نقاطك الحالية: ${newPoints} نقطة.`
+                `تم إيقافك مؤقتًا بسبب تجاوز حد الديون (${maxDebtPoints} نقطة). نقاطك الحالية: ${newPoints} نقطة. يرجى التواصل مع الدعم الفني.`
               );
             } catch (suspendError) {
               console.error('خطأ في إيقاف السائق بعد إكمال الطلب:', suspendError);

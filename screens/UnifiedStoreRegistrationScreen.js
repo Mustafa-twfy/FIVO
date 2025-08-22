@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity, Alert,
-  ScrollView, KeyboardAvoidingView, Platform, Image, ActivityIndicator
+  ScrollView, KeyboardAvoidingView, Platform, Image, ActivityIndicator, Linking
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -242,6 +242,15 @@ export default function UnifiedStoreRegistrationScreen({ navigation }) {
     }
   };
 
+  const handleSupportContact = () => {
+    Alert.alert(
+      'تواصل مع الدعم الفني',
+      'للتواصل مع الدعم الفني، يرجى الاتصال على الرقم: 0500000000',
+      [{ text: 'إلغاء', style: 'cancel' }, { text: 'اتصال', onPress: () => Linking.openURL('tel:0500000000') }],
+      { cancelable: false }
+    );
+  };
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -257,7 +266,11 @@ export default function UnifiedStoreRegistrationScreen({ navigation }) {
             <Ionicons name="arrow-back" size={24} color={colors.primary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>تسجيل متجر جديد</Text>
-          <View style={{ width: 24 }} />
+          
+          {/* أيقونة الدعم الفني */}
+          <TouchableOpacity onPress={() => handleSupportContact()} style={styles.supportButton}>
+            <Ionicons name="headset-outline" size={24} color={colors.primary} />
+          </TouchableOpacity>
         </View>
 
         {/* لوجو وعنوان */}
@@ -416,6 +429,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 50, paddingBottom: 20, paddingHorizontal: 16, backgroundColor: colors.secondary },
   headerTitle: { fontSize: 20, fontWeight: 'bold', color: colors.primary },
   backButton: { padding: 8 },
+  supportButton: { padding: 8 },
   content: { flex: 1, padding: 20, backgroundColor: colors.secondary },
   logoContainer: { alignItems: 'center', marginBottom: 30 },
   logoText: { fontSize: 28, fontWeight: 'bold', color: colors.primary, marginTop: 10 },
