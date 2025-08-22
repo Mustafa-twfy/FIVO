@@ -17,6 +17,5 @@
         
         <!-- دعم Android 17+ -->
         <item name="android:windowSplashScreenAnimationDuration">1000</item>
-        <item name="android:windowSplashScreenIconSize">120dp</item>
     </style>
 </resources>
