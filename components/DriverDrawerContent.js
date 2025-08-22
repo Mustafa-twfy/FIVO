@@ -118,6 +118,26 @@ export default function DriverDrawerContent({ navigation, state }) {
   }
 
   const maxDebtPoints = 20; // قيمة افتراضية منطقية، وسيتم استبدالها من قاعدة البيانات في أماكن أخرى
+  
+  // دالة فحص حالة الديون مع تحذيرات تدريجية
+  const getDebtStatus = () => {
+    const currentPoints = stats.debtPoints || 0;
+    const warningThreshold = Math.floor(maxDebtPoints * 0.7); // تحذير عند 70% من الحد
+    const dangerThreshold = Math.floor(maxDebtPoints * 0.9); // خطر عند 90% من الحد
+    
+    if (currentPoints >= maxDebtPoints) {
+      return { type: 'blocked', message: 'تم إيقافك - تجاوز الحد الأقصى' };
+    } else if (currentPoints >= dangerThreshold) {
+      return { type: 'danger', message: 'تحذير شديد - اقتربت من الحد الأقصى' };
+    } else if (currentPoints >= warningThreshold) {
+      return { type: 'warning', message: 'تحذير - ديون عالية' };
+    } else {
+      return { type: 'normal', message: 'حالة جيدة' };
+    }
+  };
+  
+  const debtStatus = getDebtStatus();
+  
   function isWithinWorkHours() {
     if (!driverInfo?.work_start_time || !driverInfo?.work_end_time) return true;
     const now = new Date();
@@ -180,19 +200,22 @@ export default function DriverDrawerContent({ navigation, state }) {
               <Text style={styles.statNumber}>{stats.completedOrders}</Text>
               <Text style={styles.statLabel}>مكتملة</Text>
             </View>
-            <View style={[styles.debtCard, stats.debtPoints > 10 ? styles.debtWarning : null]}>
+            <View style={[styles.debtCard, debtStatus.type !== 'normal' ? styles.debtWarning : null]}>
               <Ionicons 
-                name={stats.debtPoints > 10 ? "warning-outline" : "card-outline"} 
+                name={debtStatus.type !== 'normal' ? "warning-outline" : "card-outline"} 
                 size={24} 
-                color={stats.debtPoints > 10 ? colors.danger : colors.primary} 
+                color={debtStatus.type === 'blocked' ? colors.danger : debtStatus.type === 'danger' ? '#FF5722' : debtStatus.type === 'warning' ? colors.warning : colors.primary} 
               />
               <View style={styles.debtInfo}>
                 <Text style={styles.debtLabel}>نقاط الديون</Text>
-                <Text style={[styles.debtNumber, stats.debtPoints > 10 ? styles.debtWarningText : null]}>
+                <Text style={[styles.debtNumber, debtStatus.type !== 'normal' ? styles.debtWarningText : null]}>
                   {stats.debtPoints} نقطة
                 </Text>
                 <Text style={styles.debtValue}>
                   ({stats.debtPoints * 250} دينار)
+                </Text>
+                <Text style={[styles.debtStatus, { color: debtStatus.type === 'blocked' ? colors.danger : debtStatus.type === 'danger' ? '#FF5722' : debtStatus.type === 'warning' ? colors.warning : colors.success }]}>
+                  {debtStatus.message}
                 </Text>
               </View>
             </View>
@@ -384,6 +407,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.dark,
     opacity: 0.7,
+  },
+  debtStatus: {
+    fontSize: 12,
+    marginTop: 8,
   },
   menuSection: {
     marginBottom: 24,

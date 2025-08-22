@@ -310,6 +310,25 @@ export default function AvailableOrdersScreen({ navigation }) {
     </View>
   );
 
+  // دالة فحص حالة الديون مع تحذيرات تدريجية
+  const getDebtStatus = () => {
+    const currentPoints = driverInfo?.debt_points || 0;
+    const warningThreshold = Math.floor(maxDebtPoints * 0.7); // تحذير عند 70% من الحد
+    const dangerThreshold = Math.floor(maxDebtPoints * 0.9); // خطر عند 90% من الحد
+    
+    if (currentPoints >= maxDebtPoints) {
+      return { type: 'blocked', message: 'تم إيقافك - تجاوز الحد الأقصى', color: '#F44336' };
+    } else if (currentPoints >= dangerThreshold) {
+      return { type: 'danger', message: 'تحذير شديد - اقتربت من الحد الأقصى', color: '#FF5722' };
+    } else if (currentPoints >= warningThreshold) {
+      return { type: 'warning', message: 'تحذير - ديون عالية', color: '#FF9800' };
+    } else {
+      return { type: 'normal', message: 'حالة جيدة', color: '#4CAF50' };
+    }
+  };
+  
+  const debtStatus = getDebtStatus();
+  
   function isWithinWorkHours() {
     if (!driverInfo?.work_start_time || !driverInfo?.work_end_time) return true;
     const now = new Date();
@@ -401,6 +420,54 @@ export default function AvailableOrdersScreen({ navigation }) {
                 <View style={styles.summaryItem}>
                   <Text style={styles.summaryNumber}>{OrderHelpers.formatAmount(orderSummary.totalValue)}</Text>
                   <Text style={styles.summaryLabel}>إجمالي القيمة</Text>
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* تحذيرات الديون */}
+          {debtStatus.type !== 'normal' && (
+            <View style={{
+              backgroundColor: debtStatus.type === 'blocked' ? '#FFEBEE' : debtStatus.type === 'danger' ? '#FFF3E0' : '#FFF8E1',
+              padding: 16,
+              marginHorizontal: 16,
+              marginBottom: 16,
+              borderRadius: 8,
+              borderLeftWidth: 4,
+              borderLeftColor: debtStatus.color
+            }}>
+              <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                <Ionicons 
+                  name={debtStatus.type === 'blocked' ? "close-circle" : "warning"} 
+                  size={24} 
+                  color={debtStatus.color} 
+                  style={{marginRight: 8}}
+                />
+                <View style={{flex: 1}}>
+                  <Text style={{
+                    color: debtStatus.color,
+                    fontWeight: 'bold',
+                    fontSize: 16,
+                    marginBottom: 4
+                  }}>
+                    {debtStatus.type === 'blocked' ? 'إيقاف مؤقت' : 'تحذير'}
+                  </Text>
+                  <Text style={{
+                    color: debtStatus.type === 'blocked' ? '#F44336' : '#333',
+                    fontSize: 14
+                  }}>
+                    {debtStatus.message}
+                  </Text>
+                  {debtStatus.type === 'blocked' && (
+                    <Text style={{
+                      color: '#F44336',
+                      fontSize: 12,
+                      marginTop: 4,
+                      fontStyle: 'italic'
+                    }}>
+                      لا يمكنك قبول طلبات جديدة حتى يتم تصفير الديون
+                    </Text>
+                  )}
                 </View>
               </View>
             </View>

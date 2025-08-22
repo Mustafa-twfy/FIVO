@@ -523,6 +523,25 @@ export default function DriverDashboardScreen({ navigation }) {
   };
 
   // دالة للتحقق من الوقت الحالي ضمن أوقات الدوام
+  // دالة فحص حالة الديون مع تحذيرات تدريجية
+  const getDebtStatus = () => {
+    const currentPoints = driverInfo?.debt_points || 0;
+    const warningThreshold = Math.floor(maxDebtPoints * 0.7); // تحذير عند 70% من الحد
+    const dangerThreshold = Math.floor(maxDebtPoints * 0.9); // خطر عند 90% من الحد
+    
+    if (currentPoints >= maxDebtPoints) {
+      return { type: 'blocked', message: 'تم إيقافك - تجاوز الحد الأقصى', color: colors.danger };
+    } else if (currentPoints >= dangerThreshold) {
+      return { type: 'danger', message: 'تحذير شديد - اقتربت من الحد الأقصى', color: '#FF5722' };
+    } else if (currentPoints >= warningThreshold) {
+      return { type: 'warning', message: 'تحذير - ديون عالية', color: colors.warning };
+    } else {
+      return { type: 'normal', message: 'حالة جيدة', color: colors.success };
+    }
+  };
+  
+  const debtStatus = getDebtStatus();
+  
   function isWithinWorkHours() {
     if (!driverInfo?.work_start_time || !driverInfo?.work_end_time) return true; // إذا لم يتم تحديد أوقات الدوام اعتبره متاح
     const now = new Date();
@@ -730,6 +749,55 @@ export default function DriverDashboardScreen({ navigation }) {
           {isAvailable ? '✅ متوفر' : '⛔ غير متوفر'}
         </Text>
       </View>
+      
+      {/* تحذيرات الديون */}
+      {debtStatus.type !== 'normal' && (
+        <View style={{
+          backgroundColor: debtStatus.type === 'blocked' ? '#FFEBEE' : debtStatus.type === 'danger' ? '#FFF3E0' : '#FFF8E1',
+          padding: 16,
+          marginHorizontal: 16,
+          marginTop: 8,
+          borderRadius: 8,
+          borderLeftWidth: 4,
+          borderLeftColor: debtStatus.color
+        }}>
+          <View style={{flexDirection: 'row', alignItems: 'center'}}>
+            <Ionicons 
+              name={debtStatus.type === 'blocked' ? "close-circle" : "warning"} 
+              size={24} 
+              color={debtStatus.color} 
+              style={{marginRight: 8}}
+            />
+            <View style={{flex: 1}}>
+              <Text style={{
+                color: debtStatus.color,
+                fontWeight: 'bold',
+                fontSize: 16,
+                marginBottom: 4
+              }}>
+                {debtStatus.type === 'blocked' ? 'إيقاف مؤقت' : 'تحذير'}
+              </Text>
+              <Text style={{
+                color: debtStatus.type === 'blocked' ? colors.danger : '#333',
+                fontSize: 14
+              }}>
+                {debtStatus.message}
+              </Text>
+              {debtStatus.type === 'blocked' && (
+                <Text style={{
+                  color: colors.danger,
+                  fontSize: 12,
+                  marginTop: 4,
+                  fontStyle: 'italic'
+                }}>
+                  يرجى التواصل مع الإدارة لتصفير الديون
+                </Text>
+              )}
+            </View>
+          </View>
+        </View>
+      )}
+      
       {/* محتوى الشاشة */}
       {currentOrder ? (
         // إذا كان هناك طلب جاري، اعرضه فقط

@@ -212,35 +212,52 @@ export const driversAPI = {
 
   // تحديث نقاط السائق مع تفعيل الإيقاف التلقائي
   updateDriverDebt: async (driverId, newPoints) => {
-    // جلب الحد الأقصى من إعدادات النظام
-    const { data: settings } = await systemSettingsAPI.getSystemSettings();
-    const maxDebtPoints = settings?.max_debt_points || 20;
-    let isSuspended = false;
-    // تحديث النقاط
-    const { data, error } = await supabase
-      .from('drivers')
-      .update({ debt_points: newPoints })
-      .eq('id', driverId);
-    if (!error) {
-      // إذا تجاوز الحد، أوقف السائق
-      if (newPoints >= maxDebtPoints) {
-        await driversAPI.suspendDriver(driverId, 'تم إيقافك مؤقتًا بسبب تجاوز حد الديون. يرجى تصفير الديون للعودة للعمل.');
-        await driversAPI.sendNotification(driverId, 'إيقاف مؤقت', 'تم إيقافك مؤقتًا بسبب تجاوز حد الديون. يرجى تصفير الديون للعودة للعمل.');
-        isSuspended = true;
-      } else {
-        // إذا كان موقوفًا سابقًا وأصبح أقل من الحد، أرفع الإيقاف
-        const { data: driver } = await supabase
-          .from('drivers')
-          .select('is_suspended')
-          .eq('id', driverId)
-          .single();
-        if (driver?.is_suspended) {
-          await driversAPI.unsuspendDriver(driverId);
-          await driversAPI.sendNotification(driverId, 'تم رفع الإيقاف', 'تم رفع الإيقاف عنك بعد تصفير أو تقليل الديون. يمكنك العودة للعمل.');
+    try {
+      // جلب الحد الأقصى من إعدادات النظام
+      const { data: settings } = await systemSettingsAPI.getSystemSettings();
+      const maxDebtPoints = settings?.max_debt_points || 20;
+      let isSuspended = false;
+      
+      // تحديث النقاط
+      const { data, error } = await supabase
+        .from('drivers')
+        .update({ debt_points: newPoints })
+        .eq('id', driverId);
+        
+      if (!error) {
+        // إذا تجاوز الحد، أوقف السائق
+        if (newPoints >= maxDebtPoints) {
+          try {
+            await driversAPI.suspendDriver(driverId, 'تم إيقافك مؤقتًا بسبب تجاوز حد الديون. يرجى تصفير الديون للعودة للعمل.');
+            await driversAPI.sendNotification(driverId, 'إيقاف مؤقت', 'تم إيقافك مؤقتًا بسبب تجاوز حد الديون. يرجى تصفير الديون للعودة للعمل.');
+            isSuspended = true;
+          } catch (suspendError) {
+            console.error('خطأ في إيقاف السائق:', suspendError);
+            // لا نريد أن يفشل التحديث بسبب خطأ في الإيقاف
+          }
+        } else {
+          // إذا كان موقوفًا سابقًا وأصبح أقل من الحد، أرفع الإيقاف
+          try {
+            const { data: driver } = await supabase
+              .from('drivers')
+              .select('is_suspended')
+              .eq('id', driverId)
+              .single();
+            if (driver?.is_suspended) {
+              await driversAPI.unsuspendDriver(driverId);
+              await driversAPI.sendNotification(driverId, 'تم رفع الإيقاف', 'تم رفع الإيقاف عنك بعد تصفير أو تقليل الديون. يمكنك العودة للعمل.');
+            }
+          } catch (unsuspendError) {
+            console.error('خطأ في رفع إيقاف السائق:', unsuspendError);
+            // لا نريد أن يفشل التحديث بسبب خطأ في رفع الإيقاف
+          }
         }
       }
+      return { data, error, isSuspended };
+    } catch (error) {
+      console.error('خطأ في تحديث نقاط السائق:', error);
+      return { data: null, error, isSuspended: false };
     }
-    return { data, error, isSuspended };
   },
 
   // تصفية ديون السائق مع رفع الإيقاف إذا كان موقوفًا
@@ -356,56 +373,85 @@ export const driversAPI = {
 
   // تغريم السائق مع تفعيل الإيقاف التلقائي
   fineDriver: async (driverId, finePoints, reason) => {
-    // جلب النقاط الحالية
-    const { data: driver } = await supabase
-      .from('drivers')
-      .select('debt_points')
-      .eq('id', driverId)
-      .single();
-    const newPoints = (driver?.debt_points || 0) + finePoints;
-    // جلب الحد الأقصى من إعدادات النظام
-    const { data: settings } = await systemSettingsAPI.getSystemSettings();
-    const maxDebtPoints = settings?.max_debt_points || 20;
-    let isSuspended = false;
-    const { data: updateData, error } = await supabase
-      .from('drivers')
-      .update({ debt_points: newPoints })
-      .eq('id', driverId);
-    // إضافة سجل التغريم
-    if (!error) {
-      await supabase
-        .from('fines')
-        .insert({
-          driver_id: driverId,
-          amount: finePoints,
-          reason: reason,
-          date: new Date().toISOString()
-        });
-      // إرسال إشعار للسائق
-      await driversAPI.sendNotification(
-        driverId,
-        'إضافة غرامة',
-        `تم إضافة غرامة ${finePoints} نقطة. مجموع نقاطك الآن: ${newPoints} نقطة.${reason ? ' السبب: ' + reason : ''}`
-      );
-      // إذا تجاوز الحد، أوقف السائق
-      if (newPoints >= maxDebtPoints) {
-        await driversAPI.suspendDriver(driverId, 'تم إيقافك مؤقتًا بسبب تجاوز حد الديون. يرجى تصفير الديون للعودة للعمل.');
-        await driversAPI.sendNotification(driverId, 'إيقاف مؤقت', 'تم إيقافك مؤقتًا بسبب تجاوز حد الديون. يرجى تصفير الديون للعودة للعمل.');
-        isSuspended = true;
-      } else {
-        // إذا كان موقوفًا سابقًا وأصبح أقل من الحد، أرفع الإيقاف
-        const { data: driver2 } = await supabase
-          .from('drivers')
-          .select('is_suspended')
-          .eq('id', driverId)
-          .single();
-        if (driver2?.is_suspended) {
-          await driversAPI.unsuspendDriver(driverId);
-          await driversAPI.sendNotification(driverId, 'تم رفع الإيقاف', 'تم رفع الإيقاف عنك بعد تصفير أو تقليل الديون. يمكنك العودة للعمل.');
+    try {
+      // جلب النقاط الحالية
+      const { data: driver } = await supabase
+        .from('drivers')
+        .select('debt_points')
+        .eq('id', driverId)
+        .single();
+        
+      const newPoints = (driver?.debt_points || 0) + finePoints;
+      
+      // جلب الحد الأقصى من إعدادات النظام
+      const { data: settings } = await systemSettingsAPI.getSystemSettings();
+      const maxDebtPoints = settings?.max_debt_points || 20;
+      let isSuspended = false;
+      
+      const { data: updateData, error } = await supabase
+        .from('drivers')
+        .update({ debt_points: newPoints })
+        .eq('id', driverId);
+        
+      // إضافة سجل التغريم
+      if (!error) {
+        try {
+          await supabase
+            .from('fines')
+            .insert({
+              driver_id: driverId,
+              amount: finePoints,
+              reason: reason,
+              date: new Date().toISOString()
+            });
+        } catch (fineError) {
+          console.error('خطأ في إضافة سجل التغريم:', fineError);
+          // لا نريد أن يفشل التحديث بسبب خطأ في إضافة سجل التغريم
+        }
+        
+        // إرسال إشعار للسائق
+        try {
+          await driversAPI.sendNotification(
+            driverId,
+            'إضافة غرامة',
+            `تم إضافة غرامة ${finePoints} نقطة. مجموع نقاطك الآن: ${newPoints} نقطة.${reason ? ' السبب: ' + reason : ''}`
+          );
+        } catch (notificationError) {
+          console.error('خطأ في إرسال إشعار التغريم:', notificationError);
+        }
+        
+        // إذا تجاوز الحد، أوقف السائق
+        if (newPoints >= maxDebtPoints) {
+          try {
+            await driversAPI.suspendDriver(driverId, 'تم إيقافك مؤقتًا بسبب تجاوز حد الديون. يرجى تصفير الديون للعودة للعمل.');
+            await driversAPI.sendNotification(driverId, 'إيقاف مؤقت', 'تم إيقافك مؤقتًا بسبب تجاوز حد الديون. يرجى تصفير الديون للعودة للعمل.');
+            isSuspended = true;
+          } catch (suspendError) {
+            console.error('خطأ في إيقاف السائق بعد التغريم:', suspendError);
+            // لا نريد أن يفشل التحديث بسبب خطأ في الإيقاف
+          }
+        } else {
+          // إذا كان موقوفًا سابقًا وأصبح أقل من الحد، أرفع الإيقاف
+          try {
+            const { data: driver2 } = await supabase
+              .from('drivers')
+              .select('is_suspended')
+              .eq('id', driverId)
+              .single();
+            if (driver2?.is_suspended) {
+              await driversAPI.unsuspendDriver(driverId);
+              await driversAPI.sendNotification(driverId, 'تم رفع الإيقاف', 'تم رفع الإيقاف عنك بعد تصفير أو تقليل الديون. يمكنك العودة للعمل.');
+            }
+          } catch (unsuspendError) {
+            console.error('خطأ في رفع إيقاف السائق بعد التغريم:', unsuspendError);
+          }
         }
       }
+      return { data: updateData, error, isSuspended };
+    } catch (error) {
+      console.error('خطأ في تغريم السائق:', error);
+      return { data: null, error, isSuspended: false };
     }
-    return { data: updateData, error, isSuspended };
   },
 
   // إيقاف السائق
@@ -1056,16 +1102,21 @@ export const ordersAPI = {
 
           // التحقق من تجاوز الحد الأقصى
           if (newPoints >= maxDebtPoints && !driver.is_suspended) {
-            // إيقاف السائق تلقائياً
-            await driversAPI.suspendDriver(
-              order.driver_id, 
-              'تم إيقافك مؤقتًا بسبب تجاوز حد الديون. يرجى تصفير الديون للعودة للعمل.'
-            );
-            await driversAPI.sendNotification(
-              order.driver_id,
-              'إيقاف مؤقت',
-              `تم إيقافك مؤقتًا بسبب تجاوز حد الديون (${maxDebtPoints} نقطة). نقاطك الحالية: ${newPoints} نقطة.`
-            );
+            try {
+              // إيقاف السائق تلقائياً
+              await driversAPI.suspendDriver(
+                order.driver_id, 
+                'تم إيقافك مؤقتًا بسبب تجاوز حد الديون. يرجى تصفير الديون للعودة للعمل.'
+              );
+              await driversAPI.sendNotification(
+                order.driver_id,
+                'إيقاف مؤقت',
+                `تم إيقافك مؤقتًا بسبب تجاوز حد الديون (${maxDebtPoints} نقطة). نقاطك الحالية: ${newPoints} نقطة.`
+              );
+            } catch (suspendError) {
+              console.error('خطأ في إيقاف السائق بعد إكمال الطلب:', suspendError);
+              // لا نريد أن يفشل إكمال الطلب بسبب خطأ في الإيقاف
+            }
           }
         }
       }
