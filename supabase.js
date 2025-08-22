@@ -893,6 +893,8 @@ export const ordersAPI = {
 
   // جلب الطلبات المتاحة للسائقين
   getAvailableOrders: async () => {
+    console.log('=== جلب الطلبات المتاحة ===');
+    
     const { data, error } = await supabase
       .from('orders')
       .select(`
@@ -910,6 +912,38 @@ export const ordersAPI = {
       .eq('status', 'pending')
       .order('priority_score', { ascending: false })
       .order('created_at', { ascending: true });
+    
+    if (error) {
+      console.error('خطأ في جلب الطلبات المتاحة:', error);
+      return { data: null, error };
+    }
+    
+    console.log('تم جلب الطلبات المتاحة:', data?.length || 0, 'طلب');
+    
+    // فحص بيانات المتاجر
+    if (data && data.length > 0) {
+      data.forEach((order, index) => {
+        console.log(`طلب ${index + 1} (ID: ${order.id}):`);
+        console.log('  - store_id:', order.store_id);
+        console.log('  - stores object:', order.stores);
+        console.log('  - store name:', order.stores?.name);
+        console.log('  - store category:', order.stores?.category);
+        console.log('  - store address:', order.stores?.address);
+        
+        // التحقق من أن store_id موجود
+        if (!order.store_id) {
+          console.warn(`  ⚠️ الطلب ${order.id} لا يحتوي على store_id!`);
+        }
+        
+        // التحقق من أن بيانات المتجر موجودة
+        if (!order.stores) {
+          console.warn(`  ⚠️ الطلب ${order.id} لا يحتوي على بيانات المتجر!`);
+        }
+      });
+    } else {
+      console.log('لا توجد طلبات متاحة حالياً');
+    }
+    
     return { data, error };
   },
 

@@ -12,6 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
+import { supabase } from '../supabase';
 import colors from '../colors';
 
 export default function DriverDocumentsScreen({ navigation, route }) {
@@ -36,6 +37,30 @@ export default function DriverDocumentsScreen({ navigation, route }) {
   });
   const [loading, setLoading] = useState(false);
 
+  // تعطيل رفع Supabase مؤقتاً بسبب مشكلة في Storage
+  const uploadToSupabase = async (uri, documentType) => {
+    console.log(`تعطيل رفع Supabase مؤقتاً - استخدام Base64 مباشرة`);
+    return await convertToBase64(uri);
+  };
+
+  const convertToBase64 = async (uri) => {
+    try {
+      // قراءة الملف كـ base64
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch (error) {
+      console.error('خطأ في تحويل الصورة إلى Base64:', error);
+      return uri; // إرجاع URI الأصلي كـ fallback
+    }
+  };
+
   const pickImage = async (documentType) => {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -52,12 +77,31 @@ export default function DriverDocumentsScreen({ navigation, route }) {
       });
 
       if (!result.canceled && result.assets[0]) {
-        setDocuments(prev => ({
-          ...prev,
-          [documentType]: result.assets[0].uri
-        }));
+        console.log(`اختيار صورة ${documentType}:`, result.assets[0].uri);
+        
+        // محاولة رفع الصورة إلى Supabase Storage أولاً
+        try {
+          const uploadedUrl = await uploadToSupabase(result.assets[0].uri, documentType);
+          console.log(`تم رفع ${documentType} بنجاح:`, uploadedUrl.substring(0, 100) + '...');
+          
+          setDocuments(prev => ({
+            ...prev,
+            [documentType]: uploadedUrl
+          }));
+        } catch (uploadError) {
+          console.error(`فشل في رفع ${documentType}:`, uploadError);
+          // في حالة الفشل، استخدم Base64
+          const base64Uri = await convertToBase64(result.assets[0].uri);
+          console.log(`تم تحويل ${documentType} إلى Base64:`, base64Uri.substring(0, 100) + '...');
+          
+          setDocuments(prev => ({
+            ...prev,
+            [documentType]: base64Uri
+          }));
+        }
       }
     } catch (error) {
+      console.error('خطأ في اختيار الصورة:', error);
       Alert.alert('خطأ', 'حدث خطأ أثناء اختيار الصورة');
     }
   };
@@ -94,6 +138,13 @@ export default function DriverDocumentsScreen({ navigation, route }) {
   const handleNext = () => {
     console.log('DriverDocumentsScreen handleNext called');
     console.log('documents:', documents);
+    
+    // طباعة معلومات المستندات للتأكد من حفظها
+    console.log('=== معلومات المستندات ===');
+    console.log('البطاقة الوطنية (الوجه):', documents.nationalCardFront ? 'تم رفعها' : 'غير موجودة');
+    console.log('البطاقة الوطنية (الظهر):', documents.nationalCardBack ? 'تم رفعها' : 'غير موجودة');
+    console.log('بطاقة السكن (الوجه):', documents.residenceCardFront ? 'تم رفعها' : 'غير موجودة');
+    console.log('بطاقة السكن (الظهر):', documents.residenceCardBack ? 'تم رفعها' : 'غير موجودة');
     
     if (validateDocuments()) {
       console.log('Documents validation passed, navigating to DriverVehicle');

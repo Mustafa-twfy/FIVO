@@ -51,18 +51,33 @@ export const AuthProvider = ({ children }) => {
 
   // تسجيل الخروج
   const logout = async () => {
-    setUser(null);
-    setUserType(null);
-    setSessionExpiry(null);
-    setUserToken(null);
-    await EncryptedStorage.removeItem('session');
-    // حذف البيانات من AsyncStorage أيضاً للتوافق
     try {
-      await AsyncStorage.removeItem('userId');
-      await AsyncStorage.removeItem('userType');
-      await AsyncStorage.removeItem('userToken');
+      // حذف البيانات من التخزين المشفر أولاً
+      await EncryptedStorage.removeItem('session');
+      
+      // حذف البيانات من AsyncStorage
+      await AsyncStorage.multiRemove([
+        'userId', 
+        'userType', 
+        'userToken', 
+        'sessionExpiry', 
+        'userEmail'
+      ]);
+      
+      // تصفير حالة المستخدم
+      setUser(null);
+      setUserType(null);
+      setSessionExpiry(null);
+      setUserToken(null);
+      
+      console.log('تم تسجيل الخروج بنجاح');
     } catch (e) {
-      console.error('خطأ في حذف AsyncStorage:', e);
+      console.error('خطأ في تسجيل الخروج:', e);
+      // حتى لو حدث خطأ، تصفير الحالة
+      setUser(null);
+      setUserType(null);
+      setSessionExpiry(null);
+      setUserToken(null);
     }
   };
 
@@ -76,7 +91,7 @@ export const AuthProvider = ({ children }) => {
           'انتهت صلاحية الجلسة',
           'انتهت صلاحية الجلسة الخاصة بك. يرجى تسجيل الدخول مجددًا.',
           [
-            { text: 'حسنًا', onPress: () => logout() }
+            { text: 'حسنًا', onPress: async () => await logout() }
           ]
         );
       }
@@ -111,15 +126,17 @@ export const AuthProvider = ({ children }) => {
           }
         }
         // في حالة عدم وجود جلسة مشفرة، حاول استعادة التوكن والنوع من AsyncStorage
+        // فقط إذا لم يكن هناك عملية تسجيل خروج جارية
         if (!user && !userType) {
           try {
             const storedToken = await AsyncStorage.getItem('userToken');
             const storedType = await AsyncStorage.getItem('userType');
             const storedId = await AsyncStorage.getItem('userId');
-            if (storedToken) setUserToken(storedToken);
-            if (storedType) setUserType(storedType);
-            if (storedId && !user) {
-              // اجعل user جزئيًا لتمثيل الجلسة (لن يحتوي كل الحقول)
+            
+            // التحقق من أن البيانات موجودة فعلاً
+            if (storedToken && storedType && storedId) {
+              setUserToken(storedToken);
+              setUserType(storedType);
               setUser({ id: parseInt(storedId, 10) });
             }
           } catch (e) {

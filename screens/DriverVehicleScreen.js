@@ -54,31 +54,41 @@ export default function DriverVehicleScreen({ navigation, route }) {
 
     setLoading(true);
     try {
+      console.log('=== بداية حفظ طلب التسجيل ===');
+      console.log('بيانات النموذج:', formData);
+      console.log('بيانات المركبة:', vehicleData);
+      console.log('المستندات:', documents);
+      
       // إنشاء طلب تسجيل جديد مع جميع البيانات
-      const { error } = await supabase
+      const registrationData = {
+        email: formData.email,
+        password: formData.password,
+        user_type: 'driver',
+        name: vehicleData.name,
+        phone: vehicleData.phone,
+        vehicle_type: vehicleData.vehicle_type,
+                    national_card_front: documents.nationalCardFront || null,
+            national_card_back: documents.nationalCardBack || null,
+            residence_card_front: documents.residenceCardFront || null,
+            residence_card_back: documents.residenceCardBack || null,
+        status: 'pending',
+        created_at: new Date().toISOString(),
+      };
+      
+      console.log('بيانات الطلب المرسلة:', registrationData);
+      
+      const { data, error } = await supabase
         .from('registration_requests')
-        .insert([
-          {
-            email: formData.email,
-            password: formData.password,
-            user_type: 'driver',
-            name: vehicleData.name,
-            phone: vehicleData.phone,
-            vehicle_type: vehicleData.vehicle_type,
-            national_card_front: documents.nationalCardFront,
-            national_card_back: documents.nationalCardBack,
-            residence_card_front: documents.residenceCardFront,
-            residence_card_back: documents.residenceCardBack,
-            status: 'pending',
-            created_at: new Date().toISOString(),
-          }
-        ]);
+        .insert([registrationData])
+        .select();
 
       if (error) {
-        console.error('Database error:', error);
-        Alert.alert('خطأ', 'فشل في إرسال طلب التسجيل');
+        console.error('خطأ في قاعدة البيانات:', error);
+        console.error('تفاصيل الخطأ:', JSON.stringify(error, null, 2));
+        Alert.alert('خطأ', `فشل في إرسال طلب التسجيل: ${error.message || 'خطأ غير معروف'}`);
       } else {
-        console.log('Registration request sent successfully');
+        console.log('✅ تم إرسال طلب التسجيل بنجاح');
+        console.log('البيانات المحفوظة:', data);
         Alert.alert('نجح', 'تم إرسال طلب التسجيل بنجاح! سيتم مراجعة طلبك من قبل الإدارة.', [
           {
             text: 'حسناً',

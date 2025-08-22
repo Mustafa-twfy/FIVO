@@ -163,6 +163,16 @@ export default function AvailableOrdersScreen({ navigation }) {
       }));
 
       console.log('تم تحميل الطلبات المتاحة:', enhancedOrders.length, 'طلب');
+      
+      // فحص بيانات المتاجر في الطلبات
+      enhancedOrders.forEach((order, index) => {
+        console.log(`طلب ${index + 1} (ID: ${order.id}):`);
+        console.log('  - store_id:', order.store_id);
+        console.log('  - stores object:', order.stores);
+        console.log('  - store name:', order.stores?.name);
+        console.log('  - store category:', order.stores?.category);
+      });
+      
       setOrders(enhancedOrders);
     } catch (error) {
       setError(error.message || 'حدث خطأ غير متوقع في تحميل الطلبات');

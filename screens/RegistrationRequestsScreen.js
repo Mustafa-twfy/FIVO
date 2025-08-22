@@ -211,6 +211,30 @@ export default function RegistrationRequestsScreen({ navigation }) {
   };
 
   const showDetails = (request) => {
+    console.log('=== عرض تفاصيل الطلب ===');
+    console.log('معرف الطلب:', request.id);
+    console.log('البريد الإلكتروني:', request.email);
+    console.log('الاسم:', request.name);
+    console.log('نوع المستخدم:', request.user_type);
+    console.log('--- المستندات ---');
+    console.log('البطاقة الوطنية (الوجه):', request.national_card_front ? 'موجودة' : 'مفقودة');
+    console.log('البطاقة الوطنية (الظهر):', request.national_card_back ? 'موجودة' : 'مفقودة');
+    console.log('بطاقة السكن (الوجه):', request.residence_card_front ? 'موجودة' : 'مفقودة');
+    console.log('بطاقة السكن (الظهر):', request.residence_card_back ? 'موجودة' : 'مفقودة');
+    if (request.national_card_front) {
+      console.log('رابط البطاقة الوطنية (الوجه):', request.national_card_front.substring(0, 100) + '...');
+    }
+    if (request.national_card_back) {
+      console.log('رابط البطاقة الوطنية (الظهر):', request.national_card_back.substring(0, 100) + '...');
+    }
+    if (request.residence_card_front) {
+      console.log('رابط بطاقة السكن (الوجه):', request.residence_card_front.substring(0, 100) + '...');
+    }
+    if (request.residence_card_back) {
+      console.log('رابط بطاقة السكن (الظهر):', request.residence_card_back.substring(0, 100) + '...');
+    }
+    console.log('=======================');
+    
     setDetailsRequest(request);
     setDetailsModalVisible(true);
   };
@@ -414,14 +438,66 @@ export default function RegistrationRequestsScreen({ navigation }) {
                 {detailsRequest.address && <Text style={styles.detailText}>العنوان: {detailsRequest.address}</Text>}
                 {detailsRequest.vehicle_type && <Text style={styles.detailText}>نوع المركبة: {detailsRequest.vehicle_type}</Text>}
                 {detailsRequest.vehicle_number && <Text style={styles.detailText}>رقم المركبة: {detailsRequest.vehicle_number}</Text>}
-                {detailsRequest.national_card_front && <Text style={styles.detailText}>صورة البطاقة الوطنية (الوجه):</Text>}
-                {detailsRequest.national_card_front && <Image source={{uri: detailsRequest.national_card_front}} style={styles.docImage} />}
-                {detailsRequest.national_card_back && <Text style={styles.detailText}>صورة البطاقة الوطنية (الظهر):</Text>}
-                {detailsRequest.national_card_back && <Image source={{uri: detailsRequest.national_card_back}} style={styles.docImage} />}
-                {detailsRequest.residence_card_front && <Text style={styles.detailText}>صورة بطاقة السكن (الوجه):</Text>}
-                {detailsRequest.residence_card_front && <Image source={{uri: detailsRequest.residence_card_front}} style={styles.docImage} />}
-                {detailsRequest.residence_card_back && <Text style={styles.detailText}>صورة بطاقة السكن (الظهر):</Text>}
-                {detailsRequest.residence_card_back && <Image source={{uri: detailsRequest.residence_card_back}} style={styles.docImage} />}
+                <Text style={styles.detailText}>صورة البطاقة الوطنية (الوجه):</Text>
+                {detailsRequest.national_card_front ? (
+                  <View style={styles.imageContainer}>
+                    <Image 
+                      source={{uri: detailsRequest.national_card_front}} 
+                      style={styles.docImage} 
+                      onError={(e) => console.log('خطأ في تحميل البطاقة الوطنية (الوجه):', e.nativeEvent.error)} 
+                    />
+                    <TouchableOpacity 
+                      style={styles.viewFullImageButton}
+                      onPress={() => {
+                        // يمكن إضافة عرض الصورة كاملة الشاشة هنا
+                        console.log('عرض الصورة كاملة:', detailsRequest.national_card_front);
+                      }}
+                    >
+                      <Text style={styles.viewFullImageText}>عرض كامل</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <Text style={[styles.detailText, {color: 'red'}]}>❌ لا توجد صورة للبطاقة الوطنية (الوجه)</Text>
+                )}
+                <Text style={styles.detailText}>صورة البطاقة الوطنية (الظهر):</Text>
+                {detailsRequest.national_card_back ? (
+                  <View style={styles.imageContainer}>
+                    <Image 
+                      source={{uri: detailsRequest.national_card_back}} 
+                      style={styles.docImage} 
+                      onError={(e) => console.log('خطأ في تحميل البطاقة الوطنية (الظهر):', e.nativeEvent.error)} 
+                    />
+                    <Text style={styles.imageStatus}>✅ تم رفع الصورة</Text>
+                  </View>
+                ) : (
+                  <Text style={[styles.detailText, {color: 'red'}]}>❌ لا توجد صورة للبطاقة الوطنية (الظهر)</Text>
+                )}
+                <Text style={styles.detailText}>صورة بطاقة السكن (الوجه):</Text>
+                {detailsRequest.residence_card_front ? (
+                  <View style={styles.imageContainer}>
+                    <Image 
+                      source={{uri: detailsRequest.residence_card_front}} 
+                      style={styles.docImage} 
+                      onError={(e) => console.log('خطأ في تحميل بطاقة السكن (الوجه):', e.nativeEvent.error)} 
+                    />
+                    <Text style={styles.imageStatus}>✅ تم رفع الصورة</Text>
+                  </View>
+                ) : (
+                  <Text style={[styles.detailText, {color: 'red'}]}>❌ لا توجد صورة لبطاقة السكن (الوجه)</Text>
+                )}
+                <Text style={styles.detailText}>صورة بطاقة السكن (الظهر):</Text>
+                {detailsRequest.residence_card_back ? (
+                  <View style={styles.imageContainer}>
+                    <Image 
+                      source={{uri: detailsRequest.residence_card_back}} 
+                      style={styles.docImage} 
+                      onError={(e) => console.log('خطأ في تحميل بطاقة السكن (الظهر):', e.nativeEvent.error)} 
+                    />
+                    <Text style={styles.imageStatus}>✅ تم رفع الصورة</Text>
+                  </View>
+                ) : (
+                  <Text style={[styles.detailText, {color: 'red'}]}>❌ لا توجد صورة لبطاقة السكن (الظهر)</Text>
+                )}
                 <Text style={styles.detailText}>تاريخ الطلب: {new Date(detailsRequest.created_at).toLocaleString('ar-SA')}</Text>
               </ScrollView>
             )}
@@ -664,6 +740,26 @@ const styles = StyleSheet.create({
   actionText: { color: '#fff', fontWeight: 'bold', marginLeft: 6, fontSize: 16 },
   eyeBtn: { marginLeft: 'auto', padding: 4 },
   docImage: { width: 120, height: 80, borderRadius: 8, marginVertical: 6, alignSelf: 'center' },
+  imageContainer: { alignItems: 'center', marginVertical: 6 },
+  imageStatus: { 
+    color: '#4CAF50', 
+    fontSize: 12, 
+    fontWeight: 'bold', 
+    marginTop: 4 
+  },
+  imageContainer: { alignItems: 'center', marginVertical: 6 },
+  viewFullImageButton: { 
+    backgroundColor: colors.primary, 
+    paddingHorizontal: 12, 
+    paddingVertical: 6, 
+    borderRadius: 16, 
+    marginTop: 8 
+  },
+  viewFullImageText: { 
+    color: '#fff', 
+    fontSize: 12, 
+    fontWeight: 'bold' 
+  },
   driverBadge: {
     flexDirection: 'row',
     alignItems: 'center',

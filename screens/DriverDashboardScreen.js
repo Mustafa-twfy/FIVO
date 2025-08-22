@@ -63,16 +63,17 @@ export default function DriverDashboardScreen({ navigation }) {
         console.log('AuthContext user:', user);
         console.log('AuthContext userType:', userType);
         
-        // التحقق من نوع المستخدم أولاً
+        // التحقق من وجود المستخدم أولاً
+        if (!user || !userType) {
+          console.log('لا يوجد مستخدم أو نوع مستخدم - تخطي التهيئة');
+          return;
+        }
+        
+        // التحقق من نوع المستخدم
         if (userType !== 'driver') {
           console.error('نوع المستخدم غير صحيح:', userType);
-          Alert.alert(
-            'خطأ في نوع المستخدم',
-            'يجب أن تكون سائق للوصول لهذه الشاشة. سيتم تسجيل الخروج.',
-            [
-              { text: 'حسناً', onPress: () => { logout(); navigation.replace('Login'); } }
-            ]
-          );
+          // لا تعرض Alert هنا لتجنب التضارب مع تسجيل الخروج
+          console.log('نوع المستخدم غير صحيح - تخطي التهيئة');
           return;
         }
         
@@ -99,23 +100,13 @@ export default function DriverDashboardScreen({ navigation }) {
         }
         } else {
           console.error('لم يتم العثور على بيانات السائق في AuthContext');
-          Alert.alert(
-            'خطأ في البيانات',
-            'لم يتم العثور على بيانات السائق. سيتم تسجيل الخروج.',
-            [
-              { text: 'حسناً', onPress: () => { logout(); navigation.replace('Login'); } }
-            ]
-          );
+          // لا تعرض Alert هنا لتجنب التضارب مع تسجيل الخروج
+          console.log('لم يتم العثور على بيانات السائق - تخطي التهيئة');
         }
       } catch (error) {
         console.error('خطأ في تهيئة السائق:', error);
-        Alert.alert(
-          'خطأ',
-          'حدث خطأ في تحميل بيانات السائق. سيتم تسجيل الخروج.',
-          [
-            { text: 'حسناً', onPress: () => { logout(); navigation.replace('Login'); } }
-          ]
-        );
+        // لا تعرض Alert هنا لتجنب التضارب مع تسجيل الخروج
+        console.log('خطأ في تهيئة السائق - تخطي التهيئة');
       }
     };
 
@@ -179,7 +170,7 @@ export default function DriverDashboardScreen({ navigation }) {
       }
     }, 10000);
     return () => clearInterval(interval);
-  }, [driverId, user, userType]); // إزالة currentOrder و availableOrders لتجنب التحديثات الزائدة
+  }, [driverId, user]); // إزالة userType لتجنب المشاكل عند تسجيل الخروج
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -221,7 +212,10 @@ export default function DriverDashboardScreen({ navigation }) {
           'خطأ في البيانات',
           'لم يتم العثور على حسابك في قاعدة البيانات. سيتم تسجيل الخروج.',
           [
-            { text: 'حسناً', onPress: () => { logout(); navigation.replace('Login'); } }
+            { text: 'حسناً', onPress: async () => { 
+              await logout(); 
+              navigation.replace('Login'); 
+            }}
           ]
         );
         setLoading(false);
@@ -233,7 +227,10 @@ export default function DriverDashboardScreen({ navigation }) {
           'تم إيقاف الحساب',
           'تم إيقاف حسابك من قبل الإدارة. يرجى التواصل مع الدعم.',
           [
-            { text: 'حسناً', onPress: () => { logout(); navigation.replace('Login'); } }
+            { text: 'حسناً', onPress: async () => { 
+              await logout(); 
+              navigation.replace('Login'); 
+            }}
           ]
         );
         setLoading(false);
@@ -245,7 +242,10 @@ export default function DriverDashboardScreen({ navigation }) {
           'حساب غير مفعل',
           'حسابك غير مفعل أو بانتظار الموافقة. سيتم تسجيل الخروج.',
           [
-            { text: 'حسناً', onPress: () => { logout(); navigation.replace('Login'); } }
+            { text: 'حسناً', onPress: async () => { 
+              await logout(); 
+              navigation.replace('Login'); 
+            }}
           ]
         );
         setLoading(false);
@@ -332,7 +332,10 @@ export default function DriverDashboardScreen({ navigation }) {
         'خطأ في الاتصال',
         'حدث خطأ في الاتصال بقاعدة البيانات. يرجى المحاولة مرة أخرى.',
         [
-          { text: 'حسناً', onPress: () => { logout(); navigation.replace('Login'); } }
+          { text: 'حسناً', onPress: async () => { 
+            await logout(); 
+            navigation.replace('Login'); 
+          }}
         ]
       );
     }
@@ -481,10 +484,24 @@ export default function DriverDashboardScreen({ navigation }) {
         {
           text: 'تأكيد',
           onPress: async () => {
-            await AsyncStorage.removeItem('userId');
-            await AsyncStorage.removeItem('userType');
-            logout();
-            navigation.replace('Login');
+            try {
+              // حذف البيانات المحلية أولاً
+              await AsyncStorage.removeItem('userId');
+              await AsyncStorage.removeItem('userType');
+              await AsyncStorage.removeItem('sessionExpiry');
+              await AsyncStorage.removeItem('sessionToken');
+              await AsyncStorage.removeItem('userEmail');
+              
+              // تسجيل الخروج من AuthContext
+              await logout();
+              
+              // الانتقال إلى شاشة تسجيل الدخول
+              navigation.replace('Login');
+            } catch (error) {
+              console.error('خطأ في تسجيل الخروج:', error);
+              // حتى لو حدث خطأ، انتقل إلى شاشة تسجيل الدخول
+              navigation.replace('Login');
+            }
           }
         }
       ]
