@@ -226,8 +226,12 @@ export default function LoginScreen({ navigation }) {
   const handleSupportContact = () => {
     Alert.alert(
       'تواصل مع الدعم الفني',
-      'للتواصل مع الدعم الفني، يرجى الاتصال على الرقم: 0599999999',
-      [{ text: 'إلغاء', style: 'cancel' }, { text: 'اتصال', onPress: () => Linking.openURL('tel:0599999999') }],
+      'اختر رقم الاتصال المناسب لك:',
+      [
+        { text: 'إلغاء', style: 'cancel' },
+        { text: '+964 783 894 0886', onPress: () => Linking.openURL('tel:+9647838940886') },
+        { text: '+964 773 571 3103', onPress: () => Linking.openURL('tel:+9647735713103') }
+      ],
       { cancelable: false }
     );
   };
@@ -249,7 +253,7 @@ export default function LoginScreen({ navigation }) {
           <TouchableOpacity style={styles.supportButton} onPress={() => handleSupportContact()}>
             <Ionicons name="headset-outline" size={24} color={colors.primary} />
             <Text style={styles.supportText}>الدعم الفني</Text>
-            <Text style={styles.supportName}>مجرب محمد</Text>
+            <Text style={styles.supportName}>تواصل معنا</Text>
           </TouchableOpacity>
         </View>
 

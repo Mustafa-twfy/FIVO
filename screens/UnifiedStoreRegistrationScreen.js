@@ -245,8 +245,12 @@ export default function UnifiedStoreRegistrationScreen({ navigation }) {
   const handleSupportContact = () => {
     Alert.alert(
       'تواصل مع الدعم الفني',
-      'للتواصل مع الدعم الفني، يرجى الاتصال على الرقم: 0500000000',
-      [{ text: 'إلغاء', style: 'cancel' }, { text: 'اتصال', onPress: () => Linking.openURL('tel:0500000000') }],
+      'اختر رقم الاتصال المناسب لك:',
+      [
+        { text: 'إلغاء', style: 'cancel' },
+        { text: '+964 783 894 0886', onPress: () => Linking.openURL('tel:+9647838940886') },
+        { text: '+964 773 571 3103', onPress: () => Linking.openURL('tel:+9647735713103') }
+      ],
       { cancelable: false }
     );
   };
