@@ -15,7 +15,8 @@
         <item name="android:windowSplashScreenBrandingImage">@mipmap/ic_launcher</item>
         <item name="android:windowSplashScreenIconBackgroundColor">@color/iconBackground</item>
         
-        <!-- دعم Android 13+ -->
+        <!-- دعم Android 14+ -->
         <item name="android:windowSplashScreenAnimationDuration">1000</item>
+        <item name="android:windowSplashScreenIconSize">120dp</item>
     </style>
 </resources>
