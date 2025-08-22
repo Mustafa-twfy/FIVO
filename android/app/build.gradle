@@ -98,7 +98,7 @@ android {
         vectorDrawables.useSupportLibrary = true
         
         // دعم المصادرات الحديثة
-        minSdkVersion 21  // Android 5.0+
+        minSdkVersion 24  // Android 7.0+ (مطلوب لـ Expo)
         targetSdkVersion 34  // Android 14
     }
     signingConfigs {
