@@ -11,6 +11,7 @@ import { useState, useEffect } from 'react';
 
 import { supabase, initializeDatabase, updatesAPI } from './supabase';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import notificationService from './utils/notifications';
 
 // Screens
 import LoginScreen from './screens/LoginScreen';
@@ -226,6 +227,21 @@ function AppContent() {
       setShowSplash(false);
       checkUserSession();
     }, 800);
+
+    // تهيئة خدمة الإشعارات
+    const initializeNotifications = async () => {
+      try {
+        const success = await notificationService.initialize();
+        if (success) {
+          console.log('✅ تم تهيئة خدمة الإشعارات بنجاح');
+        } else {
+          console.log('❌ فشل في تهيئة خدمة الإشعارات');
+        }
+      } catch (error) {
+        console.error('خطأ في تهيئة الإشعارات:', error);
+      }
+    };
+    initializeNotifications();
 
     // فحص/تهيئة قاعدة البيانات يمكن تعطيله بإعداد بيئة لتفادي العمل في الإنتاج
     const backgroundInit = async () => {

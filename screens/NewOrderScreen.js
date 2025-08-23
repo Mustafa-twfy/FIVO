@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { supabase, ordersAPI } from '../supabase';
+import { supabase, ordersAPI, pushNotificationsAPI } from '../supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function NewOrderScreen({ navigation }) {
@@ -131,6 +131,27 @@ export default function NewOrderScreen({ navigation }) {
       }
 
       console.log('تم إنشاء الطلب بنجاح:', data);
+
+      // إرسال إشعار Push لجميع السائقين المتاحين
+      try {
+        const orderData = {
+          id: data.id,
+          store_name: storeInfo?.name || 'متجر',
+          total_amount: parseFloat(amount),
+          pickup_address: storeInfo?.address || 'عنوان المتجر',
+          delivery_address: address
+        };
+        
+        const notificationResult = await pushNotificationsAPI.sendNewOrderNotificationToDrivers(orderData);
+        if (notificationResult.success) {
+          console.log('تم إرسال إشعارات Push للسائقين:', notificationResult.message);
+        } else {
+          console.log('فشل في إرسال إشعارات Push:', notificationResult.error);
+        }
+      } catch (notificationError) {
+        console.error('خطأ في إرسال إشعارات Push:', notificationError);
+        // لا نوقف العملية إذا فشل إرسال الإشعارات
+      }
 
       // تحديث إحصائيات المتجر
       await supabase

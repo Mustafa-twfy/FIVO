@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Alert, Modal, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { supportAPI, driversAPI, storesAPI, updatesAPI } from '../supabase';
+import { supportAPI, driversAPI, storesAPI, updatesAPI, pushNotificationsAPI } from '../supabase';
 import { registrationRequestsAPI } from '../supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../supabase';
@@ -498,39 +498,42 @@ export default function AdminDashboardScreen({ navigation }) {
                   let errors = [];
                   let successCount = 0;
                   
+                  // استخدام Push Notifications بدلاً من الإشعارات المحلية
                   if(notificationTarget==='drivers'||notificationTarget==='all'){
-                    const {data:drivers, error: driversError} = await driversAPI.getAllDrivers();
-                    if(driversError) {
-                      errors.push('خطأ في جلب السائقين: ' + driversError.message);
-                    } else if(drivers && drivers.length > 0) {
-                      for(const driver of drivers){
-                        const {error} = await driversAPI.sendNotification(driver.id,notificationTitle,notificationMessage);
-                        if(error) {
-                          errors.push(`خطأ في إرسال إشعار للسائق ${driver.name || driver.id}: ${error.message}`);
-                        } else {
-                          successCount++;
+                    try {
+                      const result = await pushNotificationsAPI.sendPushNotificationToAllDrivers(
+                        notificationTitle, 
+                        notificationMessage
+                      );
+                      if (result.success) {
+                        successCount += result.successCount || 0;
+                        if (result.errorCount > 0) {
+                          errors.push(`فشل في إرسال ${result.errorCount} إشعار للسائقين`);
                         }
+                      } else {
+                        errors.push('خطأ في إرسال إشعارات للسائقين: ' + result.error);
                       }
-                    } else {
-                      errors.push('لا يوجد سائقين مفعلين');
+                    } catch (error) {
+                      errors.push('خطأ في إرسال إشعارات للسائقين: ' + error.message);
                     }
                   }
                   
                   if(notificationTarget==='stores'||notificationTarget==='all'){
-                    const {data:stores, error: storesError} = await storesAPI.getAllStores();
-                    if(storesError) {
-                      errors.push('خطأ في جلب المتاجر: ' + storesError.message);
-                    } else if(stores && stores.length > 0) {
-                      for(const store of stores){
-                        const {error} = await storesAPI.sendStoreNotification(store.id,notificationTitle,notificationMessage);
-                        if(error) {
-                          errors.push(`خطأ في إرسال إشعار للمتجر ${store.name || store.id}: ${error.message}`);
-                        } else {
-                          successCount++;
+                    try {
+                      const result = await pushNotificationsAPI.sendPushNotificationToAllStores(
+                        notificationTitle, 
+                        notificationMessage
+                      );
+                      if (result.success) {
+                        successCount += result.successCount || 0;
+                        if (result.errorCount > 0) {
+                          errors.push(`فشل في إرسال ${result.errorCount} إشعار للمتاجر`);
                         }
+                      } else {
+                        errors.push('خطأ في إرسال إشعارات للمتاجر: ' + result.error);
                       }
-                    } else {
-                      errors.push('لا يوجد متاجر مفعلة');
+                    } catch (error) {
+                      errors.push('خطأ في إرسال إشعارات للمتاجر: ' + error.message);
                     }
                   }
                   

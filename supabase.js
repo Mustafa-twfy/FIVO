@@ -993,9 +993,8 @@ export const ordersAPI = {
     return { data, error };
   },
 
-  // قبول طلب
+  // قبول طلب من قبل السائق
   acceptOrder: async (orderId, driverId) => {
-    // قبول الطلب وتحديث السائق وإشعار المتجر بشكل مركزي
     const { data, error } = await supabase
       .from('orders')
       .update({
@@ -1022,6 +1021,19 @@ export const ordersAPI = {
             type: 'order',
             created_at: new Date().toISOString()
           });
+
+        // إرسال Push Notification للمتجر
+        try {
+          const orderData = {
+            id: orderId,
+            store_id: data.store_id,
+            driver_id: driverId,
+            status: 'accepted'
+          };
+          await pushNotificationsAPI.sendOrderStatusUpdateNotification(orderData, 'accepted');
+        } catch (pushError) {
+          console.error('خطأ في إرسال Push Notification:', pushError);
+        }
       }
     } catch (e) {
       // تجاهل أخطاء جانبية وعدم كسر نجاح القبول
@@ -1133,6 +1145,19 @@ export const ordersAPI = {
               type: 'order',
               created_at: new Date().toISOString()
             });
+
+          // إرسال Push Notification للمتجر
+          try {
+            const orderData = {
+              id: orderId,
+              store_id: order.store_id,
+              driver_id: order.driver_id,
+              status: 'completed'
+            };
+            await pushNotificationsAPI.sendOrderStatusUpdateNotification(orderData, 'completed');
+          } catch (pushError) {
+            console.error('خطأ في إرسال Push Notification:', pushError);
+          }
         } catch (_) {}
       }
 
@@ -1312,5 +1337,388 @@ export const ordersAPI = {
       .eq('id', orderId)
       .single();
     return { data, error };
+  }
+}; 
+
+// دوال Push Notifications
+export const pushNotificationsAPI = {
+  // إرسال إشعار push للسائق
+  sendPushNotificationToDriver: async (driverId, title, body, data = {}) => {
+    try {
+      // جلب توكن الإشعارات للسائق
+      const { data: driver, error: driverError } = await supabase
+        .from('drivers')
+        .select('expo_push_token, name')
+        .eq('id', driverId)
+        .single();
+
+      if (driverError || !driver?.expo_push_token) {
+        console.log(`لا يوجد توكن إشعارات للسائق ${driverId}`);
+        return { success: false, error: 'لا يوجد توكن إشعارات للسائق' };
+      }
+
+      // إرسال الإشعار عبر Expo Push Service
+      const message = {
+        to: driver.expo_push_token,
+        sound: 'default',
+        title: title,
+        body: body,
+        data: {
+          ...data,
+          type: 'driver_notification',
+          driver_id: driverId
+        },
+        badge: 1
+      };
+
+      const response = await fetch('https://exp.host/--/api/v2/push/send', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Accept-encoding': 'gzip, deflate',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(message),
+      });
+
+      if (response.ok) {
+        console.log(`تم إرسال إشعار push للسائق ${driver.name} بنجاح`);
+        
+        // حفظ الإشعار في قاعدة البيانات المحلية
+        await supabase
+          .from('notifications')
+          .insert({
+            driver_id: driverId,
+            title: title,
+            message: body,
+            type: 'push_notification',
+            is_read: false,
+            created_at: new Date().toISOString()
+          });
+
+        return { success: true, message: 'تم إرسال الإشعار بنجاح' };
+      } else {
+        const errorData = await response.json();
+        console.error('خطأ في إرسال الإشعار:', errorData);
+        return { success: false, error: 'فشل في إرسال الإشعار' };
+      }
+    } catch (error) {
+      console.error('خطأ في إرسال push notification:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  // إرسال إشعار push للمتجر
+  sendPushNotificationToStore: async (storeId, title, body, data = {}) => {
+    try {
+      // جلب توكن الإشعارات للمتجر
+      const { data: store, error: storeError } = await supabase
+        .from('stores')
+        .select('expo_push_token, name')
+        .eq('id', storeId)
+        .single();
+
+      if (storeError || !store?.expo_push_token) {
+        console.log(`لا يوجد توكن إشعارات للمتجر ${storeId}`);
+        return { success: false, error: 'لا يوجد توكن إشعارات للمتجر' };
+      }
+
+      // إرسال الإشعار عبر Expo Push Service
+      const message = {
+        to: store.expo_push_token,
+        sound: 'default',
+        title: title,
+        body: body,
+        data: {
+          ...data,
+          type: 'store_notification',
+          store_id: storeId
+        },
+        badge: 1
+      };
+
+      const response = await fetch('https://exp.host/--/api/v2/push/send', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Accept-encoding': 'gzip, deflate',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(message),
+      });
+
+      if (response.ok) {
+        console.log(`تم إرسال إشعار push للمتجر ${store.name} بنجاح`);
+        
+        // حفظ الإشعار في قاعدة البيانات المحلية
+        await supabase
+          .from('store_notifications')
+          .insert({
+            store_id: storeId,
+            title: title,
+            message: body,
+            type: 'push_notification',
+            is_read: false,
+            created_at: new Date().toISOString()
+          });
+
+        return { success: true, message: 'تم إرسال الإشعار بنجاح' };
+      } else {
+        const errorData = await response.json();
+        console.error('خطأ في إرسال الإشعار:', errorData);
+        return { success: false, error: 'فشل في إرسال الإشعار' };
+      }
+    } catch (error) {
+      console.error('خطأ في إرسال push notification:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  // إرسال إشعار push لجميع السائقين
+  sendPushNotificationToAllDrivers: async (title, body, data = {}) => {
+    try {
+      // جلب جميع السائقين المفعلين مع توكنات الإشعارات
+      const { data: drivers, error: driversError } = await supabase
+        .from('drivers')
+        .select('id, expo_push_token, name')
+        .eq('is_active', true)
+        .not('expo_push_token', 'is', null);
+
+      if (driversError) {
+        return { success: false, error: 'خطأ في جلب السائقين' };
+      }
+
+      if (!drivers || drivers.length === 0) {
+        return { success: false, error: 'لا يوجد سائقين مع توكنات إشعارات' };
+      }
+
+      let successCount = 0;
+      let errorCount = 0;
+
+      // إرسال الإشعار لكل سائق
+      for (const driver of drivers) {
+        try {
+          const message = {
+            to: driver.expo_push_token,
+            sound: 'default',
+            title: title,
+            body: body,
+            data: {
+              ...data,
+              type: 'driver_notification',
+              driver_id: driver.id
+            },
+            badge: 1
+          };
+
+          const response = await fetch('https://exp.host/--/api/v2/push/send', {
+            method: 'POST',
+            headers: {
+              'Accept': 'application/json',
+              'Accept-encoding': 'gzip, deflate',
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(message),
+          });
+
+          if (response.ok) {
+            successCount++;
+            
+            // حفظ الإشعار في قاعدة البيانات
+            await supabase
+              .from('notifications')
+              .insert({
+                driver_id: driver.id,
+                title: title,
+                message: body,
+                type: 'push_notification',
+                is_read: false,
+                created_at: new Date().toISOString()
+              });
+          } else {
+            errorCount++;
+          }
+        } catch (error) {
+          errorCount++;
+          console.error(`خطأ في إرسال إشعار للسائق ${driver.name}:`, error);
+        }
+      }
+
+      return { 
+        success: true, 
+        message: `تم إرسال الإشعار لـ ${successCount} سائق`,
+        successCount,
+        errorCount
+      };
+    } catch (error) {
+      console.error('خطأ في إرسال إشعارات لجميع السائقين:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  // إرسال إشعار push لجميع المتاجر
+  sendPushNotificationToAllStores: async (title, body, data = {}) => {
+    try {
+      // جلب جميع المتاجر المفعلة مع توكنات الإشعارات
+      const { data: stores, error: storesError } = await supabase
+        .from('stores')
+        .select('id, expo_push_token, name')
+        .eq('is_active', true)
+        .not('expo_push_token', 'is', null);
+
+      if (storesError) {
+        return { success: false, error: 'خطأ في جلب المتاجر' };
+      }
+
+      if (!stores || stores.length === 0) {
+        return { success: false, error: 'لا يوجد متاجر مع توكنات إشعارات' };
+      }
+
+      let successCount = 0;
+      let errorCount = 0;
+
+      // إرسال الإشعار لكل متجر
+      for (const store of stores) {
+        try {
+          const message = {
+            to: store.expo_push_token,
+            sound: 'default',
+            title: title,
+            body: body,
+            data: {
+              ...data,
+              type: 'store_notification',
+              store_id: store.id
+            },
+            badge: 1
+          };
+
+          const response = await fetch('https://exp.host/--/api/v2/push/send', {
+            method: 'POST',
+            headers: {
+              'Accept': 'application/json',
+              'Accept-encoding': 'gzip, deflate',
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(message),
+          });
+
+          if (response.ok) {
+            successCount++;
+            
+            // حفظ الإشعار في قاعدة البيانات
+            await supabase
+              .from('store_notifications')
+              .insert({
+                store_id: store.id,
+                title: title,
+                message: body,
+                type: 'push_notification',
+                is_read: false,
+                created_at: new Date().toISOString()
+              });
+          } else {
+            errorCount++;
+          }
+        } catch (error) {
+          errorCount++;
+          console.error(`خطأ في إرسال إشعار للمتجر ${store.name}:`, error);
+        }
+      }
+
+      return { 
+        success: true, 
+        message: `تم إرسال الإشعار لـ ${successCount} متجر`,
+        successCount,
+        errorCount
+      };
+    } catch (error) {
+      console.error('خطأ في إرسال إشعارات لجميع المتاجر:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  // إرسال إشعار طلب جديد للسائقين
+  sendNewOrderNotificationToDrivers: async (orderData) => {
+    try {
+      const title = 'طلب جديد متاح! 🚚';
+      const body = `طلب جديد من ${orderData.store_name || 'متجر'} - ${orderData.total_amount} دينار`;
+      
+      const data = {
+        type: 'new_order',
+        order_id: orderData.id,
+        store_id: orderData.store_id,
+        total_amount: orderData.total_amount,
+        pickup_address: orderData.pickup_address,
+        delivery_address: orderData.delivery_address
+      };
+
+      return await pushNotificationsAPI.sendPushNotificationToAllDrivers(title, body, data);
+    } catch (error) {
+      console.error('خطأ في إرسال إشعار الطلب الجديد:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  // إرسال إشعار تحديث حالة الطلب
+  sendOrderStatusUpdateNotification: async (orderData, newStatus) => {
+    try {
+      let title, body, data;
+      
+      switch (newStatus) {
+        case 'accepted':
+          title = 'تم قبول طلبك! ✅';
+          body = `تم قبول طلبك من قبل السائق ${orderData.driver_name || 'السائق'}`;
+          break;
+        case 'picked_up':
+          title = 'تم استلام الطلب! 📦';
+          body = `تم استلام طلبك من المتجر`;
+          break;
+        case 'completed':
+          title = 'تم تسليم الطلب! 🎉';
+          body = `تم تسليم طلبك بنجاح`;
+          break;
+        case 'cancelled':
+          title = 'تم إلغاء الطلب! ❌';
+          body = `تم إلغاء طلبك`;
+          break;
+        default:
+          title = 'تحديث حالة الطلب';
+          body = `تم تحديث حالة طلبك إلى: ${newStatus}`;
+      }
+
+      data = {
+        type: 'order_status_update',
+        order_id: orderData.id,
+        new_status: newStatus,
+        driver_id: orderData.driver_id,
+        store_id: orderData.store_id
+      };
+
+      // إرسال إشعار للمتجر
+      if (orderData.store_id) {
+        await pushNotificationsAPI.sendPushNotificationToStore(
+          orderData.store_id, 
+          title, 
+          body, 
+          data
+        );
+      }
+
+      // إرسال إشعار للسائق
+      if (orderData.driver_id) {
+        await pushNotificationsAPI.sendPushNotificationToDriver(
+          orderData.driver_id, 
+          title, 
+          body, 
+          data
+        );
+      }
+
+      return { success: true, message: 'تم إرسال إشعارات تحديث الحالة' };
+    } catch (error) {
+      console.error('خطأ في إرسال إشعار تحديث الحالة:', error);
+      return { success: false, error: error.message };
+    }
   }
 }; 
