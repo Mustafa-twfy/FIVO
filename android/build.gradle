@@ -33,12 +33,14 @@ allprojects {
 // إعدادات التوافق مع Expo
 subprojects { subproject ->
     if (subproject.name == 'expo' || subproject.name == 'expo-application' || subproject.name == 'expo-modules-core') {
-        subproject.android {
-            compileSdkVersion rootProject.ext.compileSdkVersion
-            buildToolsVersion rootProject.ext.buildToolsVersion
-            defaultConfig {
-                minSdkVersion rootProject.ext.minSdkVersion
-                targetSdkVersion rootProject.ext.targetSdkVersion
+        if (subproject.hasProperty('android')) {
+            subproject.android {
+                compileSdkVersion rootProject.ext.compileSdkVersion
+                buildToolsVersion rootProject.ext.buildToolsVersion
+                defaultConfig {
+                    minSdkVersion rootProject.ext.minSdkVersion
+                    targetSdkVersion rootProject.ext.targetSdkVersion
+                }
             }
         }
     }
