@@ -79,11 +79,11 @@ android {
         versionCode 1
         versionName "1.0"
         
-        // تحسين الأداء
+        // Performance improvements
         multiDexEnabled true
         vectorDrawables.useSupportLibrary = true
         
-        // إعدادات الذاكرة
+        // Memory settings
         ndk {
             abiFilters "armeabi-v7a", "arm64-v8a", "x86", "x86_64"
         }
@@ -101,7 +101,7 @@ android {
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
-            // تحسين الأداء في وضع التطوير
+            // Performance optimization in development mode
             minifyEnabled false
             shrinkResources false
             debuggable true
@@ -115,13 +115,13 @@ android {
         }
     }
     
-    // إعدادات محدثة للأداء
+    // Updated settings for performance
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
     
-    // تحسين التحميل
+    // Loading optimization
     packagingOptions {
         pickFirst '**/libc++_shared.so'
         pickFirst '**/libjsc.so'
@@ -154,7 +154,7 @@ dependencies {
         implementation jscFlavor
     }
     
-    // تحسين الأداء
+    // Performance improvements
     implementation 'androidx.multidex:multidex:2.0.1'
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'com.google.android.material:material:1.9.0'

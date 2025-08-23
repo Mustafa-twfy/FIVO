@@ -22,7 +22,7 @@ buildscript {
 
 apply plugin: "com.facebook.react.rootproject"
 
-// إعدادات التوافق مع الإصدارات الحديثة
+// Settings for compatibility with modern versions
 gradle.beforeProject { project ->
     project.afterEvaluate {
         if (project.hasProperty('android') && project.plugins.hasPlugin('com.android.library')) {
@@ -32,7 +32,7 @@ gradle.beforeProject { project ->
                     buildToolsVersion rootProject.ext.buildToolsVersion
                 }
             } catch (Exception e) {
-                // تجاهل الأخطاء
+                // Ignore errors
             }
         }
     }
@@ -46,7 +46,7 @@ allprojects {
     }
 }
 
-// إعدادات التوافق مع Expo
+// Expo compatibility settings
 subprojects { subproject ->
     if (subproject.name.startsWith('expo')) {
         subproject.afterEvaluate {
@@ -66,7 +66,7 @@ subprojects { subproject ->
     }
 }
 
-// إعدادات التوافق مع React Native Gradle Plugin
+// React Native Gradle Plugin compatibility settings
 gradle.projectsEvaluated {
     rootProject.subprojects { subproject ->
         if (subproject.hasProperty('android')) {
@@ -76,7 +76,7 @@ gradle.projectsEvaluated {
                     buildToolsVersion rootProject.ext.buildToolsVersion
                 }
             } catch (Exception e) {
-                // تجاهل الأخطاء في المشاريع التي لا تدعم هذه الإعدادات
+                // Ignore errors in projects that don't support these settings
                 println "Warning: Could not configure android settings for ${subproject.name}: ${e.message}"
             }
         }
