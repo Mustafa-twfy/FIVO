@@ -26,15 +26,15 @@
 - دعم أفضل للملفات المختلفة
 
 ### 5. إصلاح مشاكل Gradle ✅
-- تحديث Android Gradle Plugin إلى 8.7.0
-- تحديث Gradle إلى 8.7
+- تحديث Android Gradle Plugin إلى 8.9.0
+- تحديث Gradle إلى 8.9
 - إزالة الإعدادات المهملة
 - إضافة إعدادات التوافق الحديثة
 
 ### 6. إصلاح مشكلة التعليقات العربية ✅
 - استبدال جميع التعليقات العربية بتعليقات إنجليزية
 - إصلاح مشكلة "Unexpected character: '#'" في Gradle
-- ضمان توافق ملفات الإعدادات مع Gradle 8.7
+- ضمان توافق ملفات الإعدادات مع Gradle 8.9
 - تغيير اسم المشروع إلى "SimsimDelivery" لتجنب المشاكل
 
 ### 7. إصلاح مشكلة gradle.projectsLoaded ✅
@@ -48,6 +48,12 @@
 - نقل repositories configuration إلى `build.gradle` الرئيسي
 - ضمان صحة صيغة ملفات الإعدادات
 - حل مشكلة "Could not find method allprojects()"
+
+### 9. إصلاح مشكلة إصدار Gradle ✅
+- تحديث Gradle من 8.7 إلى 8.9
+- تحديث Android Gradle Plugin من 8.7.0 إلى 8.9.0
+- حل مشكلة "Minimum supported Gradle version is 8.9. Current version is 8.7"
+- إعادة تفعيل configuration cache مع Gradle 8.9
 
 ## 🔧 خطوات الإصلاح:
 
@@ -115,10 +121,11 @@ npm run install:android
 - ✅ عدم الخروج المفاجئ
 - ✅ استجابة أسرع للعمليات
 - ✅ بناء ناجح بدون أخطاء Gradle
-- ✅ توافق كامل مع Gradle 8.7
+- ✅ توافق كامل مع Gradle 8.9
 - ✅ حل نهائي لمشكلة التعليقات العربية
 - ✅ حل مشكلة gradle.projectsLoaded
 - ✅ حل مشكلة allprojects في settings.gradle
+- ✅ حل مشكلة إصدار Gradle
 
 ### مؤشرات المشاكل:
 - ❌ بطء في التحميل
@@ -129,6 +136,7 @@ npm run install:android
 - ❌ مشاكل في التعليقات العربية
 - ❌ أخطاء في repositories configuration
 - ❌ مشاكل في استخدام allprojects في settings.gradle
+- ❌ مشاكل في إصدار Gradle
 
 ## 🛠️ أدوات التشخيص:
 
@@ -156,15 +164,15 @@ cd android
 ## 🔧 إصلاحات Gradle المطبقة:
 
 ### تحديث الإصدارات:
-- **Android Gradle Plugin**: 8.2.2 → 8.7.0
-- **Gradle**: 8.7
+- **Android Gradle Plugin**: 8.2.2 → 8.9.0
+- **Gradle**: 8.7 → 8.9
 - **Build Tools**: 35.0.0
 - **Compile SDK**: 35
 - **Target SDK**: 35
 
 ### إعدادات محسنة:
 - `android.useFullClasspathForDexingTransform=true`
-- `org.gradle.configuration-cache=false` (مؤقتاً)
+- `org.gradle.configuration-cache=true` (مع Gradle 8.9)
 - `org.gradle.parallel=true`
 - `org.gradle.caching=true`
 
@@ -174,6 +182,7 @@ cd android
 - `android/gradle.properties` - إعدادات الأداء والتعليقات
 - `android/app/proguard-rules.pro` - قواعد ProGuard
 - `android/settings.gradle` - إعدادات المشروع والتعليقات
+- `android/gradle/wrapper/gradle-wrapper.properties` - تحديث Gradle إلى 8.9
 
 ## 🚨 إصلاح مشكلة التعليقات العربية:
 
@@ -192,7 +201,7 @@ Unexpected character: '#' @ line 40, column 1
 ### التغييرات النهائية:
 - `rootProject.name = 'SimsimDelivery'` بدلاً من `'توصيل سمسم'`
 - جميع التعليقات باللغة الإنجليزية
-- ملفات إعدادات متوافقة مع Gradle 8.7
+- ملفات إعدادات متوافقة مع Gradle 8.9
 
 ## 🚨 إصلاح مشكلة gradle.projectsLoaded:
 
@@ -206,7 +215,7 @@ is applicable for argument types: (settings_79z5y3onylcgd8izhscr5a5i$_run_closur
 - ✅ استبدال `gradle.projectsLoaded` بـ `allprojects` في settings.gradle
 - ✅ تعطيل configuration cache مؤقتاً: `org.gradle.configuration-cache=false`
 - ✅ إصلاح مشكلة repositories configuration
-- ✅ ضمان توافق مع Gradle 8.7
+- ✅ ضمان توافق مع Gradle 8.9
 
 ### التغييرات في settings.gradle:
 ```gradle
@@ -269,6 +278,50 @@ allprojects {
 }
 ```
 
+## 🚨 إصلاح مشكلة إصدار Gradle:
+
+### المشكلة:
+```
+Minimum supported Gradle version is 8.9. Current version is 8.7. 
+If using the gradle wrapper, try editing the distributionUrl in 
+gradle-wrapper.properties to gradle-8.9-all.zip
+```
+
+### الحل المطبق:
+- ✅ تحديث Gradle من 8.7 إلى 8.9
+- ✅ تحديث Android Gradle Plugin من 8.7.0 إلى 8.9.0
+- ✅ حل مشكلة "Minimum supported Gradle version is 8.9"
+- ✅ إعادة تفعيل configuration cache مع Gradle 8.9
+
+### التغييرات في gradle-wrapper.properties:
+```properties
+# قبل الإصلاح
+distributionUrl=https\://downloads.gradle.org/distributions/gradle-8.7-all.zip
+
+# بعد الإصلاح
+distributionUrl=https\://downloads.gradle.org/distributions/gradle-8.9-all.zip
+```
+
+### التغييرات في build.gradle الرئيسي:
+```gradle
+// قبل الإصلاح
+classpath("com.android.tools.build:gradle:8.7.0")
+
+// بعد الإصلاح
+classpath("com.android.tools.build:gradle:8.9.0")
+```
+
+### التغييرات في gradle.properties:
+```properties
+# قبل الإصلاح
+org.gradle.configuration-cache=false
+
+# بعد الإصلاح
+org.gradle.configuration-cache=true
+org.gradle.unsafe.configuration-cache-problems=warn
+org.gradle.unsafe.configuration-cache.max-problems=5
+```
+
 ## 📞 الدعم الفني:
 
 للمساعدة الإضافية:
@@ -285,7 +338,7 @@ allprojects {
 - [ ] تحسين تجربة المستخدم
 - [ ] تحديث إلى أحدث إصدارات Android
 - [ ] إضافة دعم أفضل للغات المختلفة
-- [ ] إعادة تفعيل configuration cache بعد حل المشاكل
+- [ ] تحسين configuration cache مع Gradle 8.9
 
 ---
 
@@ -302,3 +355,5 @@ allprojects {
 **تم إصلاح مشكلة gradle.projectsLoaded** ⚙️
 
 **تم إصلاح مشكلة allprojects في settings.gradle** 🔧
+
+**تم إصلاح مشكلة إصدار Gradle** 📦
