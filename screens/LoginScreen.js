@@ -95,6 +95,11 @@ export default function LoginScreen({ navigation }) {
       console.log('=== بداية عملية تسجيل الدخول ===');
       console.log('البريد الإلكتروني:', email);
 
+      // إضافة timeout للعمليات لتجنب التوقف
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('انتهت مهلة العملية')), 10000)
+      );
+
       // لا يوجد استدعاء API خارجي هنا؛ نعتمد فقط على الجداول الأساسية
 
       // 2) حساب أدمن ثابت (إن وجد)
@@ -111,13 +116,18 @@ export default function LoginScreen({ navigation }) {
         return;
       }
 
-      // 3) التحقق من طلبات التسجيل
-      const { data: pendingRequest, error: requestError } = await supabase
+      // 3) التحقق من طلبات التسجيل مع timeout
+      const registrationPromise = supabase
         .from('registration_requests')
         .select('*')
         .eq('email', email)
         .eq('password', password)
         .single();
+
+      const { data: pendingRequest, error: requestError } = await Promise.race([
+        registrationPromise,
+        timeoutPromise
+      ]);
 
       if (requestError && requestError.code !== 'PGRST116') {
         console.error('خطأ في البحث في طلبات التسجيل:', requestError);
@@ -142,14 +152,19 @@ export default function LoginScreen({ navigation }) {
         }
       }
 
-      // 4) التحقق من السائق المعتمد
-      const { data: driver, error: driverError } = await supabase
+      // 4) التحقق من السائق المعتمد مع timeout
+      const driverPromise = supabase
         .from('drivers')
         .select('*')
         .eq('email', email)
         .eq('password', password)
         .eq('status', 'approved')
         .single();
+
+      const { data: driver, error: driverError } = await Promise.race([
+        driverPromise,
+        timeoutPromise
+      ]);
 
       if (driverError && driverError.code !== 'PGRST116') {
         console.error('خطأ في البحث في جدول السائقين:', driverError);
@@ -167,14 +182,19 @@ export default function LoginScreen({ navigation }) {
         return;
       }
 
-      // 5) التحقق من المتجر النشط
-      const { data: store, error: storeError } = await supabase
+      // 5) التحقق من المتجر النشط مع timeout
+      const storePromise = supabase
         .from('stores')
         .select('*')
         .eq('email', email)
         .eq('password', password)
         .eq('is_active', true)
         .single();
+
+      const { data: store, error: storeError } = await Promise.race([
+        storePromise,
+        timeoutPromise
+      ]);
 
       if (storeError && storeError.code !== 'PGRST116') {
         console.error('خطأ في البحث في جدول المتاجر:', storeError);
@@ -196,7 +216,11 @@ export default function LoginScreen({ navigation }) {
       Alert.alert('خطأ في تسجيل الدخول', 'بيانات الدخول غير صحيحة أو لم تتم الموافقة بعد');
     } catch (error) {
       console.error('=== خطأ عام في عملية تسجيل الدخول ===', error);
-      Alert.alert('خطأ', 'حدث خطأ أثناء تسجيل الدخول: ' + error.message);
+      if (error.message === 'انتهت مهلة العملية') {
+        Alert.alert('خطأ', 'انتهت مهلة العملية. يرجى المحاولة مرة أخرى.');
+      } else {
+        Alert.alert('خطأ', 'حدث خطأ أثناء تسجيل الدخول: ' + error.message);
+      }
     } finally {
       setLoading(false);
     }

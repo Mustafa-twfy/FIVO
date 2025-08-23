@@ -1,48 +1,103 @@
 {
   "expo": {
-    "name": "سمسم",
-    "slug": "simsim",
+    "name": "توصيل سمسم",
+    "slug": "simsim-delivery",
     "version": "1.0.0",
     "orientation": "portrait",
-    "userInterfaceStyle": "light",
-    "newArchEnabled": true,
     "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#00C897"
-    },
-    "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.twfy.simsim"
-    },
-    "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#00C897"
-      },
-      "package": "com.twfy.simsim",
-      "googleServicesFile": "./google-services.json"
-    },
-    "web": {
-      "favicon": "./assets/favicon.png"
+      "backgroundColor": "#FF9800"
     },
     "assetBundlePatterns": [
       "**/*"
     ],
-    "plugins": [
-      [
-        "expo-notifications",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.twfy.simsim",
+      "buildNumber": "1.0.0",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "يحتاج التطبيق إلى موقعك لتحديد موقع التسليم",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "يحتاج التطبيق إلى موقعك لتحديد موقع التسليم",
+        "NSCameraUsageDescription": "يحتاج التطبيق إلى الكاميرا لالتقاط صور المستندات",
+        "NSPhotoLibraryUsageDescription": "يحتاج التطبيق إلى مكتبة الصور لاختيار المستندات"
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FF9800"
+      },
+      "package": "com.twfy.simsim",
+      "versionCode": 1,
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "INTERNET",
+        "ACCESS_NETWORK_STATE",
+        "VIBRATE",
+        "RECEIVE_BOOT_COMPLETED",
+        "WAKE_LOCK"
+      ],
+      "intentFilters": [
         {
-          "icon": "./assets/icon.png",
-          "color": "#00C897"
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "simsim"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-location",
+      "expo-camera",
+      "expo-image-picker",
+      "expo-notifications",
+      "expo-device",
+      "expo-constants",
+      "expo-file-system",
+      "expo-media-library",
+      "expo-permissions"
     ],
     "extra": {
       "eas": {
-        "projectId": "7afda903-8cd5-422f-9192-e535509be738"
+        "projectId": "your-project-id"
       }
+    },
+    "owner": "twfy",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/your-project-id"
+    },
+    "hooks": {
+      "postPublish": [
+        {
+          "file": "sentry-expo/upload-sourcemaps",
+          "config": {
+            "organization": "your-org",
+            "project": "your-project"
+          }
+        }
+      ]
     }
   }
 }

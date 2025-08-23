@@ -83,8 +83,8 @@ const darkTheme = {
 const testDatabaseConnection = async () => {
   console.log('=== بداية اختبار قاعدة البيانات ===');
   try {
-    // تأخير قصير لضمان استقرار التطبيق
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // تقليل التأخير لضمان استقرار التطبيق
+    await new Promise(resolve => setTimeout(resolve, 500)); // تقليل من 1000ms إلى 500ms
     
     const { data, error } = await supabase.from('drivers').select('count').limit(1);
     if (error) {
@@ -229,7 +229,7 @@ function AppContent() {
     const splashTimeout = setTimeout(() => {
       setShowSplash(false);
       checkUserSession();
-    }, 800);
+    }, 500); // تقليل من 800ms إلى 500ms
 
     // تهيئة خدمة الإشعارات - تأخيرها حتى يتم تحميل التطبيق
     const initializeNotifications = async () => {
@@ -245,15 +245,15 @@ function AppContent() {
       }
     };
     
-    // تأخير تهيئة الإشعارات حتى يتم تحميل التطبيق بالكامل
+    // تقليل تأخير تهيئة الإشعارات
     setTimeout(() => {
       initializeNotifications();
-    }, 2000);
+    }, 1000); // تقليل من 2000ms إلى 1000ms
 
-    // فحص/تهيئة قاعدة البيانات - تأخيرها لتجنب مشاكل التحميل
+    // فحص/تهيئة قاعدة البيانات - تقليل التأخير
     const backgroundInit = async () => {
       try {
-        // تأخير فحص قاعدة البيانات لتجنب مشاكل التحميل
+        // تقليل تأخير فحص قاعدة البيانات
         setTimeout(async () => {
           try {
             const shouldInit = process.env.EXPO_PUBLIC_ENABLE_DB_INIT === 'true';
@@ -262,15 +262,22 @@ function AppContent() {
               return;
             }
             const connectionTest = await testDatabaseConnection();
-            if (!connectionTest) console.error('فشل في اختبار الاتصال بقاعدة البيانات');
+            if (!connectionTest) {
+              console.error('فشل في اختبار الاتصال بقاعدة البيانات');
+              setDatabaseInitialized(true); // اعتبر التهيئة منتهية حتى لو فشلت
+              return;
+            }
             const result = await initializeDatabase();
             if (result.success) setDatabaseInitialized(true);
-            else console.error('فشل في تهيئة قاعدة البيانات:', result.error);
+            else {
+              console.error('فشل في تهيئة قاعدة البيانات:', result.error);
+              setDatabaseInitialized(true); // اعتبر التهيئة منتهية حتى لو فشلت
+            }
           } catch (error) {
             console.error('خطأ في تهيئة قاعدة البيانات:', error);
             setDatabaseInitialized(true); // اعتبر التهيئة منتهية حتى لو فشلت
           }
-        }, 3000);
+        }, 1000); // تقليل من 3000ms إلى 1000ms
       } catch (error) {
         console.error('خطأ في تهيئة التطبيق:', error);
         setDatabaseInitialized(true);
