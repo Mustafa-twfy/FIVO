@@ -34,4 +34,76 @@
 -keep class com.facebook.hermes.unicode.** { *; }
 -keep class com.facebook.jni.** { *; }
 
+# Keep Supabase classes
+-keep class io.supabase.** { *; }
+-keep class com.supabase.** { *; }
+
+# Keep encryption classes
+-keep class com.oblador.keychain.** { *; }
+-keep class com.reactnativeencryptedstorage.** { *; }
+
+# Keep AsyncStorage
+-keep class com.reactnativecommunity.asyncstorage.** { *; }
+
+# Keep navigation classes
+-keep class com.swmansion.navigation.** { *; }
+-keep class com.swmansion.gesturehandler.** { *; }
+
+# Keep image picker
+-keep class expo.imagepicker.** { *; }
+
+# Keep location services
+-keep class expo.location.** { *; }
+
+# Keep camera
+-keep class expo.camera.** { *; }
+
+# Keep file system
+-keep class expo.filesystem.** { *; }
+
+# Keep device info
+-keep class expo.device.** { *; }
+
+# Keep constants
+-keep class expo.constants.** { *; }
+
+# Keep media library
+-keep class expo.medialibrary.** { *; }
+
+# Keep permissions
+-keep class expo.permissions.** { *; }
+
+# Keep status bar
+-keep class expo.statusbar.** { *; }
+
+# Keep linear gradient
+-keep class expo.lineargradient.** { *; }
+
+# Keep document picker
+-keep class expo.documentpicker.** { *; }
+
+# Keep maps
+-keep class com.airbnb.android.react.maps.** { *; }
+
+# Keep dialog
+-keep class com.aakashns.reactnativedialogs.** { *; }
+
 # Add any project specific keep options here:
+
+# Keep all classes in the app package
+-keep class com.twfy.simsim.** { *; }
+
+# Keep all classes with @Keep annotation
+-keep class * {
+    @androidx.annotation.Keep *;
+}
+
+# Keep all classes with @Keep annotation from support library
+-keep class * {
+    @android.support.annotation.Keep *;
+}
+
+# Keep all classes with @Keep annotation from AndroidX
+-keep class * {
+    @androidx.annotation.Keep *;
+}

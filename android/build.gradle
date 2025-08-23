@@ -14,7 +14,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath("com.android.tools.build:gradle:8.2.2")
+        classpath("com.android.tools.build:gradle:8.7.0")
         classpath("com.facebook.react:react-native-gradle-plugin")
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
     }
@@ -22,7 +22,7 @@ buildscript {
 
 apply plugin: "com.facebook.react.rootproject"
 
-// إصلاح مشكلة SoftwareComponent للمشاريع الفرعية
+// إعدادات التوافق مع الإصدارات الحديثة
 gradle.beforeProject { project ->
     project.afterEvaluate {
         if (project.hasProperty('android') && project.plugins.hasPlugin('com.android.library')) {
