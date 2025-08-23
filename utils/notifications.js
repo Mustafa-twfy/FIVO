@@ -22,6 +22,9 @@ class NotificationService {
   // تهيئة خدمة الإشعارات
   async initialize() {
     try {
+      // تأخير قصير لضمان استقرار التطبيق
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
       // طلب إذن الإشعارات
       const { status: existingStatus } = await Notifications.getPermissionsAsync();
       let finalStatus = existingStatus;
@@ -38,29 +41,42 @@ class NotificationService {
 
       // الحصول على Expo Push Token
       if (Platform.OS !== 'web') {
-        this.expoPushToken = await Notifications.getExpoPushTokenAsync({
-          projectId: '7afda903-8cd5-422f-9192-e535509be738', // من app.json
-        });
-        
-        console.log('Expo Push Token:', this.expoPushToken.data);
-        
-        // حفظ التوكن في التخزين المحلي
-        await AsyncStorage.setItem('expoPushToken', this.expoPushToken.data);
+        try {
+          this.expoPushToken = await Notifications.getExpoPushTokenAsync({
+            projectId: '7afda903-8cd5-422f-9192-e535509be738'
+          });
+          
+          console.log('Expo Push Token:', this.expoPushToken.data);
+          
+          // حفظ التوكن في التخزين المحلي
+          await AsyncStorage.setItem('expoPushToken', this.expoPushToken.data);
+        } catch (tokenError) {
+          console.error('خطأ في الحصول على Expo Push Token:', tokenError);
+          // لا توقف التهيئة إذا فشل الحصول على التوكن
+        }
       } else {
         console.log('يجب استخدام جهاز حقيقي للإشعارات');
       }
 
       // إعداد مستمع الإشعارات الواردة
-      this.notificationListener = Notifications.addNotificationReceivedListener(notification => {
-        console.log('تم استلام إشعار:', notification);
-        this.handleNotificationReceived(notification);
-      });
+      try {
+        this.notificationListener = Notifications.addNotificationReceivedListener(notification => {
+          console.log('تم استلام إشعار:', notification);
+          this.handleNotificationReceived(notification);
+        });
+      } catch (listenerError) {
+        console.error('خطأ في إعداد مستمع الإشعارات:', listenerError);
+      }
 
       // إعداد مستمع النقر على الإشعار
-      this.responseListener = Notifications.addNotificationResponseReceivedListener(response => {
-        console.log('تم النقر على الإشعار:', response);
-        this.handleNotificationResponse(response);
-      });
+      try {
+        this.responseListener = Notifications.addNotificationResponseReceivedListener(response => {
+          console.log('تم النقر على الإشعار:', response);
+          this.handleNotificationResponse(response);
+        });
+      } catch (responseError) {
+        console.error('خطأ في إعداد مستمع النقر على الإشعار:', responseError);
+      }
 
       return true;
     } catch (error) {

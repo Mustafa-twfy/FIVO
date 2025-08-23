@@ -27,6 +27,9 @@ export const initializeDatabase = async () => {
     
     for (const tableName of requiredTables) {
       try {
+        // تأخير قصير لتجنب الضغط على قاعدة البيانات
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
         const { data: existingTable } = await supabase
           .from('information_schema.tables')
           .select('table_name')
@@ -41,11 +44,17 @@ export const initializeDatabase = async () => {
         }
       } catch (error) {
         console.log(`خطأ في التحقق من جدول ${tableName}:`, error.message);
+        // لا توقف التهيئة إذا فشل التحقق من جدول واحد
       }
     }
     
     // إدخال بيانات تجريبية
-    await insertSampleData();
+    try {
+      await insertSampleData();
+    } catch (sampleDataError) {
+      console.error('خطأ في إدخال البيانات التجريبية:', sampleDataError);
+      // لا توقف التهيئة إذا فشل إدخال البيانات التجريبية
+    }
     
     console.log('تم تهيئة قاعدة البيانات بنجاح!');
     return { success: true, message: 'تم تهيئة قاعدة البيانات بنجاح' };
@@ -122,69 +131,78 @@ export const updatesAPI = {
 const insertSampleData = async () => {
   try {
     // إدخال سائقين تجريبيين
-    await supabase.from('drivers').upsert([
-      {
-        email: 'driver1@simsim.com',
-        password: 'password123',
-        name: 'أحمد محمد',
-        phone: '+966501234567',
-        vehicle_type: 'سيارة نقل صغيرة',
-        status: 'approved',
-        is_active: true,
-        debt_points: 0,
-        is_suspended: false
-      },
-      {
-        email: 'driver2@simsim.com',
-        password: 'password123',
-        name: 'محمد علي',
-        phone: '+966502345678',
-        vehicle_type: 'دراجة نارية',
-        status: 'approved',
-        is_active: true,
-        debt_points: 0,
-        is_suspended: false
-      },
-      {
-        email: 'test@driver.com',
-        password: '123456',
-        name: 'سائق تجريبي',
-        phone: '+966501234567',
-        vehicle_type: 'سيارة نقل صغيرة',
-        status: 'approved',
-        is_active: false,
-        debt_points: 0,
-        is_suspended: false
-      }
-    ], { onConflict: 'email' });
+    try {
+      await supabase.from('drivers').upsert([
+        {
+          email: 'driver1@simsim.com',
+          password: 'password123',
+          name: 'أحمد محمد',
+          phone: '+966501234567',
+          vehicle_type: 'سيارة نقل صغيرة',
+          status: 'approved',
+          is_active: true,
+          debt_points: 0,
+          is_suspended: false
+        },
+        {
+          email: 'driver2@simsim.com',
+          password: 'password123',
+          name: 'محمد علي',
+          phone: '+966502345678',
+          vehicle_type: 'دراجة نارية',
+          status: 'approved',
+          is_active: true,
+          debt_points: 0,
+          is_suspended: false
+        },
+        {
+          email: 'test@driver.com',
+          password: '123456',
+          name: 'سائق تجريبي',
+          phone: '+966501234567',
+          vehicle_type: 'سيارة نقل صغيرة',
+          status: 'approved',
+          is_active: false,
+          debt_points: 0,
+          is_suspended: false
+        }
+      ], { onConflict: 'email' });
+    } catch (driversError) {
+      console.error('خطأ في إدخال السائقين التجريبيين:', driversError);
+    }
 
     // إدخال متاجر تجريبية
-    await supabase.from('stores').upsert([
-      {
-        email: 'store1@simsim.com',
-        password: 'password123',
-        name: 'مطعم الشرق',
-        phone: '+966504567890',
-        address: 'شارع الملك فهد، الرياض',
-        category: 'مطاعم',
-        is_active: true,
-        location_url: 'https://maps.google.com/?q=شارع+الملك+فهد+الرياض'
-      },
-      {
-        email: 'store2@simsim.com',
-        password: 'password123',
-        name: 'صيدلية النور',
-        phone: '+966505678901',
-        address: 'شارع التحلية، جدة',
-        category: 'صيدليات',
-        is_active: true,
-        location_url: 'https://maps.google.com/?q=شارع+التحلية+جدة'
-      }
-    ], { onConflict: 'email' });
+    try {
+      await supabase.from('stores').upsert([
+        {
+          email: 'store1@simsim.com',
+          password: 'password123',
+          name: 'مطعم الشرق',
+          phone: '+966504567890',
+          address: 'شارع الملك فهد، الرياض',
+          category: 'مطاعم',
+          is_active: true,
+          location_url: 'https://maps.google.com/?q=شارع+الملك+فهد+الرياض'
+        },
+        {
+          email: 'store2@simsim.com',
+          password: 'password123',
+          name: 'صيدلية النور',
+          phone: '+966505678901',
+          address: 'شارع التحلية، جدة',
+          category: 'صيدليات',
+          is_active: true,
+          location_url: 'https://maps.google.com/?q=شارع+التحلية+جدة'
+        }
+      ], { onConflict: 'email' });
+    } catch (storesError) {
+      console.error('خطأ في إدخال المتاجر التجريبية:', storesError);
+    }
 
     console.log('تم إدخال البيانات التجريبية بنجاح');
   } catch (error) {
     console.log('خطأ في إدخال البيانات التجريبية:', error.message);
+    // لا توقف العملية إذا فشل إدخال البيانات التجريبية
   }
 };
 
@@ -192,68 +210,83 @@ const insertSampleData = async () => {
 export const driversAPI = {
   // جلب جميع السائقين
   getAllDrivers: async () => {
-    const { data, error } = await supabase
-      .from('drivers')
-      .select('*')
-      .eq('status', 'approved')
-      .order('created_at', { ascending: false });
-    return { data, error };
+    try {
+      const { data, error } = await supabase
+        .from('drivers')
+        .select('*')
+        .eq('status', 'approved')
+        .order('created_at', { ascending: false });
+      return { data, error };
+    } catch (error) {
+      console.error('خطأ في جلب السائقين:', error);
+      return { data: null, error };
+    }
   },
 
   // جلب سائق واحد بالمعرّف
   getDriverById: async (driverId) => {
-    const { data, error } = await supabase
-      .from('drivers')
-      .select('*')
-      .eq('id', driverId)
-      .single();
-    return { data, error };
+    try {
+      const { data, error } = await supabase
+        .from('drivers')
+        .select('*')
+        .eq('id', driverId)
+        .single();
+      return { data, error };
+    } catch (error) {
+      console.error('خطأ في جلب السائق:', error);
+      return { data: null, error };
+    }
   },
 
   // تحديث نقاط السائق مع تفعيل الإيقاف التلقائي
   updateDriverDebt: async (driverId, newPoints) => {
     try {
-    // جلب الحد الأقصى من إعدادات النظام
-    const { data: settings } = await systemSettingsAPI.getSystemSettings();
-    const maxDebtPoints = settings?.max_debt_points || 20;
-    let isSuspended = false;
+      // جلب الحد الأقصى من إعدادات النظام
+      const { data: settings } = await systemSettingsAPI.getSystemSettings();
+      const maxDebtPoints = settings?.max_debt_points || 20;
+      let isSuspended = false;
       
-    // تحديث النقاط
-    const { data, error } = await supabase
-      .from('drivers')
-      .update({ debt_points: newPoints })
-      .eq('id', driverId);
-        
-    if (!error) {
-      // إذا تجاوز الحد، أوقف السائق
-      if (newPoints >= maxDebtPoints) {
-          try {
-            await driversAPI.suspendDriver(driverId, 'تم إيقافك مؤقتًا بسبب تجاوز حد الديون. يرجى التواصل مع الدعم الفني لتصفير الديون.');
-            await driversAPI.sendNotification(driverId, 'إيقاف مؤقت', 'تم إيقافك مؤقتًا بسبب تجاوز حد الديون. يرجى التواصل مع الدعم الفني لتصفير الديون.');
-        isSuspended = true;
-          } catch (suspendError) {
-            console.error('خطأ في إيقاف السائق:', suspendError);
-            // لا نريد أن يفشل التحديث بسبب خطأ في الإيقاف
-          }
-      } else {
-        // إذا كان موقوفًا سابقًا وأصبح أقل من الحد، أرفع الإيقاف
-          try {
-        const { data: driver } = await supabase
+      // تحديث النقاط
+      try {
+        const { data, error } = await supabase
           .from('drivers')
-          .select('is_suspended')
-          .eq('id', driverId)
-          .single();
-        if (driver?.is_suspended) {
-          await driversAPI.unsuspendDriver(driverId);
-          await driversAPI.sendNotification(driverId, 'تم رفع الإيقاف', 'تم رفع الإيقاف عنك بعد تصفير أو تقليل الديون. يمكنك العودة للعمل.');
+          .update({ debt_points: newPoints })
+          .eq('id', driverId);
+          
+        if (!error) {
+          // إذا تجاوز الحد، أوقف السائق
+          if (newPoints >= maxDebtPoints) {
+            try {
+              await driversAPI.suspendDriver(driverId, 'تم إيقافك مؤقتًا بسبب تجاوز حد الديون. يرجى التواصل مع الدعم الفني لتصفير الديون.');
+              await driversAPI.sendNotification(driverId, 'إيقاف مؤقت', 'تم إيقافك مؤقتًا بسبب تجاوز حد الديون. يرجى التواصل مع الدعم الفني لتصفير الديون.');
+              isSuspended = true;
+            } catch (suspendError) {
+              console.error('خطأ في إيقاف السائق:', suspendError);
+              // لا نريد أن يفشل التحديث بسبب خطأ في الإيقاف
             }
-          } catch (unsuspendError) {
-            console.error('خطأ في رفع إيقاف السائق:', unsuspendError);
-            // لا نريد أن يفشل التحديث بسبب خطأ في رفع الإيقاف
+          } else {
+            // إذا كان موقوفًا سابقًا وأصبح أقل من الحد، أرفع الإيقاف
+            try {
+              const { data: driver } = await supabase
+                .from('drivers')
+                .select('is_suspended')
+                .eq('id', driverId)
+                .single();
+              if (driver?.is_suspended) {
+                await driversAPI.unsuspendDriver(driverId);
+                await driversAPI.sendNotification(driverId, 'تم رفع الإيقاف', 'تم رفع الإيقاف عنك بعد تصفير أو تقليل الديون. يمكنك العودة للعمل.');
+              }
+            } catch (unsuspendError) {
+              console.error('خطأ في رفع إيقاف السائق:', unsuspendError);
+              // لا نريد أن يفشل التحديث بسبب خطأ في رفع الإيقاف
+            }
+          }
         }
+        return { data, error, isSuspended };
+      } catch (updateError) {
+        console.error('خطأ في تحديث نقاط السائق:', updateError);
+        return { data: null, error: updateError, isSuspended: false };
       }
-    }
-    return { data, error, isSuspended };
     } catch (error) {
       console.error('خطأ في تحديث نقاط السائق:', error);
       return { data: null, error, isSuspended: false };
@@ -275,26 +308,38 @@ export const driversAPI = {
       
       if (!error) {
         // إرسال إشعار عند النجاح
-        await driversAPI.sendNotification(
-          driverId,
-          'تصفير نقاط الديون',
-          'تم تصفير جميع نقاط الديون الخاصة بك. مجموع نقاطك الآن: 0 نقطة (0 دينار).'
-        );
+        try {
+          await driversAPI.sendNotification(
+            driverId,
+            'تصفير نقاط الديون',
+            'تم تصفير جميع نقاط الديون الخاصة بك. مجموع نقاطك الآن: 0 نقطة (0 دينار).'
+          );
+        } catch (notificationError) {
+          console.error('خطأ في إرسال إشعار تصفير الديون:', notificationError);
+        }
         
         // رفع الإيقاف إذا كان موقوفًا
-        const { data: driver } = await supabase
-          .from('drivers')
-          .select('is_suspended')
-          .eq('id', driverId)
-          .single();
-          
-        if (driver?.is_suspended) {
-          await driversAPI.unsuspendDriver(driverId);
-          await driversAPI.sendNotification(
-            driverId, 
-            'تم رفع الإيقاف', 
-            'تم رفع الإيقاف عنك بعد تصفير الديون. يمكنك العودة للعمل.'
-          );
+        try {
+          const { data: driver } = await supabase
+            .from('drivers')
+            .select('is_suspended')
+            .eq('id', driverId)
+            .single();
+            
+          if (driver?.is_suspended) {
+            try {
+              await driversAPI.unsuspendDriver(driverId);
+              await driversAPI.sendNotification(
+                driverId, 
+                'تم رفع الإيقاف', 
+                'تم رفع الإيقاف عنك بعد تصفير الديون. يمكنك العودة للعمل.'
+              );
+            } catch (unsuspendError) {
+              console.error('خطأ في رفع إيقاف السائق:', unsuspendError);
+            }
+          }
+        } catch (driverError) {
+          console.error('خطأ في جلب بيانات السائق:', driverError);
         }
       }
       return { data, error };
@@ -335,20 +380,28 @@ export const driversAPI = {
       
       if (!error) {
         // إرسال إشعار للسائق
-        await driversAPI.sendNotification(
-          driverId,
-          'تقليل نقاط الديون',
-          `تم تقليل نقاط الديون بمقدار ${reducePoints} نقطة. نقاطك الحالية: ${newPoints} نقطة (${newPoints * debtPointValue} دينار)`
-        );
+        try {
+          await driversAPI.sendNotification(
+            driverId,
+            'تقليل نقاط الديون',
+            `تم تقليل نقاط الديون بمقدار ${reducePoints} نقطة. نقاطك الحالية: ${newPoints} نقطة (${newPoints * debtPointValue} دينار)`
+          );
+        } catch (notificationError) {
+          console.error('خطأ في إرسال إشعار تقليل الديون:', notificationError);
+        }
         
         // رفع الإيقاف إذا أصبح أقل من الحد الأقصى وكان موقوفًا
         if (newPoints < maxDebtPoints && driver.is_suspended) {
-          await driversAPI.unsuspendDriver(driverId);
-          await driversAPI.sendNotification(
-            driverId,
-            'تم رفع الإيقاف',
-            'تم رفع الإيقاف عنك بعد تقليل الديون. يمكنك العودة للعمل.'
-          );
+          try {
+            await driversAPI.unsuspendDriver(driverId);
+            await driversAPI.sendNotification(
+              driverId,
+              'تم رفع الإيقاف',
+              'تم رفع الإيقاف عنك بعد تقليل الديون. يمكنك العودة للعمل.'
+            );
+          } catch (unsuspendError) {
+            console.error('خطأ في رفع إيقاف السائق:', unsuspendError);
+          }
         }
       }
       
@@ -361,92 +414,97 @@ export const driversAPI = {
 
   // تحديث وقت الدوام
   updateWorkHours: async (driverId, startTime, endTime) => {
-    const { data, error } = await supabase
-      .from('drivers')
-      .update({ 
-        work_start_time: startTime,
-        work_end_time: endTime 
-      })
-      .eq('id', driverId);
-    return { data, error };
+    try {
+      const { data, error } = await supabase
+        .from('drivers')
+        .update({ 
+          work_start_time: startTime,
+          work_end_time: endTime 
+        })
+        .eq('id', driverId);
+      return { data, error };
+    } catch (error) {
+      console.error('خطأ في تحديث وقت الدوام:', error);
+      return { data: null, error };
+    }
   },
 
   // تغريم السائق مع تفعيل الإيقاف التلقائي
   fineDriver: async (driverId, finePoints, reason) => {
     try {
-    // جلب النقاط الحالية
-    const { data: driver } = await supabase
-      .from('drivers')
-      .select('debt_points')
-      .eq('id', driverId)
-      .single();
+      // جلب النقاط الحالية
+      const { data: driver } = await supabase
+        .from('drivers')
+        .select('debt_points')
+        .eq('id', driverId)
+        .single();
         
-    const newPoints = (driver?.debt_points || 0) + finePoints;
+      const newPoints = (driver?.debt_points || 0) + finePoints;
       
-    // جلب الحد الأقصى من إعدادات النظام
-    const { data: settings } = await systemSettingsAPI.getSystemSettings();
-    const maxDebtPoints = settings?.max_debt_points || 20;
-    let isSuspended = false;
-      
-    const { data: updateData, error } = await supabase
-      .from('drivers')
-      .update({ debt_points: newPoints })
-      .eq('id', driverId);
+      // جلب الحد الأقصى من إعدادات النظام
+      const { data: settings } = await systemSettingsAPI.getSystemSettings();
+      const maxDebtPoints = settings?.max_debt_points || 20;
+      let isSuspended = false;
         
-    // إضافة سجل التغريم
-    if (!error) {
+      const { data: updateData, error } = await supabase
+        .from('drivers')
+        .update({ debt_points: newPoints })
+        .eq('id', driverId);
+        
+          // إضافة سجل التغريم
+      if (!error) {
         try {
-      await supabase
-        .from('fines')
-        .insert({
-          driver_id: driverId,
-          amount: finePoints,
-          reason: reason,
-          date: new Date().toISOString()
-        });
+          await supabase
+            .from('fines')
+            .insert({
+              driver_id: driverId,
+              amount: finePoints,
+              reason: reason,
+              date: new Date().toISOString()
+            });
         } catch (fineError) {
           console.error('خطأ في إضافة سجل التغريم:', fineError);
           // لا نريد أن يفشل التحديث بسبب خطأ في إضافة سجل التغريم
         }
         
-      // إرسال إشعار للسائق
+        // إرسال إشعار للسائق
         try {
-      await driversAPI.sendNotification(
-        driverId,
-        'إضافة غرامة',
-        `تم إضافة غرامة ${finePoints} نقطة. مجموع نقاطك الآن: ${newPoints} نقطة.${reason ? ' السبب: ' + reason : ''}`
-      );
+          await driversAPI.sendNotification(
+            driverId,
+            'إضافة غرامة',
+            `تم إضافة غرامة ${finePoints} نقطة. مجموع نقاطك الآن: ${newPoints} نقطة.${reason ? ' السبب: ' + reason : ''}`
+          );
         } catch (notificationError) {
           console.error('خطأ في إرسال إشعار التغريم:', notificationError);
         }
         
-      // إذا تجاوز الحد، أوقف السائق
-      if (newPoints >= maxDebtPoints) {
+        // إذا تجاوز الحد، أوقف السائق
+        if (newPoints >= maxDebtPoints) {
           try {
             await driversAPI.suspendDriver(driverId, 'تم إيقافك مؤقتًا بسبب تجاوز حد الديون. يرجى التواصل مع الدعم الفني لتصفير الديون.');
             await driversAPI.sendNotification(driverId, 'إيقاف مؤقت', 'تم إيقافك مؤقتًا بسبب تجاوز حد الديون. يرجى التواصل مع الدعم الفني لتصفير الديون.');
-        isSuspended = true;
+            isSuspended = true;
           } catch (suspendError) {
             console.error('خطأ في إيقاف السائق بعد التغريم:', suspendError);
             // لا نريد أن يفشل التحديث بسبب خطأ في الإيقاف
           }
-      } else {
-        // إذا كان موقوفًا سابقًا وأصبح أقل من الحد، أرفع الإيقاف
+        } else {
+          // إذا كان موقوفًا سابقًا وأصبح أقل من الحد، أرفع الإيقاف
           try {
-        const { data: driver2 } = await supabase
-          .from('drivers')
-          .select('is_suspended')
-          .eq('id', driverId)
-          .single();
-        if (driver2?.is_suspended) {
-          await driversAPI.unsuspendDriver(driverId);
-          await driversAPI.sendNotification(driverId, 'تم رفع الإيقاف', 'تم رفع الإيقاف عنك بعد تصفير أو تقليل الديون. يمكنك العودة للعمل.');
+            const { data: driver2 } = await supabase
+              .from('drivers')
+              .select('is_suspended')
+              .eq('id', driverId)
+              .single();
+            if (driver2?.is_suspended) {
+              await driversAPI.unsuspendDriver(driverId);
+              await driversAPI.sendNotification(driverId, 'تم رفع الإيقاف', 'تم رفع الإيقاف عنك بعد تصفير أو تقليل الديون. يمكنك العودة للعمل.');
             }
           } catch (unsuspendError) {
             console.error('خطأ في رفع إيقاف السائق بعد التغريم:', unsuspendError);
+          }
         }
       }
-    }
     return { data: updateData, error, isSuspended };
     } catch (error) {
       console.error('خطأ في تغريم السائق:', error);
@@ -1030,7 +1088,12 @@ export const ordersAPI = {
             driver_id: driverId,
             status: 'accepted'
           };
+          try {
           await pushNotificationsAPI.sendOrderStatusUpdateNotification(orderData, 'accepted');
+        } catch (notificationError) {
+          console.error('خطأ في إرسال إشعار تحديث الطلب:', notificationError);
+          // لا توقف العملية إذا فشل إرسال الإشعار
+        }
         } catch (pushError) {
           console.error('خطأ في إرسال Push Notification:', pushError);
         }
@@ -1154,7 +1217,12 @@ export const ordersAPI = {
               driver_id: order.driver_id,
               status: 'completed'
             };
-            await pushNotificationsAPI.sendOrderStatusUpdateNotification(orderData, 'completed');
+            try {
+          await pushNotificationsAPI.sendOrderStatusUpdateNotification(orderData, 'completed');
+        } catch (notificationError) {
+          console.error('خطأ في إرسال إشعار إكمال الطلب:', notificationError);
+          // لا توقف العملية إذا فشل إرسال الإشعار
+        }
           } catch (pushError) {
             console.error('خطأ في إرسال Push Notification:', pushError);
           }
@@ -1385,16 +1453,21 @@ export const pushNotificationsAPI = {
         console.log(`تم إرسال إشعار push للسائق ${driver.name} بنجاح`);
         
         // حفظ الإشعار في قاعدة البيانات المحلية
-        await supabase
-          .from('notifications')
-          .insert({
-            driver_id: driverId,
-            title: title,
-            message: body,
-            type: 'push_notification',
-            is_read: false,
-            created_at: new Date().toISOString()
-          });
+        try {
+          await supabase
+            .from('notifications')
+            .insert({
+              driver_id: driverId,
+              title: title,
+              message: body,
+              type: 'push_notification',
+              is_read: false,
+              created_at: new Date().toISOString()
+            });
+        } catch (dbError) {
+          console.error('خطأ في حفظ الإشعار في قاعدة البيانات:', dbError);
+          // لا توقف العملية إذا فشل حفظ الإشعار
+        }
 
         return { success: true, message: 'تم إرسال الإشعار بنجاح' };
       } else {
@@ -1653,7 +1726,12 @@ export const pushNotificationsAPI = {
         delivery_address: orderData.delivery_address
       };
 
-      return await pushNotificationsAPI.sendPushNotificationToAllDrivers(title, body, data);
+              try {
+          return await pushNotificationsAPI.sendPushNotificationToAllDrivers(title, body, data);
+        } catch (notificationError) {
+          console.error('خطأ في إرسال إشعار الطلب الجديد:', notificationError);
+          return { success: false, error: 'فشل في إرسال الإشعار' };
+        }
     } catch (error) {
       console.error('خطأ في إرسال إشعار الطلب الجديد:', error);
       return { success: false, error: error.message };
@@ -1697,22 +1775,30 @@ export const pushNotificationsAPI = {
 
       // إرسال إشعار للمتجر
       if (orderData.store_id) {
-        await pushNotificationsAPI.sendPushNotificationToStore(
-          orderData.store_id, 
-          title, 
-          body, 
-          data
-        );
+        try {
+          await pushNotificationsAPI.sendPushNotificationToStore(
+            orderData.store_id, 
+            title, 
+            body, 
+            data
+          );
+        } catch (storeNotificationError) {
+          console.error('خطأ في إرسال إشعار تحديث الحالة للمتجر:', storeNotificationError);
+        }
       }
 
       // إرسال إشعار للسائق
       if (orderData.driver_id) {
-        await pushNotificationsAPI.sendPushNotificationToDriver(
-          orderData.driver_id, 
-          title, 
-          body, 
-          data
-        );
+        try {
+          await pushNotificationsAPI.sendPushNotificationToDriver(
+            orderData.driver_id, 
+            title, 
+            body, 
+            data
+          );
+        } catch (driverNotificationError) {
+          console.error('خطأ في إرسال إشعار تحديث الحالة للسائق:', driverNotificationError);
+        }
       }
 
       return { success: true, message: 'تم إرسال إشعارات تحديث الحالة' };

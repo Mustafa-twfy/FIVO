@@ -83,6 +83,9 @@ const darkTheme = {
 const testDatabaseConnection = async () => {
   console.log('=== بداية اختبار قاعدة البيانات ===');
   try {
+    // تأخير قصير لضمان استقرار التطبيق
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
     const { data, error } = await supabase.from('drivers').select('count').limit(1);
     if (error) {
       console.error('❌ خطأ في الاتصال:', error);
@@ -228,7 +231,7 @@ function AppContent() {
       checkUserSession();
     }, 800);
 
-    // تهيئة خدمة الإشعارات
+    // تهيئة خدمة الإشعارات - تأخيرها حتى يتم تحميل التطبيق
     const initializeNotifications = async () => {
       try {
         const success = await notificationService.initialize();
@@ -241,24 +244,36 @@ function AppContent() {
         console.error('خطأ في تهيئة الإشعارات:', error);
       }
     };
-    initializeNotifications();
+    
+    // تأخير تهيئة الإشعارات حتى يتم تحميل التطبيق بالكامل
+    setTimeout(() => {
+      initializeNotifications();
+    }, 2000);
 
-    // فحص/تهيئة قاعدة البيانات يمكن تعطيله بإعداد بيئة لتفادي العمل في الإنتاج
+    // فحص/تهيئة قاعدة البيانات - تأخيرها لتجنب مشاكل التحميل
     const backgroundInit = async () => {
       try {
-        const shouldInit = process.env.EXPO_PUBLIC_ENABLE_DB_INIT === 'true';
-        if (!shouldInit) {
-          // لا تقطع التطبيق عن الـ Navigator؛ اعتبر التهيئة منتهية عند التعطيل
-          setDatabaseInitialized(true);
-          return;
-        }
-        const connectionTest = await testDatabaseConnection();
-        if (!connectionTest) console.error('فشل في اختبار الاتصال بقاعدة البيانات');
-        const result = await initializeDatabase();
-        if (result.success) setDatabaseInitialized(true);
-        else console.error('فشل في تهيئة قاعدة البيانات:', result.error);
+        // تأخير فحص قاعدة البيانات لتجنب مشاكل التحميل
+        setTimeout(async () => {
+          try {
+            const shouldInit = process.env.EXPO_PUBLIC_ENABLE_DB_INIT === 'true';
+            if (!shouldInit) {
+              setDatabaseInitialized(true);
+              return;
+            }
+            const connectionTest = await testDatabaseConnection();
+            if (!connectionTest) console.error('فشل في اختبار الاتصال بقاعدة البيانات');
+            const result = await initializeDatabase();
+            if (result.success) setDatabaseInitialized(true);
+            else console.error('فشل في تهيئة قاعدة البيانات:', result.error);
+          } catch (error) {
+            console.error('خطأ في تهيئة قاعدة البيانات:', error);
+            setDatabaseInitialized(true); // اعتبر التهيئة منتهية حتى لو فشلت
+          }
+        }, 3000);
       } catch (error) {
         console.error('خطأ في تهيئة التطبيق:', error);
+        setDatabaseInitialized(true);
       }
     };
     backgroundInit();
@@ -312,7 +327,51 @@ function AppContent() {
     }
   };
 
-  if (loading || showSplash) return <LoginScreen />;
+  // عرض شاشة التحميل أثناء التهيئة
+  if (loading || showSplash) {
+    return <LoginScreen />;
+  }
+
+  // إذا كان المستخدم مسجل دخول، اعرض الشاشة المناسبة
+  if (user && userType && !showSplash) {
+    if (userType === 'admin') {
+      return (
+        <NavigationContainer theme={scheme === 'dark' ? darkTheme : lightTheme}>
+          <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="AdminDashboard">
+            <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} />
+            <Stack.Screen name="Drivers" component={DriversScreen} />
+            <Stack.Screen name="Stores" component={StoresScreen} />
+            <Stack.Screen name="BannedUsers" component={BannedUsersScreen} />
+            <Stack.Screen name="RegistrationRequests" component={RegistrationRequestsScreen} />
+            <Stack.Screen name="AdminNewOrderScreen" component={AdminNewOrderScreen} />
+            <Stack.Screen name="AdminSupport" component={AdminSupportScreen} />
+          </Stack.Navigator>
+        </NavigationContainer>
+      );
+    } else if (userType === 'driver') {
+      return (
+        <NavigationContainer theme={scheme === 'dark' ? darkTheme : lightTheme}>
+          <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Driver">
+            <Stack.Screen name="Driver" component={DriverDrawer} />
+            <Stack.Screen name="DriverRegistration" component={DriverRegistrationScreen} />
+            <Stack.Screen name="DriverDocuments" component={DriverDocumentsScreen} />
+            <Stack.Screen name="DriverVehicle" component={DriverVehicleScreen} />
+            <Stack.Screen name="PendingApproval" component={PendingApprovalScreen} />
+          </Stack.Navigator>
+        </NavigationContainer>
+      );
+    } else if (userType === 'store') {
+      return (
+        <NavigationContainer theme={scheme === 'dark' ? darkTheme : lightTheme}>
+          <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Store">
+            <Stack.Screen name="Store" component={StoreDrawer} />
+            <Stack.Screen name="UnifiedStoreRegistrationScreen" component={UnifiedStoreRegistrationScreen} />
+            <Stack.Screen name="UnifiedPendingApproval" component={UnifiedPendingApprovalScreen} />
+          </Stack.Navigator>
+        </NavigationContainer>
+      );
+    }
+  }
 
   return (
     <>

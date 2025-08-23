@@ -27,6 +27,8 @@ export default function RegistrationRequestsScreen({ navigation }) {
   const [inputValue2, setInputValue2] = useState('');
   const [detailsModalVisible, setDetailsModalVisible] = useState(false);
   const [detailsRequest, setDetailsRequest] = useState(null);
+  const [imageLoadingStates, setImageLoadingStates] = useState({});
+  const [imageErrorStates, setImageErrorStates] = useState({});
 
   useEffect(() => {
     loadRegistrationRequests();
@@ -194,6 +196,64 @@ export default function RegistrationRequestsScreen({ navigation }) {
 
   const modalContent = getModalContent();
 
+  // دالة لعرض الصور مع مؤشر التحميل
+  const renderDocumentImage = (imageUri, imageName) => {
+    const imageKey = `${detailsRequest?.id}_${imageName}`;
+    const isLoading = imageLoadingStates[imageKey];
+    const hasError = imageErrorStates[imageKey];
+
+    const retryImageLoad = () => {
+      setImageErrorStates(prev => ({...prev, [imageKey]: false}));
+      setImageLoadingStates(prev => ({...prev, [imageKey]: true}));
+    };
+
+    return (
+      <View style={styles.imageContainer}>
+        {isLoading && (
+          <View style={styles.imageLoadingOverlay}>
+            <ActivityIndicator size="small" color="#00C897" />
+            <Text style={styles.loadingText}>جاري التحميل...</Text>
+          </View>
+        )}
+        
+        {hasError ? (
+          <View style={styles.errorContainer}>
+            <Ionicons name="warning-outline" size={32} color="#F44336" />
+            <Text style={styles.errorText}>فشل في تحميل الصورة</Text>
+            <TouchableOpacity style={styles.retryButton} onPress={retryImageLoad}>
+              <Ionicons name="refresh-outline" size={16} color="#00C897" />
+              <Text style={styles.retryText}>إعادة المحاولة</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <Image 
+            key={imageKey} // إضافة key لإجبار إعادة التحميل
+            source={{uri: imageUri}} 
+            style={[styles.docImage, isLoading && styles.hiddenImage]} 
+            resizeMode="cover"
+            onLoadStart={() => {
+              setImageLoadingStates(prev => ({...prev, [imageKey]: true}));
+              setImageErrorStates(prev => ({...prev, [imageKey]: false}));
+            }}
+            onLoad={() => {
+              setImageLoadingStates(prev => ({...prev, [imageKey]: false}));
+              setImageErrorStates(prev => ({...prev, [imageKey]: false}));
+              console.log(`✅ تم تحميل ${imageName} بنجاح`);
+            }}
+            onError={(e) => {
+              setImageLoadingStates(prev => ({...prev, [imageKey]: false}));
+              setImageErrorStates(prev => ({...prev, [imageKey]: true}));
+              console.log(`❌ خطأ في تحميل ${imageName}:`, e.nativeEvent.error);
+              console.log('URI:', imageUri ? imageUri.substring(0, 100) + '...' : 'غير محدد');
+            }}
+          />
+        )}
+        
+        {!isLoading && !hasError && <Text style={styles.imageStatus}>✅ تم رفع الصورة</Text>}
+      </View>
+    );
+  };
+
   const getRequestTypeText = (requestType) => {
     switch (requestType) {
       case 'driver': return 'سائق';
@@ -216,23 +276,35 @@ export default function RegistrationRequestsScreen({ navigation }) {
     console.log('البريد الإلكتروني:', request.email);
     console.log('الاسم:', request.name);
     console.log('نوع المستخدم:', request.user_type);
-    console.log('--- المستندات ---');
-    console.log('البطاقة الوطنية (الوجه):', request.national_card_front ? 'موجودة' : 'مفقودة');
-    console.log('البطاقة الوطنية (الظهر):', request.national_card_back ? 'موجودة' : 'مفقودة');
-    console.log('بطاقة السكن (الوجه):', request.residence_card_front ? 'موجودة' : 'مفقودة');
-    console.log('بطاقة السكن (الظهر):', request.residence_card_back ? 'موجودة' : 'مفقودة');
-    if (request.national_card_front) {
-      console.log('رابط البطاقة الوطنية (الوجه):', request.national_card_front.substring(0, 100) + '...');
-    }
-    if (request.national_card_back) {
-      console.log('رابط البطاقة الوطنية (الظهر):', request.national_card_back.substring(0, 100) + '...');
-    }
-    if (request.residence_card_front) {
-      console.log('رابط بطاقة السكن (الوجه):', request.residence_card_front.substring(0, 100) + '...');
-    }
-    if (request.residence_card_back) {
-      console.log('رابط بطاقة السكن (الظهر):', request.residence_card_back.substring(0, 100) + '...');
-    }
+    console.log('--- فحص المستندات ---');
+    
+    // فحص مفصل للمستندات
+    const docs = {
+      national_card_front: request.national_card_front,
+      national_card_back: request.national_card_back,
+      residence_card_front: request.residence_card_front,
+      residence_card_back: request.residence_card_back
+    };
+    
+    Object.keys(docs).forEach(docKey => {
+      const docValue = docs[docKey];
+      if (docValue) {
+        const isBase64 = docValue.startsWith('data:image/');
+        const isUrl = docValue.startsWith('http');
+        const size = docValue.length;
+        console.log(`${docKey}:`, {
+          exists: '✅ موجودة',
+          type: isBase64 ? 'Base64' : isUrl ? 'URL' : 'Unknown',
+          size: `${(size / 1024).toFixed(2)} KB`,
+          preview: docValue.substring(0, 100) + '...'
+        });
+      } else {
+        console.log(`${docKey}:`, '❌ مفقودة');
+      }
+    });
+    
+    console.log('تاريخ الإنشاء:', request.created_at);
+    console.log('الحالة:', request.status);
     console.log('=======================');
     
     setDetailsRequest(request);
@@ -258,6 +330,56 @@ export default function RegistrationRequestsScreen({ navigation }) {
         {item.phone && <Text style={styles.detailText}>الهاتف: {item.phone}</Text>}
         {item.address && <Text style={styles.detailText}>العنوان: {item.address}</Text>}
         {item.vehicle_type && <Text style={styles.detailText}>نوع المركبة: {item.vehicle_type}</Text>}
+        
+        {/* عرض حالة المستندات للسائقين */}
+        {item.user_type === 'driver' && (
+          <View style={styles.documentsStatus}>
+            <Text style={styles.documentsStatusTitle}>المستندات:</Text>
+            <View style={styles.documentsRow}>
+              <View style={[styles.docStatusBadge, item.national_card_front ? styles.docAvailable : styles.docMissing]}>
+                <Ionicons 
+                  name={item.national_card_front ? "checkmark-circle" : "close-circle"} 
+                  size={12} 
+                  color={item.national_card_front ? "#4CAF50" : "#F44336"} 
+                />
+                <Text style={[styles.docStatusText, item.national_card_front ? styles.docAvailableText : styles.docMissingText]}>
+                  هوية وجه
+                </Text>
+              </View>
+              <View style={[styles.docStatusBadge, item.national_card_back ? styles.docAvailable : styles.docMissing]}>
+                <Ionicons 
+                  name={item.national_card_back ? "checkmark-circle" : "close-circle"} 
+                  size={12} 
+                  color={item.national_card_back ? "#4CAF50" : "#F44336"} 
+                />
+                <Text style={[styles.docStatusText, item.national_card_back ? styles.docAvailableText : styles.docMissingText]}>
+                  هوية ظهر
+                </Text>
+              </View>
+              <View style={[styles.docStatusBadge, item.residence_card_front ? styles.docAvailable : styles.docMissing]}>
+                <Ionicons 
+                  name={item.residence_card_front ? "checkmark-circle" : "close-circle"} 
+                  size={12} 
+                  color={item.residence_card_front ? "#4CAF50" : "#F44336"} 
+                />
+                <Text style={[styles.docStatusText, item.residence_card_front ? styles.docAvailableText : styles.docMissingText]}>
+                  سكن وجه
+                </Text>
+              </View>
+              <View style={[styles.docStatusBadge, item.residence_card_back ? styles.docAvailable : styles.docMissing]}>
+                <Ionicons 
+                  name={item.residence_card_back ? "checkmark-circle" : "close-circle"} 
+                  size={12} 
+                  color={item.residence_card_back ? "#4CAF50" : "#F44336"} 
+                />
+                <Text style={[styles.docStatusText, item.residence_card_back ? styles.docAvailableText : styles.docMissingText]}>
+                  سكن ظهر
+                </Text>
+              </View>
+            </View>
+          </View>
+        )}
+        
         {item.user_type === 'driver' && item.vehicle_type && (
           <View style={styles.driverBadge}>
                             <Ionicons name="bicycle" size={16} color="#2196F3" />
@@ -440,61 +562,25 @@ export default function RegistrationRequestsScreen({ navigation }) {
                 {detailsRequest.vehicle_number && <Text style={styles.detailText}>رقم المركبة: {detailsRequest.vehicle_number}</Text>}
                 <Text style={styles.detailText}>صورة البطاقة الوطنية (الوجه):</Text>
                 {detailsRequest.national_card_front ? (
-                  <View style={styles.imageContainer}>
-                    <Image 
-                      source={{uri: detailsRequest.national_card_front}} 
-                      style={styles.docImage} 
-                      onError={(e) => console.log('خطأ في تحميل البطاقة الوطنية (الوجه):', e.nativeEvent.error)} 
-                    />
-                    <TouchableOpacity 
-                      style={styles.viewFullImageButton}
-                      onPress={() => {
-                        // يمكن إضافة عرض الصورة كاملة الشاشة هنا
-                        console.log('عرض الصورة كاملة:', detailsRequest.national_card_front);
-                      }}
-                    >
-                      <Text style={styles.viewFullImageText}>عرض كامل</Text>
-                    </TouchableOpacity>
-                  </View>
+                  renderDocumentImage(detailsRequest.national_card_front, 'البطاقة الوطنية (الوجه)')
                 ) : (
                   <Text style={[styles.detailText, {color: 'red'}]}>❌ لا توجد صورة للبطاقة الوطنية (الوجه)</Text>
                 )}
                 <Text style={styles.detailText}>صورة البطاقة الوطنية (الظهر):</Text>
                 {detailsRequest.national_card_back ? (
-                  <View style={styles.imageContainer}>
-                    <Image 
-                      source={{uri: detailsRequest.national_card_back}} 
-                      style={styles.docImage} 
-                      onError={(e) => console.log('خطأ في تحميل البطاقة الوطنية (الظهر):', e.nativeEvent.error)} 
-                    />
-                    <Text style={styles.imageStatus}>✅ تم رفع الصورة</Text>
-                  </View>
+                  renderDocumentImage(detailsRequest.national_card_back, 'البطاقة الوطنية (الظهر)')
                 ) : (
                   <Text style={[styles.detailText, {color: 'red'}]}>❌ لا توجد صورة للبطاقة الوطنية (الظهر)</Text>
                 )}
                 <Text style={styles.detailText}>صورة بطاقة السكن (الوجه):</Text>
                 {detailsRequest.residence_card_front ? (
-                  <View style={styles.imageContainer}>
-                    <Image 
-                      source={{uri: detailsRequest.residence_card_front}} 
-                      style={styles.docImage} 
-                      onError={(e) => console.log('خطأ في تحميل بطاقة السكن (الوجه):', e.nativeEvent.error)} 
-                    />
-                    <Text style={styles.imageStatus}>✅ تم رفع الصورة</Text>
-                  </View>
+                  renderDocumentImage(detailsRequest.residence_card_front, 'بطاقة السكن (الوجه)')
                 ) : (
                   <Text style={[styles.detailText, {color: 'red'}]}>❌ لا توجد صورة لبطاقة السكن (الوجه)</Text>
                 )}
                 <Text style={styles.detailText}>صورة بطاقة السكن (الظهر):</Text>
                 {detailsRequest.residence_card_back ? (
-                  <View style={styles.imageContainer}>
-                    <Image 
-                      source={{uri: detailsRequest.residence_card_back}} 
-                      style={styles.docImage} 
-                      onError={(e) => console.log('خطأ في تحميل بطاقة السكن (الظهر):', e.nativeEvent.error)} 
-                    />
-                    <Text style={styles.imageStatus}>✅ تم رفع الصورة</Text>
-                  </View>
+                  renderDocumentImage(detailsRequest.residence_card_back, 'بطاقة السكن (الظهر)')
                 ) : (
                   <Text style={[styles.detailText, {color: 'red'}]}>❌ لا توجد صورة لبطاقة السكن (الظهر)</Text>
                 )}
@@ -739,7 +825,7 @@ const styles = StyleSheet.create({
   rejectBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F44336', paddingVertical: 8, paddingHorizontal: 18, borderRadius: 8 },
   actionText: { color: '#fff', fontWeight: 'bold', marginLeft: 6, fontSize: 16 },
   eyeBtn: { marginLeft: 'auto', padding: 4 },
-  docImage: { width: 120, height: 80, borderRadius: 8, marginVertical: 6, alignSelf: 'center' },
+  docImage: { width: 160, height: 120, borderRadius: 8, marginVertical: 6, alignSelf: 'center', borderWidth: 1, borderColor: '#ddd' },
   imageContainer: { alignItems: 'center', marginVertical: 6 },
   imageStatus: { 
     color: '#4CAF50', 
@@ -747,9 +833,8 @@ const styles = StyleSheet.create({
     fontWeight: 'bold', 
     marginTop: 4 
   },
-  imageContainer: { alignItems: 'center', marginVertical: 6 },
   viewFullImageButton: { 
-    backgroundColor: colors.primary, 
+    backgroundColor: '#00C897', 
     paddingHorizontal: 12, 
     paddingVertical: 6, 
     borderRadius: 16, 
@@ -773,6 +858,104 @@ const styles = StyleSheet.create({
   driverBadgeText: {
     fontSize: 12,
     color: '#2196F3',
+    marginLeft: 4,
+    fontWeight: 'bold',
+  },
+  documentsStatus: {
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  documentsStatusTitle: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#666',
+    marginBottom: 4,
+  },
+  documentsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  docStatusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    marginRight: 4,
+    marginBottom: 4,
+    borderWidth: 1,
+  },
+  docAvailable: {
+    backgroundColor: '#E8F5E8',
+    borderColor: '#4CAF50',
+  },
+  docMissing: {
+    backgroundColor: '#FFEBEE',
+    borderColor: '#F44336',
+  },
+  docStatusText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    marginLeft: 2,
+  },
+  docAvailableText: {
+    color: '#4CAF50',
+  },
+  docMissingText: {
+    color: '#F44336',
+  },
+  imageLoadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 8,
+    zIndex: 1,
+  },
+  loadingText: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 4,
+  },
+  hiddenImage: {
+    opacity: 0.3,
+  },
+  errorContainer: {
+    width: 160,
+    height: 120,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#F44336',
+    backgroundColor: '#FFEBEE',
+    justifyContent: 'center',
+    alignItems: 'center',
+    alignSelf: 'center',
+  },
+  errorText: {
+    fontSize: 12,
+    color: '#F44336',
+    textAlign: 'center',
+    marginTop: 4,
+    marginBottom: 8,
+  },
+  retryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#00C897',
+  },
+  retryText: {
+    fontSize: 10,
+    color: '#00C897',
     marginLeft: 4,
     fontWeight: 'bold',
   },

@@ -147,7 +147,10 @@ export const AuthProvider = ({ children }) => {
         // تجاهل أي خطأ في التحميل
         console.error('خطأ في تحميل الجلسة:', e);
       } finally {
-        setLoading(false);
+        // تأخير إيقاف التحميل لضمان استقرار التطبيق
+        setTimeout(() => {
+          setLoading(false);
+        }, 500);
       }
     };
     loadSession();
