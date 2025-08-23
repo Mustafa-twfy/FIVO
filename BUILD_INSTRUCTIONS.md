@@ -111,6 +111,119 @@ allprojects {
     repositories {
         google()
         mavenCentral()
+# 🚀 تعليمات البناء السريع
+
+## ✅ بعد تطبيق الإصلاحات
+
+### 1. تنظيف المشروع
+```bash
+# حذف node_modules
+rm -rf node_modules
+rm -rf package-lock.json
+
+# إعادة تثبيت التبعيات
+npm install
+```
+
+### 2. تنظيف Android
+```bash
+cd android
+./gradlew clean
+cd ..
+```
+
+### 3. بناء التطبيق
+
+#### خيار A: بناء التطوير
+```bash
+npm run build:android-dev
+```
+
+#### خيار B: بناء محلي
+```bash
+npm run build:android-local
+```
+
+#### خيار C: بناء الإنتاج
+```bash
+cd android
+./gradlew assembleRelease
+cd ..
+```
+
+### 4. تثبيت التطبيق
+```bash
+npm run install:android
+```
+
+## 🔧 استكشاف الأخطاء
+
+### إذا فشل البناء:
+```bash
+cd android
+./gradlew assembleRelease --info
+./gradlew assembleRelease --debug
+```
+
+### إذا استمرت المشاكل:
+```bash
+# تنظيف شامل
+cd android
+./gradlew clean
+./gradlew --stop
+cd ..
+
+# إعادة تشغيل Metro
+npm start -- --reset-cache
+```
+
+## 🚨 إصلاح مشكلة التعليقات العربية
+
+### المشكلة:
+```
+Unexpected character: '#' @ line 40, column 1
+# إعدادات إضافية لتحسين الأداء
+```
+
+### الحل المطبق:
+- ✅ استبدال جميع التعليقات العربية بتعليقات إنجليزية
+- ✅ إصلاح مشكلة "Unexpected character: '#'" في Gradle
+- ✅ ضمان توافق ملفات الإعدادات مع Gradle 8.7
+- ✅ تغيير اسم المشروع إلى "SimsimDelivery" لتجنب المشاكل
+
+### التغييرات النهائية:
+- `rootProject.name = 'SimsimDelivery'` بدلاً من `'توصيل سمسم'`
+- جميع التعليقات باللغة الإنجليزية
+- ملفات إعدادات متوافقة مع Gradle 8.7
+
+## 🚨 إصلاح مشكلة gradle.projectsLoaded
+
+### المشكلة:
+```
+No signature of method: org.gradle.initialization.DefaultProjectDescriptor.allprojects() 
+is applicable for argument types: (settings_79z5y3onylcgd8izhscr5a5i$_run_closure3$_closure6)
+```
+
+### الحل المطبق:
+- ✅ استبدال `gradle.projectsLoaded` بـ `allprojects` في settings.gradle
+- ✅ تعطيل configuration cache مؤقتاً: `org.gradle.configuration-cache=false`
+- ✅ إصلاح مشكلة repositories configuration
+- ✅ ضمان توافق مع Gradle 8.7
+
+### التغييرات في settings.gradle:
+```gradle
+// قبل الإصلاح (خاطئ)
+gradle.projectsLoaded {
+    rootProject.allprojects {
+        repositories { ... }
+    }
+}
+
+// بعد الإصلاح (صحيح)
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
         maven { url 'https://www.jitpack.io' }
     }
 }

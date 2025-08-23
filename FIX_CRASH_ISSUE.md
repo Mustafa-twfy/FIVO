@@ -43,6 +43,12 @@
 - تعطيل configuration cache مؤقتاً لتجنب المشاكل
 - إصلاح مشكلة repositories configuration
 
+### 8. إصلاح مشكلة allprojects في settings.gradle ✅
+- إزالة `allprojects` من `settings.gradle` (لا يمكن استخدامه هناك)
+- نقل repositories configuration إلى `build.gradle` الرئيسي
+- ضمان صحة صيغة ملفات الإعدادات
+- حل مشكلة "Could not find method allprojects()"
+
 ## 🔧 خطوات الإصلاح:
 
 ### الخطوة 1: تنظيف المشروع
@@ -112,6 +118,7 @@ npm run install:android
 - ✅ توافق كامل مع Gradle 8.7
 - ✅ حل نهائي لمشكلة التعليقات العربية
 - ✅ حل مشكلة gradle.projectsLoaded
+- ✅ حل مشكلة allprojects في settings.gradle
 
 ### مؤشرات المشاكل:
 - ❌ بطء في التحميل
@@ -121,6 +128,7 @@ npm run install:android
 - ❌ أخطاء في بناء Gradle
 - ❌ مشاكل في التعليقات العربية
 - ❌ أخطاء في repositories configuration
+- ❌ مشاكل في استخدام allprojects في settings.gradle
 
 ## 🛠️ أدوات التشخيص:
 
@@ -219,6 +227,48 @@ allprojects {
 }
 ```
 
+## 🚨 إصلاح مشكلة allprojects في settings.gradle:
+
+### المشكلة:
+```
+Could not find method allprojects() for arguments [settings_79z5y3onylcgd8izhscr5a5i$_run_closure3@12132340] 
+on settings 'SimsimDelivery' of type org.gradle.initialization.DefaultSettings.
+```
+
+### الحل المطبق:
+- ✅ إزالة `allprojects` من `settings.gradle` (لا يمكن استخدامه هناك)
+- ✅ نقل repositories configuration إلى `build.gradle` الرئيسي
+- ✅ ضمان صحة صيغة ملفات الإعدادات
+- ✅ حل مشكلة "Could not find method allprojects()"
+
+### التغييرات في settings.gradle:
+```gradle
+// قبل الإصلاح (خاطئ)
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+        maven { url 'https://www.jitpack.io' }
+    }
+}
+
+// بعد الإصلاح (صحيح)
+// تم إزالة allprojects من settings.gradle
+// تم نقل repositories configuration إلى build.gradle الرئيسي
+```
+
+### التغييرات في build.gradle الرئيسي:
+```gradle
+// تم إضافة repositories configuration هنا
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+        maven { url 'https://www.jitpack.io' }
+    }
+}
+```
+
 ## 📞 الدعم الفني:
 
 للمساعدة الإضافية:
@@ -250,3 +300,5 @@ allprojects {
 **تم تغيير اسم المشروع إلى SimsimDelivery** 📱
 
 **تم إصلاح مشكلة gradle.projectsLoaded** ⚙️
+
+**تم إصلاح مشكلة allprojects في settings.gradle** 🔧
