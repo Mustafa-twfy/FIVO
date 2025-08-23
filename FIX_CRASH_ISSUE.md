@@ -37,6 +37,12 @@
 - ضمان توافق ملفات الإعدادات مع Gradle 8.7
 - تغيير اسم المشروع إلى "SimsimDelivery" لتجنب المشاكل
 
+### 7. إصلاح مشكلة gradle.projectsLoaded ✅
+- إصلاح خطأ "No signature of method: org.gradle.initialization.DefaultProjectDescriptor.allprojects()"
+- استبدال `gradle.projectsLoaded` بـ `allprojects` في settings.gradle
+- تعطيل configuration cache مؤقتاً لتجنب المشاكل
+- إصلاح مشكلة repositories configuration
+
 ## 🔧 خطوات الإصلاح:
 
 ### الخطوة 1: تنظيف المشروع
@@ -105,6 +111,7 @@ npm run install:android
 - ✅ بناء ناجح بدون أخطاء Gradle
 - ✅ توافق كامل مع Gradle 8.7
 - ✅ حل نهائي لمشكلة التعليقات العربية
+- ✅ حل مشكلة gradle.projectsLoaded
 
 ### مؤشرات المشاكل:
 - ❌ بطء في التحميل
@@ -113,6 +120,7 @@ npm run install:android
 - ❌ توقف مفاجئ
 - ❌ أخطاء في بناء Gradle
 - ❌ مشاكل في التعليقات العربية
+- ❌ أخطاء في repositories configuration
 
 ## 🛠️ أدوات التشخيص:
 
@@ -148,8 +156,9 @@ cd android
 
 ### إعدادات محسنة:
 - `android.useFullClasspathForDexingTransform=true`
-- `org.gradle.configuration-cache=true`
-- `org.gradle.unsafe.configuration-cache-problems=warn`
+- `org.gradle.configuration-cache=false` (مؤقتاً)
+- `org.gradle.parallel=true`
+- `org.gradle.caching=true`
 
 ### ملفات محدثة:
 - `android/build.gradle` - تحديث الإصدارات والتعليقات
@@ -177,6 +186,39 @@ Unexpected character: '#' @ line 40, column 1
 - جميع التعليقات باللغة الإنجليزية
 - ملفات إعدادات متوافقة مع Gradle 8.7
 
+## 🚨 إصلاح مشكلة gradle.projectsLoaded:
+
+### المشكلة:
+```
+No signature of method: org.gradle.initialization.DefaultProjectDescriptor.allprojects() 
+is applicable for argument types: (settings_79z5y3onylcgd8izhscr5a5i$_run_closure3$_closure6)
+```
+
+### الحل المطبق:
+- ✅ استبدال `gradle.projectsLoaded` بـ `allprojects` في settings.gradle
+- ✅ تعطيل configuration cache مؤقتاً: `org.gradle.configuration-cache=false`
+- ✅ إصلاح مشكلة repositories configuration
+- ✅ ضمان توافق مع Gradle 8.7
+
+### التغييرات في settings.gradle:
+```gradle
+// قبل الإصلاح (خاطئ)
+gradle.projectsLoaded {
+    rootProject.allprojects {
+        repositories { ... }
+    }
+}
+
+// بعد الإصلاح (صحيح)
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+        maven { url 'https://www.jitpack.io' }
+    }
+}
+```
+
 ## 📞 الدعم الفني:
 
 للمساعدة الإضافية:
@@ -193,6 +235,7 @@ Unexpected character: '#' @ line 40, column 1
 - [ ] تحسين تجربة المستخدم
 - [ ] تحديث إلى أحدث إصدارات Android
 - [ ] إضافة دعم أفضل للغات المختلفة
+- [ ] إعادة تفعيل configuration cache بعد حل المشاكل
 
 ---
 
@@ -205,3 +248,5 @@ Unexpected character: '#' @ line 40, column 1
 **تم إصلاح مشكلة التعليقات العربية نهائياً** 🌐
 
 **تم تغيير اسم المشروع إلى SimsimDelivery** 📱
+
+**تم إصلاح مشكلة gradle.projectsLoaded** ⚙️
