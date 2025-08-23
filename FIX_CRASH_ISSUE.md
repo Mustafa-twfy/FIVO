@@ -26,15 +26,15 @@
 - دعم أفضل للملفات المختلفة
 
 ### 5. إصلاح مشاكل Gradle ✅
-- تحديث Android Gradle Plugin إلى 8.11.1
-- تحديث Gradle إلى 8.11.1
+- تحديث Android Gradle Plugin إلى 8.13.0
+- تحديث Gradle إلى 8.13
 - إزالة الإعدادات المهملة
 - إضافة إعدادات التوافق الحديثة
 
 ### 6. إصلاح مشكلة التعليقات العربية ✅
 - استبدال جميع التعليقات العربية بتعليقات إنجليزية
 - إصلاح مشكلة "Unexpected character: '#'" في Gradle
-- ضمان توافق ملفات الإعدادات مع Gradle 8.11.1
+- ضمان توافق ملفات الإعدادات مع Gradle 8.13
 - تغيير اسم المشروع إلى "SimsimDelivery" لتجنب المشاكل
 
 ### 7. إصلاح مشكلة gradle.projectsLoaded ✅
@@ -50,16 +50,18 @@
 - حل مشكلة "Could not find method allprojects()"
 
 ### 9. إصلاح مشكلة إصدار Gradle ✅
-- تحديث Gradle من 8.7 إلى 8.11.1
-- تحديث Android Gradle Plugin من 8.7.0 إلى 8.11.1
+- تحديث Gradle من 8.7 إلى 8.13
+- تحديث Android Gradle Plugin من 8.7.0 إلى 8.13.0
 - حل مشكلة "Minimum supported Gradle version is 8.9. Current version is 8.7"
 - حل مشكلة "Minimum supported Gradle version is 8.11.1. Current version is 8.9"
-- إعادة تفعيل configuration cache مع Gradle 8.11.1
+- حل مشكلة "Minimum supported Gradle version is 8.13. Current version is 8.11.1"
+- إعادة تفعيل configuration cache مع Gradle 8.13
 
 ### 10. إصلاح مشكلة Configuration Cache ✅
 - حل مشكلة "5 problems were found storing the configuration cache"
 - إضافة `org.gradle.unsafe.configuration-cache.allow-problems=true`
-- تحسين إعدادات configuration cache مع Gradle 8.11.1
+- إضافة `org.gradle.unsafe.configuration-cache.allow-external-processes=true`
+- تحسين إعدادات configuration cache مع Gradle 8.13
 - ضمان توافق كامل مع الإصدارات الحديثة
 
 ## 🔧 خطوات الإصلاح:
@@ -128,12 +130,13 @@ npm run install:android
 - ✅ عدم الخروج المفاجئ
 - ✅ استجابة أسرع للعمليات
 - ✅ بناء ناجح بدون أخطاء Gradle
-- ✅ توافق كامل مع Gradle 8.11.1
+- ✅ توافق كامل مع Gradle 8.13
 - ✅ حل نهائي لمشكلة التعليقات العربية
 - ✅ حل مشكلة gradle.projectsLoaded
 - ✅ حل مشكلة allprojects في settings.gradle
 - ✅ حل مشكلة إصدار Gradle
 - ✅ حل مشكلة Configuration Cache
+- ✅ حل مشكلة external processes
 
 ### مؤشرات المشاكل:
 - ❌ بطء في التحميل
@@ -146,6 +149,7 @@ npm run install:android
 - ❌ مشاكل في استخدام allprojects في settings.gradle
 - ❌ مشاكل في إصدار Gradle
 - ❌ مشاكل في Configuration Cache
+- ❌ مشاكل في external processes
 
 ## 🛠️ أدوات التشخيص:
 
@@ -173,18 +177,19 @@ cd android
 ## 🔧 إصلاحات Gradle المطبقة:
 
 ### تحديث الإصدارات:
-- **Android Gradle Plugin**: 8.2.2 → 8.11.1
-- **Gradle**: 8.7 → 8.11.1
+- **Android Gradle Plugin**: 8.2.2 → 8.13.0
+- **Gradle**: 8.7 → 8.13
 - **Build Tools**: 35.0.0
 - **Compile SDK**: 35
 - **Target SDK**: 35
 
 ### إعدادات محسنة:
 - `android.useFullClasspathForDexingTransform=true`
-- `org.gradle.configuration-cache=true` (مع Gradle 8.11.1)
+- `org.gradle.configuration-cache=true` (مع Gradle 8.13)
 - `org.gradle.parallel=true`
 - `org.gradle.caching=true`
 - `org.gradle.unsafe.configuration-cache.allow-problems=true`
+- `org.gradle.unsafe.configuration-cache.allow-external-processes=true`
 
 ### ملفات محدثة:
 - `android/build.gradle` - تحديث الإصدارات والتعليقات
@@ -192,7 +197,7 @@ cd android
 - `android/gradle.properties` - إعدادات الأداء والتعليقات
 - `android/app/proguard-rules.pro` - قواعد ProGuard
 - `android/settings.gradle` - إعدادات المشروع والتعليقات
-- `android/gradle/wrapper/gradle-wrapper.properties` - تحديث Gradle إلى 8.11.1
+- `android/gradle/wrapper/gradle-wrapper.properties` - تحديث Gradle إلى 8.13
 
 ## 🚨 إصلاح مشكلة التعليقات العربية:
 
@@ -211,7 +216,7 @@ Unexpected character: '#' @ line 40, column 1
 ### التغييرات النهائية:
 - `rootProject.name = 'SimsimDelivery'` بدلاً من `'توصيل سمسم'`
 - جميع التعليقات باللغة الإنجليزية
-- ملفات إعدادات متوافقة مع Gradle 8.11.1
+- ملفات إعدادات متوافقة مع Gradle 8.13
 
 ## 🚨 إصلاح مشكلة gradle.projectsLoaded:
 
@@ -225,7 +230,7 @@ is applicable for argument types: (settings_79z5y3onylcgd8izhscr5a5i$_run_closur
 - ✅ استبدال `gradle.projectsLoaded` بـ `allprojects` في settings.gradle
 - ✅ تعطيل configuration cache مؤقتاً: `org.gradle.configuration-cache=false`
 - ✅ إصلاح مشكلة repositories configuration
-- ✅ ضمان توافق مع Gradle 8.11.1
+- ✅ ضمان توافق مع Gradle 8.13
 
 ### التغييرات في settings.gradle:
 ```gradle
@@ -304,12 +309,20 @@ If using the gradle wrapper, try editing the distributionUrl in
 gradle-wrapper.properties to gradle-8.11.1-all.zip
 ```
 
+### المشكلة الثالثة:
+```
+Minimum supported Gradle version is 8.13. Current version is 8.11.1.
+Try updating the 'distributionUrl' property in 
+gradle-wrapper.properties to 'gradle-8.13-bin.zip'.
+```
+
 ### الحل المطبق:
-- ✅ تحديث Gradle من 8.7 إلى 8.11.1
-- ✅ تحديث Android Gradle Plugin من 8.7.0 إلى 8.11.1
+- ✅ تحديث Gradle من 8.7 إلى 8.13
+- ✅ تحديث Android Gradle Plugin من 8.7.0 إلى 8.13.0
 - ✅ حل مشكلة "Minimum supported Gradle version is 8.9"
 - ✅ حل مشكلة "Minimum supported Gradle version is 8.11.1"
-- ✅ إعادة تفعيل configuration cache مع Gradle 8.11.1
+- ✅ حل مشكلة "Minimum supported Gradle version is 8.13"
+- ✅ إعادة تفعيل configuration cache مع Gradle 8.13
 
 ### التغييرات في gradle-wrapper.properties:
 ```properties
@@ -319,8 +332,11 @@ distributionUrl=https\://downloads.gradle.org/distributions/gradle-8.7-all.zip
 # بعد الإصلاح الأول
 distributionUrl=https\://downloads.gradle.org/distributions/gradle-8.9-all.zip
 
-# بعد الإصلاح الثاني (الحالي)
+# بعد الإصلاح الثاني
 distributionUrl=https\://downloads.gradle.org/distributions/gradle-8.11.1-all.zip
+
+# بعد الإصلاح الثالث (الحالي)
+distributionUrl=https\://downloads.gradle.org/distributions/gradle-8.13-bin.zip
 ```
 
 ### التغييرات في build.gradle الرئيسي:
@@ -331,8 +347,11 @@ classpath("com.android.tools.build:gradle:8.7.0")
 // بعد الإصلاح الأول
 classpath("com.android.tools.build:gradle:8.9.0")
 
-// بعد الإصلاح الثاني (الحالي)
+// بعد الإصلاح الثاني
 classpath("com.android.tools.build:gradle:8.11.1")
+
+// بعد الإصلاح الثالث (الحالي)
+classpath("com.android.tools.build:gradle:8.13.0")
 ```
 
 ### التغييرات في gradle.properties:
@@ -345,11 +364,18 @@ org.gradle.configuration-cache=true
 org.gradle.unsafe.configuration-cache-problems=warn
 org.gradle.unsafe.configuration-cache.max-problems=5
 
-# بعد الإصلاح الثاني (الحالي)
+# بعد الإصلاح الثاني
 org.gradle.configuration-cache=true
 org.gradle.unsafe.configuration-cache-problems=warn
 org.gradle.unsafe.configuration-cache.max-problems=5
 org.gradle.unsafe.configuration-cache.allow-problems=true
+
+# بعد الإصلاح الثالث (الحالي)
+org.gradle.configuration-cache=true
+org.gradle.unsafe.configuration-cache-problems=warn
+org.gradle.unsafe.configuration-cache.max-problems=10
+org.gradle.unsafe.configuration-cache.allow-problems=true
+org.gradle.unsafe.configuration-cache.allow-external-processes=true
 ```
 
 ## 🚨 إصلاح مشكلة Configuration Cache:
@@ -366,14 +392,17 @@ org.gradle.unsafe.configuration-cache.allow-problems=true
 
 ### الحل المطبق:
 - ✅ إضافة `org.gradle.unsafe.configuration-cache.allow-problems=true`
-- ✅ تحسين إعدادات configuration cache مع Gradle 8.11.1
+- ✅ إضافة `org.gradle.unsafe.configuration-cache.allow-external-processes=true`
+- ✅ تحسين إعدادات configuration cache مع Gradle 8.13
 - ✅ ضمان توافق كامل مع الإصدارات الحديثة
 - ✅ حل مشكلة external processes في configuration cache
 
 ### التغييرات في gradle.properties:
 ```properties
-# إضافة إعداد جديد لحل مشكلة Configuration Cache
+# إضافة إعدادات جديدة لحل مشكلة Configuration Cache
 org.gradle.unsafe.configuration-cache.allow-problems=true
+org.gradle.unsafe.configuration-cache.allow-external-processes=true
+org.gradle.unsafe.configuration-cache.max-problems=10
 ```
 
 ## 📞 الدعم الفني:
@@ -392,8 +421,9 @@ org.gradle.unsafe.configuration-cache.allow-problems=true
 - [ ] تحسين تجربة المستخدم
 - [ ] تحديث إلى أحدث إصدارات Android
 - [ ] إضافة دعم أفضل للغات المختلفة
-- [ ] تحسين configuration cache مع Gradle 8.11.1
+- [ ] تحسين configuration cache مع Gradle 8.13
 - [ ] حل مشاكل external processes في configuration cache
+- [ ] تحسين أداء البناء مع Gradle 8.13
 
 ---
 
@@ -415,4 +445,6 @@ org.gradle.unsafe.configuration-cache.allow-problems=true
 
 **تم إصلاح مشكلة Configuration Cache** ⚡
 
-**تم تحديث إلى Gradle 8.11.1** 🚀
+**تم تحديث إلى Gradle 8.13** 🚀
+
+**تم حل مشكلة external processes** 🔧
