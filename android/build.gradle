@@ -22,6 +22,22 @@ buildscript {
 
 apply plugin: "com.facebook.react.rootproject"
 
+// إصلاح مشكلة SoftwareComponent للمشاريع الفرعية
+gradle.beforeProject { project ->
+    project.afterEvaluate {
+        if (project.hasProperty('android') && project.plugins.hasPlugin('com.android.library')) {
+            try {
+                project.android {
+                    compileSdkVersion rootProject.ext.compileSdkVersion
+                    buildToolsVersion rootProject.ext.buildToolsVersion
+                }
+            } catch (Exception e) {
+                // تجاهل الأخطاء
+            }
+        }
+    }
+}
+
 allprojects {
     repositories {
         google()
@@ -32,14 +48,18 @@ allprojects {
 
 // إعدادات التوافق مع Expo
 subprojects { subproject ->
-    if (subproject.name == 'expo' || subproject.name == 'expo-application' || subproject.name == 'expo-modules-core') {
-        if (subproject.hasProperty('android')) {
-            subproject.android {
-                compileSdkVersion rootProject.ext.compileSdkVersion
-                buildToolsVersion rootProject.ext.buildToolsVersion
-                defaultConfig {
-                    minSdkVersion rootProject.ext.minSdkVersion
-                    targetSdkVersion rootProject.ext.targetSdkVersion
+    if (subproject.name.startsWith('expo')) {
+        subproject.afterEvaluate {
+            if (subproject.hasProperty('android')) {
+                subproject.android {
+                    compileSdkVersion rootProject.ext.compileSdkVersion
+                    buildToolsVersion rootProject.ext.buildToolsVersion
+                    if (subproject.android.hasProperty('defaultConfig')) {
+                        subproject.android.defaultConfig {
+                            minSdkVersion rootProject.ext.minSdkVersion
+                            targetSdkVersion rootProject.ext.targetSdkVersion
+                        }
+                    }
                 }
             }
         }
@@ -50,9 +70,14 @@ subprojects { subproject ->
 gradle.projectsEvaluated {
     rootProject.subprojects { subproject ->
         if (subproject.hasProperty('android')) {
-            subproject.android {
-                compileSdkVersion rootProject.ext.compileSdkVersion
-                buildToolsVersion rootProject.ext.buildToolsVersion
+            try {
+                subproject.android {
+                    compileSdkVersion rootProject.ext.compileSdkVersion
+                    buildToolsVersion rootProject.ext.buildToolsVersion
+                }
+            } catch (Exception e) {
+                // تجاهل الأخطاء في المشاريع التي لا تدعم هذه الإعدادات
+                println "Warning: Could not configure android settings for ${subproject.name}: ${e.message}"
             }
         }
     }
