@@ -46,13 +46,6 @@ allprojects {
             }
         }
         
-        // React Native Gradle Plugin compatibility settings
-        if (project.hasProperty('react')) {
-            react {
-                enableHermes = true
-            }
-        }
-        
         // Ignore errors in projects that don't support these settings
         project.plugins.withId('com.android.application') {
             android {
