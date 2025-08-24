@@ -9,8 +9,3 @@ pluginManagement {
 rootProject.name = 'SimsimDelivery'
 
 include ':app'
-
-// React Native Gradle Plugin
-includeBuild('../node_modules/@react-native/gradle-plugin')
-
-
