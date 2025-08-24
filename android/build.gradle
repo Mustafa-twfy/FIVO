@@ -2,82 +2,64 @@
 
 buildscript {
     ext {
-        buildToolsVersion = "35.0.0"
-        minSdkVersion = 24
-        compileSdkVersion = 35
-        targetSdkVersion = 35
-        kotlinVersion = "1.9.25"
-        ndkVersion = "26.1.10909125"
+        buildToolsVersion = "34.0.0"
+        minSdkVersion = 21
+        compileSdkVersion = 34
+        targetSdkVersion = 34
+        ndkVersion = "25.1.8937393"
+        kotlinVersion = "1.8.0"
     }
     repositories {
         google()
         mavenCentral()
     }
     dependencies {
-        classpath("com.android.tools.build:gradle:8.8.0")
+        classpath("com.android.tools.build:gradle:8.10.0")
         classpath("com.facebook.react:react-native-gradle-plugin")
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin")
     }
 }
-
-apply plugin: "com.facebook.react.rootproject"
 
 // Settings for compatibility with modern versions
-gradle.beforeProject { project ->
-    project.afterEvaluate {
-        if (project.hasProperty('android') && project.plugins.hasPlugin('com.android.library')) {
-            try {
-                project.android {
-                    compileSdkVersion rootProject.ext.compileSdkVersion
-                    buildToolsVersion rootProject.ext.buildToolsVersion
-                }
-            } catch (Exception e) {
-                // Ignore errors
-            }
-        }
-    }
-}
-
 allprojects {
     repositories {
         google()
         mavenCentral()
         maven { url 'https://www.jitpack.io' }
     }
-}
-
-// Expo compatibility settings
-subprojects { subproject ->
-    if (subproject.name.startsWith('expo')) {
-        subproject.afterEvaluate {
-            if (subproject.hasProperty('android')) {
-                subproject.android {
-                    compileSdkVersion rootProject.ext.compileSdkVersion
-                    buildToolsVersion rootProject.ext.buildToolsVersion
-                    if (subproject.android.hasProperty('defaultConfig')) {
-                        subproject.android.defaultConfig {
-                            minSdkVersion rootProject.ext.minSdkVersion
-                            targetSdkVersion rootProject.ext.targetSdkVersion
-                        }
-                    }
+    
+    // Ignore errors
+    gradle.projectsEvaluated {
+        tasks.withType(JavaCompile) {
+            options.compilerArgs << "-Xlint:unchecked" << "-Xlint:deprecation"
+        }
+    }
+    
+    // Expo compatibility settings
+    afterEvaluate { project ->
+        if (project.hasProperty('android')) {
+            android {
+                compileOptions {
+                    sourceCompatibility JavaVersion.VERSION_1_8
+                    targetCompatibility JavaVersion.VERSION_1_8
                 }
             }
         }
-    }
-}
-
-// React Native Gradle Plugin compatibility settings
-gradle.projectsEvaluated {
-    rootProject.subprojects { subproject ->
-        if (subproject.hasProperty('android')) {
-            try {
-                subproject.android {
-                    compileSdkVersion rootProject.ext.compileSdkVersion
-                    buildToolsVersion rootProject.ext.buildToolsVersion
+        
+        // React Native Gradle Plugin compatibility settings
+        if (project.hasProperty('react')) {
+            react {
+                enableHermes = true
+            }
+        }
+        
+        // Ignore errors in projects that don't support these settings
+        project.plugins.withId('com.android.application') {
+            android {
+                compileOptions {
+                    sourceCompatibility JavaVersion.VERSION_1_8
+                    targetCompatibility JavaVersion.VERSION_1_8
                 }
-            } catch (Exception e) {
-                // Ignore errors in projects that don't support these settings
-                println "Warning: Could not configure android settings for ${subproject.name}: ${e.message}"
             }
         }
     }
