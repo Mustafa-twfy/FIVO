@@ -6,10 +6,6 @@ pluginManagement {
     }
 }
 
-plugins { 
-    id("com.facebook.react.settings") 
-}
-
 rootProject.name = 'SimsimDelivery'
 
 include ':app'
