@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Alert, Modal, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { supportAPI, driversAPI, storesAPI, updatesAPI } from '../supabase';
+import { supportAPI, driversAPI, storesAPI, updatesAPI, pushNotificationsAPI } from '../supabase';
 import { registrationRequestsAPI } from '../supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../supabase';
 import colors from '../colors';
 import { systemSettingsAPI } from '../supabase';
 import { useAuth } from '../context/AuthContext';
+import pushNotificationSender from '../utils/pushNotificationSender';
 
 export default function AdminDashboardScreen({ navigation }) {
   const { logout } = useAuth();
@@ -232,6 +233,89 @@ export default function AdminDashboardScreen({ navigation }) {
     );
   };
 
+  // دالة اختبار Push Notifications
+  const testPushNotifications = async () => {
+    try {
+      Alert.alert(
+        'اختبار Push Notifications',
+        'اختر نوع الاختبار:',
+        [
+          {
+            text: 'إشعار لجميع السائقين',
+            onPress: async () => {
+              try {
+                const result = await pushNotificationSender.sendToAllDrivers(
+                  'اختبار الإشعارات 🧪',
+                  'هذا إشعار اختبار من المدير للتأكد من عمل نظام Push Notifications',
+                  { type: 'admin_test', timestamp: new Date().toISOString() }
+                );
+                
+                if (result.success) {
+                  Alert.alert(
+                    'نجح الاختبار! ✅',
+                    `تم إرسال إشعارات لـ ${result.successCount} سائق من أصل ${result.totalCount}`
+                  );
+                } else {
+                  Alert.alert('فشل الاختبار', result.error || 'حدث خطأ غير متوقع');
+                }
+              } catch (error) {
+                Alert.alert('خطأ', 'حدث خطأ في إرسال الإشعارات: ' + error.message);
+              }
+            }
+          },
+          {
+            text: 'إشعار لسائق واحد',
+            onPress: async () => {
+              // طلب معرف السائق
+              Alert.prompt(
+                'اختبار سائق واحد',
+                'أدخل معرف السائق:',
+                [
+                  {
+                    text: 'إلغاء',
+                    style: 'cancel'
+                  },
+                  {
+                    text: 'إرسال',
+                    onPress: async (driverId) => {
+                      if (driverId && driverId.trim()) {
+                        try {
+                          const result = await pushNotificationSender.sendToDriver(
+                            parseInt(driverId.trim()),
+                            'اختبار الإشعارات 🧪',
+                            'هذا إشعار اختبار من المدير',
+                            { type: 'admin_test', timestamp: new Date().toISOString() }
+                          );
+                          
+                          if (result.success) {
+                            Alert.alert('نجح الاختبار! ✅', 'تم إرسال الإشعار بنجاح');
+                          } else {
+                            Alert.alert('فشل الاختبار', result.error || 'حدث خطأ غير متوقع');
+                          }
+                        } catch (error) {
+                          Alert.alert('خطأ', 'حدث خطأ في إرسال الإشعار: ' + error.message);
+                        }
+                      }
+                    }
+                  }
+                ],
+                'plain-text',
+                '',
+                'keyboard-type'
+              );
+            }
+          },
+          {
+            text: 'إلغاء',
+            style: 'cancel'
+          }
+        ]
+      );
+    } catch (error) {
+      Alert.alert('خطأ', 'حدث خطأ في اختبار الإشعارات: ' + error.message);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -450,6 +534,10 @@ export default function AdminDashboardScreen({ navigation }) {
           <TouchableOpacity style={styles.quickAction} onPress={() => setUpdateModalVisible(true)}>
             <Ionicons name="cloud-upload-outline" size={24} color="#00C897" />
             <Text style={styles.quickActionText}>تحديث التطبيق</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.quickAction} onPress={testPushNotifications}>
+            <Ionicons name="notifications-outline" size={24} color="#FF9800" />
+            <Text style={styles.quickActionText}>اختبار الإشعارات</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

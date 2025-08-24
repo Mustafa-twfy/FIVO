@@ -13,14 +13,16 @@
       "backgroundColor": "#00C897"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.twfy.simsim"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#00C897"
       },
-      "package": "com.twfy.simsim"
+      "package": "com.twfy.simsim",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -28,6 +30,23 @@
     "assetBundlePatterns": [
       "**/*"
     ],
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#00C897",
+          "sounds": ["./assets/notification-sound.wav"]
+        }
+      ]
+    ],
+    "notification": {
+      "icon": "./assets/notification-icon.png",
+      "color": "#00C897",
+      "iosDisplayInForeground": true,
+      "androidMode": "default",
+      "androidCollapsedTitle": "طلب جديد"
+    },
     "extra": {
       "eas": {
         "projectId": "7afda903-8cd5-422f-9192-e535509be738"

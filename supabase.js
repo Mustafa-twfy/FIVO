@@ -1314,3 +1314,274 @@ export const ordersAPI = {
     return { data, error };
   }
 }; 
+
+// دوال Push Notifications
+export const pushNotificationsAPI = {
+  // تحديث Push Token للمستخدم
+  updatePushToken: async (userId, userType, pushToken) => {
+    try {
+      let tableName = userType === 'driver' ? 'drivers' : 'stores';
+      
+      const { data, error } = await supabase
+        .from(tableName)
+        .update({ 
+          push_token: pushToken,
+          token_updated_at: new Date().toISOString()
+        })
+        .eq('id', userId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('خطأ في تحديث Push Token:', error);
+        return { data: null, error };
+      }
+
+      console.log('تم تحديث Push Token بنجاح');
+      return { data, error: null };
+    } catch (error) {
+      console.error('خطأ في تحديث Push Token:', error);
+      return { data: null, error };
+    }
+  },
+
+  // جلب Push Token للمستخدم
+  getPushToken: async (userId, userType) => {
+    try {
+      let tableName = userType === 'driver' ? 'drivers' : 'stores';
+      
+      const { data, error } = await supabase
+        .from(tableName)
+        .select('push_token, token_updated_at')
+        .eq('id', userId)
+        .single();
+
+      if (error) {
+        console.error('خطأ في جلب Push Token:', error);
+        return { data: null, error };
+      }
+
+      return { data, error: null };
+    } catch (error) {
+      console.error('خطأ في جلب Push Token:', error);
+      return { data: null, error };
+    }
+  },
+
+  // جلب جميع السائقين مع Push Tokens
+  getDriversWithPushTokens: async () => {
+    try {
+      const { data, error } = await supabase
+        .from('drivers')
+        .select('id, name, push_token, status, is_active, current_latitude, current_longitude')
+        .eq('status', 'approved')
+        .eq('is_active', true)
+        .not('push_token', 'is', null);
+
+      if (error) {
+        console.error('خطأ في جلب السائقين مع Push Tokens:', error);
+        return { data: null, error };
+      }
+
+      return { data, error: null };
+    } catch (error) {
+      console.error('خطأ في جلب السائقين مع Push Tokens:', error);
+      return { data: null, error };
+    }
+  },
+
+  // جلب السائقين في منطقة معينة
+  getDriversInArea: async (latitude, longitude, radiusKm = 10) => {
+    try {
+      // جلب جميع السائقين النشطين مع Push Tokens
+      const { data: allDrivers, error } = await supabase
+        .from('drivers')
+        .select('id, name, push_token, current_latitude, current_longitude, status, is_active')
+        .eq('status', 'approved')
+        .eq('is_active', true)
+        .not('push_token', 'is', null);
+
+      if (error) {
+        console.error('خطأ في جلب السائقين:', error);
+        return { data: null, error };
+      }
+
+      if (!allDrivers || allDrivers.length === 0) {
+        return { data: [], error: null };
+      }
+
+      // فلترة السائقين حسب المسافة
+      const nearbyDrivers = allDrivers.filter(driver => {
+        if (!driver.current_latitude || !driver.current_longitude) return false;
+        
+        const distance = calculateDistance(
+          latitude, 
+          longitude, 
+          driver.current_latitude, 
+          driver.current_longitude
+        );
+        
+        return distance <= radiusKm;
+      });
+
+      return { data: nearbyDrivers, error: null };
+    } catch (error) {
+      console.error('خطأ في جلب السائقين في المنطقة:', error);
+      return { data: null, error };
+    }
+  },
+
+  // تسجيل إرسال Push Notification
+  logPushNotification: async (userId, userType, notificationType, title, body, data = null, expoPushToken = null, success = false, errorMessage = null, responseData = null) => {
+    try {
+      const { data: logData, error } = await supabase
+        .from('push_notification_logs')
+        .insert({
+          user_id: userId,
+          user_type: userType,
+          notification_type: notificationType,
+          title: title,
+          body: body,
+          data: data,
+          expo_push_token: expoPushToken,
+          success: success,
+          error_message: errorMessage,
+          response_data: responseData,
+          sent_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('خطأ في تسجيل Push Notification:', error);
+        return { data: null, error };
+      }
+
+      return { data: logData, error: null };
+    } catch (error) {
+      console.error('خطأ في تسجيل Push Notification:', error);
+      return { data: null, error };
+    }
+  },
+
+  // تحديث موقع السائق
+  updateDriverLocation: async (driverId, latitude, longitude) => {
+    try {
+      const { data, error } = await supabase
+        .from('drivers')
+        .update({ 
+          current_latitude: latitude,
+          current_longitude: longitude,
+          location_updated_at: new Date().toISOString()
+        })
+        .eq('id', driverId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('خطأ في تحديث موقع السائق:', error);
+        return { data: null, error };
+      }
+
+      return { data, error: null };
+    } catch (error) {
+      console.error('خطأ في تحديث موقع السائق:', error);
+      return { data: null, error };
+    }
+  },
+
+  // جلب إعدادات الإشعارات للمستخدم
+  getNotificationSettings: async (userId, userType) => {
+    try {
+      const { data, error } = await supabase
+        .from('notification_settings')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('user_type', userType)
+        .single();
+
+      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+        console.error('خطأ في جلب إعدادات الإشعارات:', error);
+        return { data: null, error };
+      }
+
+      // إذا لم تكن موجودة، إنشاء إعدادات افتراضية
+      if (!data) {
+        const defaultSettings = {
+          user_id: userId,
+          user_type: userType,
+          new_orders_enabled: true,
+          order_updates_enabled: true,
+          payment_notifications_enabled: true,
+          system_notifications_enabled: true,
+          quiet_hours_enabled: false,
+          quiet_hours_start: '22:00:00',
+          quiet_hours_end: '08:00:00'
+        };
+
+        const { data: newSettings, error: createError } = await supabase
+          .from('notification_settings')
+          .insert(defaultSettings)
+          .select()
+          .single();
+
+        if (createError) {
+          console.error('خطأ في إنشاء إعدادات الإشعارات الافتراضية:', createError);
+          return { data: null, error: createError };
+        }
+
+        return { data: newSettings, error: null };
+      }
+
+      return { data, error: null };
+    } catch (error) {
+      console.error('خطأ في جلب إعدادات الإشعارات:', error);
+      return { data: null, error };
+    }
+  },
+
+  // تحديث إعدادات الإشعارات
+  updateNotificationSettings: async (userId, userType, settings) => {
+    try {
+      const { data, error } = await supabase
+        .from('notification_settings')
+        .update({
+          ...settings,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', userId)
+        .eq('user_type', userType)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('خطأ في تحديث إعدادات الإشعارات:', error);
+        return { data: null, error };
+      }
+
+      return { data, error: null };
+    } catch (error) {
+      console.error('خطأ في تحديث إعدادات الإشعارات:', error);
+      return { data: null, error };
+    }
+  }
+};
+
+// دالة مساعدة لحساب المسافة
+function calculateDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371; // نصف قطر الأرض بالكيلومترات
+  const dLat = deg2rad(lat2 - lat1);
+  const dLon = deg2rad(lon2 - lon1);
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  const distance = R * c; // المسافة بالكيلومترات
+  return distance;
+}
+
+// دالة مساعدة لتحويل الدرجات إلى راديان
+function deg2rad(deg) {
+  return deg * (Math.PI/180);
+} 
