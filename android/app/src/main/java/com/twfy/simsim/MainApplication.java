@@ -1,7 +1,6 @@
 package com.twfy.simsim;
 
 import android.app.Application;
-import com.facebook.react.PackageList;
 import com.facebook.react.ReactApplication;
 import com.facebook.react.ReactNativeHost;
 import com.facebook.react.ReactPackage;
@@ -9,6 +8,7 @@ import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint;
 import com.facebook.react.defaults.DefaultReactNativeHost;
 import com.facebook.soloader.SoLoader;
 import java.util.List;
+import java.util.Arrays;
 
 public class MainApplication extends Application implements ReactApplication {
 
@@ -16,14 +16,13 @@ public class MainApplication extends Application implements ReactApplication {
       new DefaultReactNativeHost(this) {
         @Override
         public boolean getUseDeveloperSupport() {
-          return BuildConfig.DEBUG;
+          return false; // تعطيل وضع المطور للإنتاج
         }
 
         @Override
         protected List<ReactPackage> getPackages() {
-          @SuppressWarnings("UnnecessaryLocalVariable")
-          List<ReactPackage> packages = new PackageList(this).getPackages();
-          return packages;
+          // إرجاع قائمة فارغة - سيتم التعامل مع الحزم تلقائياً
+          return Arrays.asList();
         }
 
         @Override
@@ -33,12 +32,12 @@ public class MainApplication extends Application implements ReactApplication {
 
         @Override
         protected boolean isNewArchEnabled() {
-          return BuildConfig.IS_NEW_ARCHITECTURE_ENABLED;
+          return false; // تعطيل الهندسة المعمارية الجديدة
         }
 
         @Override
         protected Boolean isHermesEnabled() {
-          return BuildConfig.IS_HERMES_ENABLED;
+          return true; // تفعيل Hermes
         }
       };
 
@@ -51,7 +50,7 @@ public class MainApplication extends Application implements ReactApplication {
   public void onCreate() {
     super.onCreate();
     SoLoader.init(this, /* native exopackage */ false);
-    if (BuildConfig.IS_NEW_ARCHITECTURE_ENABLED) {
+    if (mReactNativeHost.isNewArchEnabled()) {
       DefaultNewArchitectureEntryPoint.load();
     }
   }
