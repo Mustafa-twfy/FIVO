@@ -2,9 +2,4 @@
   <string name="app_name">سمسم</string>
   <string name="expo_splash_screen_resize_mode" translatable="false">contain</string>
   <string name="expo_splash_screen_status_bar_translucent" translatable="false">false</string>
-  
-  <!-- Push Notifications strings -->
-  <string name="notification_channel_name">الإشعارات العامة</string>
-  <string name="notification_channel_description">إشعارات التطبيق العامة</string>
-  <string name="notification_channel_id">default</string>
 </resources>
