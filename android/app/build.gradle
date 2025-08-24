@@ -90,7 +90,7 @@ android {
 
 dependencies {
     // React Native
-    implementation("com.facebook.react:react-android")
+    implementation("com.facebook.react:react-android:0.76.0")
 
     implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.0.0")
 
