@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase, ordersAPI, pushNotificationsAPI } from '../supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import pushNotificationSender from '../utils/pushNotificationSender';
 
 export default function NewOrderScreen({ navigation }) {
   const [description, setDescription] = useState('');
@@ -162,21 +163,125 @@ export default function NewOrderScreen({ navigation }) {
         })
         .eq('id', storeId);
 
+      // إرسال Push Notifications لجميع السائقين
+      await sendPushNotificationsToDrivers(data);
+
       Alert.alert(
-        'نجح', 
-        'تم إنشاء الطلب بنجاح وسيتم إرساله للسائقين المتاحين', 
+        'تم إنشاء الطلب بنجاح! 🎉',
+        'تم إرسال الطلب لجميع السائقين المتاحين. سيتم إشعارك عند قبول أحد السائقين للطلب.',
         [
           {
-            text: 'حسناً',
-            onPress: () => navigation.goBack()
+            text: 'عرض الطلبات',
+            onPress: () => navigation.navigate('StoreOrders')
+          },
+          {
+            text: 'إنشاء طلب آخر',
+            onPress: () => {
+              setDescription('');
+              setAmount('');
+              setAddress('');
+              setPhone('');
+            }
           }
         ]
       );
+
     } catch (error) {
       console.error('خطأ في إنشاء الطلب:', error);
       Alert.alert('خطأ', error.message || 'حدث خطأ غير متوقع في إنشاء الطلب');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
+  };
+
+  // دالة إرسال Push Notifications للسائقين
+  const sendPushNotificationsToDrivers = async (orderData) => {
+    try {
+      console.log('بدء إرسال Push Notifications للسائقين...');
+      
+      // إضافة معلومات المتجر للطلب
+      const orderWithStoreInfo = {
+        ...orderData,
+        store_name: storeInfo?.name || 'متجر',
+        store_category: storeInfo?.category || 'عام'
+      };
+
+      // محاولة إرسال الإشعارات للسائقين في المنطقة أولاً
+      if (storeInfo?.latitude && storeInfo?.longitude) {
+        console.log('إرسال إشعارات للسائقين في المنطقة...');
+        const nearbyResult = await pushNotificationSender.sendNewOrderNotificationToNearbyDrivers(
+          orderWithStoreInfo,
+          storeInfo.latitude,
+          storeInfo.longitude,
+          10 // 10 كم
+        );
+        
+        if (nearbyResult.success) {
+          console.log(`تم إرسال إشعارات لـ ${nearbyResult.successCount} سائق في المنطقة`);
+        } else {
+          console.log('لا يوجد سائقين في المنطقة، إرسال لجميع السائقين...');
+        }
+      }
+
+      // إرسال إشعارات لجميع السائقين كاحتياطي
+      console.log('إرسال إشعارات لجميع السائقين...');
+      const allDriversResult = await pushNotificationSender.sendNewOrderNotification(orderWithStoreInfo);
+      
+      if (allDriversResult.success) {
+        console.log(`تم إرسال إشعارات لـ ${allDriversResult.successCount} سائق من أصل ${allDriversResult.totalCount}`);
+        
+        // تسجيل نجاح الإرسال
+        await pushNotificationsAPI.logPushNotification(
+          parseInt(await AsyncStorage.getItem('userId')),
+          'store',
+          'new_order',
+          'طلب جديد',
+          `تم إرسال طلب جديد لـ ${allDriversResult.successCount} سائق`,
+          { orderId: orderData.id, successCount: allDriversResult.successCount },
+          null,
+          true,
+          null,
+          allDriversResult
+        );
+      } else {
+        console.error('فشل في إرسال Push Notifications:', allDriversResult.error);
+        
+        // تسجيل فشل الإرسال
+        await pushNotificationsAPI.logPushNotification(
+          parseInt(await AsyncStorage.getItem('userId')),
+          'store',
+          'new_order',
+          'طلب جديد',
+          'فشل في إرسال الإشعارات للسائقين',
+          { orderId: orderData.id },
+          null,
+          false,
+          allDriversResult.error,
+          allDriversResult
+        );
+      }
+
+    } catch (error) {
+      console.error('خطأ في إرسال Push Notifications:', error);
+      
+      // تسجيل الخطأ
+      try {
+        await pushNotificationsAPI.logPushNotification(
+          parseInt(await AsyncStorage.getItem('userId')),
+          'store',
+          'new_order',
+          'طلب جديد',
+          'خطأ في إرسال الإشعارات',
+          { orderId: orderData.id },
+          null,
+          false,
+          error.message,
+          { error: error.toString() }
+        );
+      } catch (logError) {
+        console.error('فشل في تسجيل الخطأ:', logError);
+      }
+    }
   };
 
   return (

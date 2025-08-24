@@ -1,308 +1,282 @@
-# إعداد Push Notifications للتطبيق
+# إعداد نظام Push Notifications للتطبيق
 
 ## نظرة عامة
-
-تم إضافة نظام Push Notifications كامل للتطبيق باستخدام **Expo Notifications**. هذا النظام يسمح بإرسال إشعارات فورية للمستخدمين حتى عندما يكون التطبيق مغلقاً.
+تم إضافة نظام Push Notifications للتطبيق باستخدام Expo Notifications. هذا النظام يسمح بإرسال إشعارات للسائقين حتى عندما يكون التطبيق مغلق، مما يضمن وصول الطلبات الجديدة فوراً.
 
 ## الميزات المضافة
 
-### 1. إشعارات فورية للطلبات الجديدة
-- عند إنشاء طلب جديد، يتم إرسال إشعار لجميع السائقين المتاحين
-- الإشعار يحتوي على تفاصيل الطلب (العنوان، المبلغ، المتجر)
+### 1. Push Notifications للطلبات الجديدة
+- إرسال إشعارات فورية لجميع السائقين عند إنشاء طلب جديد
+- إرسال إشعارات للسائقين في منطقة معينة (10 كم من المتجر)
+- إشعارات مخصصة تحتوي على تفاصيل الطلب
 
-### 2. إشعارات تحديث حالة الطلب
-- إشعارات عند قبول الطلب
-- إشعارات عند استلام الطلب
-- إشعارات عند إكمال الطلب
-- إشعارات عند إلغاء الطلب
+### 2. نظام إدارة الإشعارات
+- تخزين Push Tokens للسائقين والمتاجر
+- تتبع إرسال الإشعارات
+- إعدادات إشعارات مخصصة لكل مستخدم
 
-### 3. إشعارات إدارية
-- إرسال إشعارات عامة لجميع السائقين
-- إرسال إشعارات عامة لجميع المتاجر
-- إرسال إشعارات عامة للجميع
+### 3. تحديث الموقع التلقائي
+- تتبع موقع السائق الحالي
+- إرسال إشعارات للسائقين القريبين من المتجر
 
-### 4. نظام تتبع شامل
-- سجل كامل لجميع الإشعارات المرسلة
-- إحصائيات معدل النجاح
-- تتبع الأخطاء وحلها
+## الملفات المضافة
 
-## المتطلبات
+### 1. `utils/notificationService.js`
+- خدمة إدارة الإشعارات المحلية
+- طلب إذن الإشعارات
+- إدارة Push Tokens
+- معالجة الإشعارات الواردة
 
-### 1. تثبيت الحزم
+### 2. `utils/pushNotificationSender.js`
+- خدمة إرسال Push Notifications عبر Expo
+- إرسال إشعارات لسائق واحد أو جميع السائقين
+- إرسال إشعارات للسائقين في منطقة معينة
+- حساب المسافات وتصفية السائقين
+
+### 3. `add_push_token_fields.sql`
+- تحديث قاعدة البيانات لدعم Push Notifications
+- إضافة حقول Push Token
+- إنشاء جداول تتبع الإشعارات
+- إنشاء إعدادات الإشعارات
+
+## كيفية الإعداد
+
+### 1. تحديث قاعدة البيانات
+قم بتشغيل ملف `add_push_token_fields.sql` في Supabase SQL Editor:
+
+```sql
+-- تشغيل الملف في Supabase SQL Editor
+-- سيتم إضافة جميع الجداول والحقول المطلوبة تلقائياً
+```
+
+### 2. تثبيت المكتبات المطلوبة
 ```bash
 npm install expo-notifications
 ```
 
-### 2. إعدادات Expo
-- تحديث `app.json` مع إعدادات الإشعارات
-- إضافة `expo-notifications` plugin
-- تكوين الأيقونات والألوان
+### 3. تحديث app.json
+تم تحديث `app.json` تلقائياً لدعم Push Notifications.
 
-### 3. قاعدة البيانات
-- تشغيل ملف `add_push_notifications_fields.sql` في Supabase
-- إضافة حقول `expo_push_token` للجداول
-- إنشاء جداول تتبع الإشعارات
+### 4. إعداد Expo Push Notifications
+1. تأكد من أن لديك حساب Expo
+2. احصل على Project ID من `app.json`
+3. تأكد من أن التطبيق مُسجل في Expo
 
 ## كيفية الاستخدام
 
-### 1. تهيئة خدمة الإشعارات
+### 1. في شاشة إنشاء الطلب (NewOrderScreen)
+عند إنشاء طلب جديد، سيتم إرسال Push Notifications تلقائياً لجميع السائقين:
 
 ```javascript
-import notificationService from './utils/notifications';
-
-// في App.js أو عند بدء التطبيق
-useEffect(() => {
-  const initializeNotifications = async () => {
-    const success = await notificationService.initialize();
-    if (success) {
-      console.log('✅ تم تهيئة خدمة الإشعارات بنجاح');
-    }
-  };
-  initializeNotifications();
-}, []);
+// يتم استدعاء هذه الدالة تلقائياً
+const sendPushNotificationsToDrivers = async (orderData) => {
+  // إرسال إشعارات للسائقين في المنطقة
+  if (storeInfo?.latitude && storeInfo?.longitude) {
+    await pushNotificationSender.sendNewOrderNotificationToNearbyDrivers(
+      orderData,
+      storeInfo.latitude,
+      storeInfo.longitude,
+      10 // 10 كم
+    );
+  }
+  
+  // إرسال إشعارات لجميع السائقين كاحتياطي
+  await pushNotificationSender.sendNewOrderNotification(orderData);
+};
 ```
 
-### 2. إرسال إشعارات للسائقين
+### 2. في شاشة السائق (DriverDashboardScreen)
+يتم تهيئة خدمة الإشعارات تلقائياً عند تسجيل دخول السائق:
 
 ```javascript
-import { pushNotificationsAPI } from './supabase';
+// تهيئة خدمة الإشعارات
+const initializeNotificationService = async (driverId) => {
+  const initialized = await notificationService.initialize();
+  
+  if (initialized) {
+    const pushToken = notificationService.getPushToken();
+    
+    // تحديث Push Token في قاعدة البيانات
+    await pushNotificationsAPI.updatePushToken(driverId, 'driver', pushToken);
+  }
+};
+```
 
-// إرسال إشعار لسائق محدد
-const result = await pushNotificationsAPI.sendPushNotificationToDriver(
+### 3. إرسال إشعارات مخصصة
+يمكن إرسال إشعارات مخصصة من أي مكان في التطبيق:
+
+```javascript
+import pushNotificationSender from '../utils/pushNotificationSender';
+
+// إرسال إشعار لسائق واحد
+await pushNotificationSender.sendToDriver(
   driverId,
   'عنوان الإشعار',
-  'محتوى الإشعار',
-  { type: 'custom', data: 'additional' }
+  'نص الإشعار',
+  { type: 'custom', data: 'additional_data' }
 );
 
 // إرسال إشعار لجميع السائقين
-const result = await pushNotificationsAPI.sendPushNotificationToAllDrivers(
+await pushNotificationSender.sendToAllDrivers(
   'عنوان الإشعار',
-  'محتوى الإشعار'
+  'نص الإشعار',
+  { type: 'announcement' }
 );
 ```
-
-### 3. إرسال إشعارات للمتاجر
-
-```javascript
-// إرسال إشعار لمتجر محدد
-const result = await pushNotificationsAPI.sendPushNotificationToStore(
-  storeId,
-  'عنوان الإشعار',
-  'محتوى الإشعار'
-);
-
-// إرسال إشعار لجميع المتاجر
-const result = await pushNotificationsAPI.sendPushNotificationToAllStores(
-  'عنوان الإشعار',
-  'محتوى الإشعار'
-);
-```
-
-### 4. إشعارات الطلبات التلقائية
-
-```javascript
-// إشعار طلب جديد
-await pushNotificationsAPI.sendNewOrderNotificationToDrivers(orderData);
-
-// إشعار تحديث حالة الطلب
-await pushNotificationsAPI.sendOrderStatusUpdateNotification(orderData, 'accepted');
-```
-
-## أنواع الإشعارات
-
-### 1. إشعارات الطلبات
-- `new_order`: طلب جديد متاح
-- `order_accepted`: تم قبول الطلب
-- `order_picked_up`: تم استلام الطلب
-- `order_completed`: تم إكمال الطلب
-- `order_cancelled`: تم إلغاء الطلب
-
-### 2. إشعارات إدارية
-- `general_notification`: إشعار عام
-- `system_update`: تحديث النظام
-- `maintenance`: صيانة
-
-### 3. إشعارات مخصصة
-- `driver_specific`: إشعار خاص بسائق معين
-- `store_specific`: إشعار خاص بمتجر معين
 
 ## إعدادات الإشعارات
 
-### 1. تكوين Expo
-```json
-{
-  "expo": {
-    "plugins": [
-      [
-        "expo-notifications",
-        {
-          "icon": "./assets/notification-icon.png",
-          "color": "#00C897",
-          "sounds": ["./assets/notification-sound.wav"]
-        }
-      ]
-    ]
+### 1. إعدادات المستخدم
+يمكن لكل مستخدم تخصيص إعدادات الإشعارات:
+
+```javascript
+// جلب إعدادات الإشعارات
+const { data: settings } = await pushNotificationsAPI.getNotificationSettings(
+  userId, 
+  'driver'
+);
+
+// تحديث الإعدادات
+await pushNotificationsAPI.updateNotificationSettings(
+  userId, 
+  'driver', 
+  {
+    new_orders_enabled: true,
+    order_updates_enabled: false,
+    quiet_hours_enabled: true,
+    quiet_hours_start: '22:00:00',
+    quiet_hours_end: '08:00:00'
   }
-}
+);
 ```
 
-### 2. تكوين الإشعارات
+### 2. ساعات الهدوء
+يمكن تعطيل الإشعارات خلال ساعات معينة:
+
 ```javascript
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
+const settings = {
+  quiet_hours_enabled: true,
+  quiet_hours_start: '22:00:00', // 10 مساءً
+  quiet_hours_end: '08:00:00'    // 8 صباحاً
+};
 ```
 
-## معالجة الإشعارات
+## تتبع الإشعارات
 
-### 1. الإشعارات الواردة
+### 1. سجلات الإشعارات
+يتم تسجيل جميع الإشعارات المرسلة في جدول `push_notification_logs`:
+
 ```javascript
-// مستمع الإشعارات الواردة
-const notificationListener = Notifications.addNotificationReceivedListener(notification => {
-  console.log('إشعار جديد:', notification.request.content);
-  // معالجة الإشعار هنا
-});
+// تسجيل إرسال إشعار
+await pushNotificationsAPI.logPushNotification(
+  userId,
+  'driver',
+  'new_order',
+  'طلب جديد',
+  'تم إرسال طلب جديد',
+  { orderId: 123 },
+  expoPushToken,
+  true, // نجح
+  null, // لا يوجد خطأ
+  { successCount: 5 } // بيانات الاستجابة
+);
 ```
 
-### 2. النقر على الإشعارات
-```javascript
-// مستمع النقر على الإشعارات
-const responseListener = Notifications.addNotificationResponseReceivedListener(response => {
-  const data = response.notification.request.content.data;
-  
-  // التنقل بناءً على نوع الإشعار
-  if (data.type === 'new_order') {
-    navigation.navigate('AvailableOrders');
-  }
-});
-```
+### 2. إحصائيات الإشعارات
+يمكن جلب إحصائيات الإشعارات:
 
-## إدارة التوكنات
-
-### 1. الحصول على التوكن
 ```javascript
-const token = await notificationService.getCurrentToken();
-console.log('Expo Push Token:', token);
-```
-
-### 2. حفظ التوكن في قاعدة البيانات
-```javascript
-await notificationService.saveTokenToDatabase(userId, userType);
-```
-
-### 3. تحديث التوكن
-```javascript
-// يتم تحديث التوكن تلقائياً عند تغيير الجهاز
-// أو يمكن تحديثه يدوياً
-await notificationService.saveTokenToDatabase(userId, userType);
+// جلب سجلات الإشعارات
+const { data: logs } = await supabase
+  .from('push_notification_logs')
+  .select('*')
+  .eq('user_id', userId)
+  .eq('success', true)
+  .order('sent_at', { ascending: false });
 ```
 
 ## استكشاف الأخطاء
 
 ### 1. مشاكل شائعة
-- **الإشعارات لا تصل**: تحقق من صحة التوكن
-- **أخطاء في الإرسال**: تحقق من اتصال الإنترنت
-- **إشعارات مكررة**: تحقق من عدم وجود مستمعين مكررين
 
-### 2. سجلات الأخطاء
+#### الإشعارات لا تصل
+- تأكد من منح إذن الإشعارات
+- تحقق من صحة Push Token
+- تأكد من اتصال الإنترنت
+
+#### Push Token غير صحيح
+- أعد تهيئة خدمة الإشعارات
+- تحقق من تحديث Token في قاعدة البيانات
+- تأكد من صحة Project ID
+
+### 2. رسائل التصحيح
 ```javascript
-// في console
-console.log('Expo Push Token:', token);
-console.log('نتيجة الإرسال:', result);
+// تفعيل رسائل التصحيح
+console.log('Push Token:', notificationService.getPushToken());
+console.log('إعدادات الإشعارات:', await pushNotificationsAPI.getNotificationSettings(userId, 'driver'));
+
+// اختبار الإشعارات
+await notificationService.sendTestNotification();
 ```
 
-### 3. اختبار الإشعارات
+## اختبار النظام
+
+### 1. إرسال إشعار اختبار
 ```javascript
-// إرسال إشعار تجريبي
-await notificationService.sendImmediateNotification(
-  'اختبار',
-  'هذا إشعار تجريبي'
-);
+// في شاشة السائق
+const sendTestNotification = async () => {
+  const success = await notificationService.sendTestNotification();
+  
+  if (success) {
+    Alert.alert('نجح', 'تم إرسال إشعار اختبار بنجاح!');
+  } else {
+    Alert.alert('خطأ', 'فشل في إرسال إشعار الاختبار');
+  }
+};
 ```
+
+### 2. اختبار إنشاء طلب
+1. سجل دخول كمتجر
+2. أنشئ طلب جديد
+3. تحقق من وصول الإشعارات للسائقين
+4. تحقق من سجلات الإشعارات في قاعدة البيانات
 
 ## الأمان والخصوصية
 
-### 1. RLS Policies
-- المستخدمون يمكنهم قراءة سجلاتهم فقط
-- المديرون يمكنهم الوصول لجميع السجلات
-- حماية البيانات الشخصية
+### 1. حماية البيانات
+- Push Tokens محمية في قاعدة البيانات
+- لا يتم مشاركة البيانات الشخصية في الإشعارات
+- تسجيل جميع العمليات للتدقيق
 
-### 2. تشفير البيانات
-- التوكنات محفوظة بشكل آمن
-- البيانات المرسلة مشفرة
-- لا يتم حفظ معلومات حساسة
+### 2. التحكم في الإشعارات
+- يمكن للمستخدمين تعطيل أنواع معينة من الإشعارات
+- ساعات الهدوء لمنع الإزعاج
+- إعدادات مخصصة لكل مستخدم
 
-## الأداء والتحسين
+## الدعم الفني
 
-### 1. الفهارس
-- فهارس على `expo_push_token`
-- فهارس على `user_id` و `user_type`
-- فهارس على `sent_at`
+إذا واجهت أي مشاكل:
 
-### 2. التخزين المؤقت
-- تخزين التوكنات محلياً
-- تحديث التوكنات عند الحاجة
-- تقليل استعلامات قاعدة البيانات
+1. تحقق من رسائل التصحيح في Console
+2. تأكد من صحة إعدادات قاعدة البيانات
+3. تحقق من اتصال الإنترنت
+4. أعد تشغيل التطبيق
+5. تحقق من إعدادات الإشعارات في الجهاز
 
-### 3. معالجة الأخطاء
-- إعادة المحاولة التلقائية
-- تسجيل الأخطاء للتشخيص
-- عدم كسر العمليات الرئيسية
+## التطوير المستقبلي
 
-## الاختبار
+### 1. ميزات مقترحة
+- إشعارات مخصصة حسب نوع المتجر
+- إشعارات الطلبات العاجلة
+- إشعارات المكافآت والخصومات
+- إشعارات الطقس والظروف الجوية
 
-### 1. اختبار محلي
-```bash
-# تشغيل التطبيق
-expo start
+### 2. تحسينات الأداء
+- تخزين مؤقت للإشعارات
+- إرسال مجمع للإشعارات
+- تحسين خوارزمية حساب المسافات
+- دعم الإشعارات المجدولة
 
-# اختبار الإشعارات
-# افتح التطبيق على جهاز حقيقي
-# أرسل إشعار تجريبي
-```
+---
 
-### 2. اختبار الإنتاج
-```bash
-# بناء التطبيق
-eas build --platform android
-eas build --platform ios
-
-# اختبار Push Notifications
-# أرسل إشعارات حقيقية
-# تحقق من الوصول
-```
-
-## الدعم والصيانة
-
-### 1. المراقبة
-- مراقبة معدل نجاح الإشعارات
-- تتبع الأخطاء والمشاكل
-- إحصائيات الاستخدام
-
-### 2. التحديثات
-- تحديث Expo Notifications
-- تحسين الأداء
-- إضافة ميزات جديدة
-
-### 3. الدعم الفني
-- توثيق المشاكل
-- حلول سريعة
-- دليل استكشاف الأخطاء
-
-## الخلاصة
-
-تم إضافة نظام Push Notifications كامل ومتقدم للتطبيق. هذا النظام يوفر:
-
-✅ **إشعارات فورية** للطلبات الجديدة  
-✅ **تحديثات حالة الطلب** في الوقت الفعلي  
-✅ **إشعارات إدارية** شاملة  
-✅ **تتبع وإحصائيات** مفصلة  
-✅ **أمان وخصوصية** عالية  
-✅ **أداء محسن** مع فهارس قاعدة البيانات  
-
-الآن يمكن للمستخدمين تلقي إشعارات فورية على هواتفهم حتى عندما يكون التطبيق مغلقاً، مما يحسن تجربة المستخدم بشكل كبير.
+**ملاحظة**: تأكد من اختبار النظام على أجهزة حقيقية، حيث أن Push Notifications لا تعمل في المحاكي.

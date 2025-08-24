@@ -16,11 +16,12 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { supabase, driversAPI, supportAPI, systemSettingsAPI, ordersAPI } from '../supabase';
+import { supabase, driversAPI, supportAPI, systemSettingsAPI, ordersAPI, pushNotificationsAPI } from '../supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import colors from '../colors';
 import { useAuth } from '../context/AuthContext';
 import isEqual from 'lodash.isequal';
+import notificationService from '../utils/notificationService';
 
 export default function DriverDashboardScreen({ navigation }) {
   const { logout, user, userType } = useAuth();
@@ -86,18 +87,21 @@ export default function DriverDashboardScreen({ navigation }) {
           setDriverInfo(user);
           setIsOnline(user.is_active || false);
           
-                  // تحميل باقي البيانات من قاعدة البيانات
-        await loadDriverData(driverIdNumber);
-        
-        // جلب عدد الإشعارات غير المقروءة
-        const { data: notifications, error: notificationsError } = await supabase
-          .from('notifications')
-          .select('*')
-          .eq('driver_id', driverIdNumber)
-          .eq('is_read', false);
-        if (!notificationsError) {
-          setUnreadNotifications(notifications?.length || 0);
-        }
+          // تهيئة خدمة الإشعارات
+          await initializeNotificationService(driverIdNumber);
+          
+          // تحميل باقي البيانات من قاعدة البيانات
+          await loadDriverData(driverIdNumber);
+          
+          // جلب عدد الإشعارات غير المقروءة
+          const { data: notifications, error: notificationsError } = await supabase
+            .from('notifications')
+            .select('*')
+            .eq('driver_id', driverIdNumber)
+            .eq('is_read', false);
+          if (!notificationsError) {
+            setUnreadNotifications(notifications?.length || 0);
+          }
         } else {
           console.error('لم يتم العثور على بيانات السائق في AuthContext');
           // لا تعرض Alert هنا لتجنب التضارب مع تسجيل الخروج
@@ -882,6 +886,29 @@ export default function DriverDashboardScreen({ navigation }) {
       ) : isAvailable ? (
         // إذا لم يكن هناك طلب جاري، اعرض الطلبات المتاحة فقط
         <ScrollView style={{flex:1}} contentContainerStyle={{padding:16}}>
+          {/* زر اختبار الإشعارات */}
+          <TouchableOpacity 
+            onPress={sendTestNotification}
+            style={{
+              backgroundColor: '#FF9800',
+              borderRadius: 12,
+              padding: 16,
+              marginBottom: 20,
+              alignItems: 'center',
+              flexDirection: 'row',
+              justifyContent: 'center',
+              gap: 8,
+              shadowColor: '#FF9800',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.3,
+              shadowRadius: 4,
+              elevation: 4,
+            }}
+          >
+            <Ionicons name="notifications-outline" size={24} color="#fff" />
+            <Text style={{color: '#fff', fontWeight: 'bold', fontSize: 16}}>اختبار الإشعارات</Text>
+          </TouchableOpacity>
+
           {availableOrders.length === 0 ? (
             <View style={{flex:1, justifyContent:'center', alignItems:'center', minHeight: 400}}>
               <Ionicons name="list-outline" size={64} color={colors.primary} />
@@ -1221,3 +1248,78 @@ const styles = StyleSheet.create({
   },
 
 }); 
+
+  // دالة تهيئة خدمة الإشعارات
+  const initializeNotificationService = async (driverId) => {
+    try {
+      console.log('تهيئة خدمة الإشعارات...');
+      
+      // تهيئة خدمة الإشعارات
+      const initialized = await notificationService.initialize();
+      
+      if (initialized) {
+        console.log('تم تهيئة خدمة الإشعارات بنجاح');
+        
+        // الحصول على Push Token
+        const pushToken = notificationService.getPushToken();
+        
+        if (pushToken) {
+          console.log('Push Token:', pushToken);
+          
+          // تحديث Push Token في قاعدة البيانات
+          const { error } = await pushNotificationsAPI.updatePushToken(driverId, 'driver', pushToken);
+          
+          if (error) {
+            console.error('خطأ في تحديث Push Token:', error);
+          } else {
+            console.log('تم تحديث Push Token في قاعدة البيانات');
+          }
+        }
+      } else {
+        console.log('فشل في تهيئة خدمة الإشعارات');
+      }
+    } catch (error) {
+      console.error('خطأ في تهيئة خدمة الإشعارات:', error);
+    }
+  };
+
+  // دالة تحديث موقع السائق
+  const updateDriverLocation = async (latitude, longitude) => {
+    try {
+      if (driverId) {
+        const { error } = await pushNotificationsAPI.updateDriverLocation(driverId, latitude, longitude);
+        
+        if (error) {
+          console.error('خطأ في تحديث موقع السائق:', error);
+        } else {
+          console.log('تم تحديث موقع السائق بنجاح');
+        }
+      }
+    } catch (error) {
+      console.error('خطأ في تحديث موقع السائق:', error);
+    }
+  };
+
+  // دالة إرسال إشعار اختبار
+  const sendTestNotification = async () => {
+    try {
+      const success = await notificationService.sendTestNotification();
+      
+      if (success) {
+        Alert.alert('نجح', 'تم إرسال إشعار اختبار بنجاح!');
+      } else {
+        Alert.alert('خطأ', 'فشل في إرسال إشعار الاختبار');
+      }
+    } catch (error) {
+      console.error('خطأ في إرسال إشعار الاختبار:', error);
+      Alert.alert('خطأ', 'حدث خطأ في إرسال إشعار الاختبار');
+    }
+  };
+
+  // تنظيف الموارد عند إغلاق الشاشة
+  useEffect(() => {
+    return () => {
+      // تنظيف خدمة الإشعارات
+      notificationService.cleanup();
+    };
+  }, []); 

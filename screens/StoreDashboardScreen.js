@@ -15,11 +15,12 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { supabase, storesAPI } from '../supabase';
+import { supabase, storesAPI, pushNotificationsAPI } from '../supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import colors from '../colors';
 import { useAuth } from '../context/AuthContext';
 import isEqual from 'lodash.isequal';
+import pushNotificationSender from '../utils/pushNotificationSender';
 const storeIcon = { uri: 'https://i.ibb.co/Myy7sCzX/Picsart-25-07-31-16-12-30-512.jpg' };
 
 export default function StoreDashboardScreen({ navigation }) {
@@ -263,6 +264,89 @@ export default function StoreDashboardScreen({ navigation }) {
     // Implementation of handleSendSupport function
   };
 
+  // دالة اختبار Push Notifications
+  const testPushNotifications = async () => {
+    try {
+      Alert.alert(
+        'اختبار Push Notifications',
+        'اختر نوع الاختبار:',
+        [
+          {
+            text: 'إشعار لجميع السائقين',
+            onPress: async () => {
+              try {
+                const result = await pushNotificationSender.sendToAllDrivers(
+                  'اختبار الإشعارات 🧪',
+                  'هذا إشعار اختبار من المتجر للتأكد من عمل نظام Push Notifications',
+                  { type: 'store_test', storeId: storeId, timestamp: new Date().toISOString() }
+                );
+                
+                if (result.success) {
+                  Alert.alert(
+                    'نجح الاختبار! ✅',
+                    `تم إرسال إشعارات لـ ${result.successCount} سائق من أصل ${result.totalCount}`
+                  );
+                } else {
+                  Alert.alert('فشل الاختبار', result.error || 'حدث خطأ غير متوقع');
+                }
+              } catch (error) {
+                Alert.alert('خطأ', 'حدث خطأ في إرسال الإشعارات: ' + error.message);
+              }
+            }
+          },
+          {
+            text: 'إشعار لسائق واحد',
+            onPress: async () => {
+              // طلب معرف السائق
+              Alert.prompt(
+                'اختبار سائق واحد',
+                'أدخل معرف السائق:',
+                [
+                  {
+                    text: 'إلغاء',
+                    style: 'cancel'
+                  },
+                  {
+                    text: 'إرسال',
+                    onPress: async (driverId) => {
+                      if (driverId && driverId.trim()) {
+                        try {
+                          const result = await pushNotificationSender.sendToDriver(
+                            parseInt(driverId.trim()),
+                            'اختبار الإشعارات 🧪',
+                            'هذا إشعار اختبار من المتجر',
+                            { type: 'store_test', storeId: storeId, timestamp: new Date().toISOString() }
+                          );
+                          
+                          if (result.success) {
+                            Alert.alert('نجح الاختبار! ✅', 'تم إرسال الإشعار بنجاح');
+                          } else {
+                            Alert.alert('فشل الاختبار', result.error || 'حدث خطأ غير متوقع');
+                          }
+                        } catch (error) {
+                          Alert.alert('خطأ', 'حدث خطأ في إرسال الإشعار: ' + error.message);
+                        }
+                      }
+                    }
+                  }
+                ],
+                'plain-text',
+                '',
+                'keyboard-type'
+              );
+            }
+          },
+          {
+            text: 'إلغاء',
+            style: 'cancel'
+          }
+        ]
+      );
+    } catch (error) {
+      Alert.alert('خطأ', 'حدث خطأ في اختبار الإشعارات: ' + error.message);
+    }
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -419,21 +503,40 @@ export default function StoreDashboardScreen({ navigation }) {
             </TouchableOpacity>
           </View>
 
+          {/* صف جديد لزر اختبار الإشعارات */}
           <View style={styles.optionsRow}>
             <TouchableOpacity
               style={styles.optionCard}
-              onPress={() => handleOptionPress('support')}
+              onPress={testPushNotifications}
             >
               <LinearGradient
-                colors={['#E91E63', '#E91E63CC']}
+                colors={['#FF5722', '#FF5722CC']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.optionGradient}
               >
                 <View style={styles.optionContent}>
-                  <Ionicons name="chatbubbles-outline" size={32} color={colors.secondary} />
+                  <Ionicons name="notifications-circle-outline" size={32} color={colors.secondary} />
+                  <Text style={styles.optionTitle}>اختبار الإشعارات</Text>
+                  <Text style={styles.optionDescription}>اختبار نظام Push Notifications</Text>
+                </View>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.optionCard}
+              onPress={() => handleOptionPress('support')}
+            >
+              <LinearGradient
+                colors={['#607D8B', '#607D8BCC']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.optionGradient}
+              >
+                <View style={styles.optionContent}>
+                  <Ionicons name="help-circle-outline" size={32} color={colors.secondary} />
                   <Text style={styles.optionTitle}>الدعم الفني</Text>
-                  <Text style={styles.optionDescription}>التواصل مع الدعم</Text>
+                  <Text style={styles.optionDescription}>طلب مساعدة أو إبلاغ عن مشكلة</Text>
                 </View>
               </LinearGradient>
             </TouchableOpacity>
