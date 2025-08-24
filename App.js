@@ -8,6 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import EncryptedStorage from 'react-native-encrypted-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useState, useEffect } from 'react';
+import { View, Text } from 'react-native';
 
 import { supabase, initializeDatabase, updatesAPI } from './supabase';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -232,7 +233,8 @@ function AppContent() {
       checkUserSession();
     }, 500); // تقليل من 800ms إلى 500ms
 
-    // تهيئة خدمة الإشعارات - تأخيرها حتى يتم تحميل التطبيق
+    // تهيئة خدمة الإشعارات معلقة مؤقتًا لتشخيص الشاشة البيضاء
+    /*
     const initializeNotifications = async () => {
       try {
         const success = await notificationService.initialize();
@@ -245,11 +247,10 @@ function AppContent() {
         console.error('خطأ في تهيئة الإشعارات:', error);
       }
     };
-    
-    // تقليل تأخير تهيئة الإشعارات
     setTimeout(() => {
       initializeNotifications();
-    }, 1000); // تقليل من 2000ms إلى 1000ms
+    }, 1000);
+    */
 
     // فحص/تهيئة قاعدة البيانات - تقليل التأخير
     const backgroundInit = async () => {
@@ -335,9 +336,13 @@ function AppContent() {
     }
   };
 
-  // عرض شاشة التحميل أثناء التهيئة
+  // عرض شاشة التحميل أثناء التهيئة (آمن — يعرض رسالة بسيطة لتجنب الشاشة البيضاء)
   if (loading || showSplash) {
-    return <LoginScreen />;
+    return (
+      <View style={{flex:1,justifyContent:'center',alignItems:'center',backgroundColor: (useColorScheme() === 'dark' ? '#181818' : '#fff')}}>
+        <Text style={{fontSize:18,color: (useColorScheme() === 'dark' ? '#fff' : '#333')}}>جاري تهيئة التطبيق...</Text>
+      </View>
+    );
   }
 
   // إذا كان المستخدم مسجل دخول، اعرض الشاشة المناسبة
