@@ -47,6 +47,7 @@ import UpdateStoreLocationScreen from './screens/UpdateStoreLocationScreen';
 // Components
 import UpdateModal from './components/UpdateModal';
 import DriverDrawerContent from './components/DriverDrawerContent';
+import ErrorBoundary from './components/ErrorBoundary';
 
 I18nManager.forceRTL(true);
 
@@ -427,7 +428,9 @@ function AppContent() {
 export default function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      <ErrorBoundary>
+        <AppContent />
+      </ErrorBoundary>
     </AuthProvider>
   );
 }
