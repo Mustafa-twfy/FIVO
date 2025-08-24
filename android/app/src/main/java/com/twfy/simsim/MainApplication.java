@@ -50,8 +50,9 @@ public class MainApplication extends Application implements ReactApplication {
   public void onCreate() {
     super.onCreate();
     SoLoader.init(this, /* native exopackage */ false);
-    if (mReactNativeHost.isNewArchEnabled()) {
-      DefaultNewArchitectureEntryPoint.load();
-    }
+    // تعطيل الهندسة المعمارية الجديدة
+    // if (mReactNativeHost.isNewArchEnabled()) {
+    //   DefaultNewArchitectureEntryPoint.load();
+    // }
   }
 }
