@@ -12,49 +12,17 @@ buildscript {
     repositories {
         google()
         mavenCentral()
-        maven { url 'https://www.jitpack.io' }
     }
     dependencies {
-        classpath("com.android.tools.build:gradle:8.12.0")
-        classpath("com.facebook.react:react-native-gradle-plugin:0.73.4")
+        classpath("com.android.tools.build:gradle:8.1.4")
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:1.8.0")
     }
 }
 
-// Settings for compatibility with modern versions
 allprojects {
     repositories {
         google()
         mavenCentral()
         maven { url 'https://www.jitpack.io' }
-    }
-    
-    // Ignore errors
-    gradle.projectsEvaluated {
-        tasks.withType(JavaCompile) {
-            options.compilerArgs << "-Xlint:unchecked" << "-Xlint:deprecation"
-        }
-    }
-    
-    // Expo compatibility settings
-    afterEvaluate { project ->
-        if (project.hasProperty('android')) {
-            android {
-                compileOptions {
-                    sourceCompatibility JavaVersion.VERSION_1_8
-                    targetCompatibility JavaVersion.VERSION_1_8
-                }
-            }
-        }
-        
-        // Ignore errors in projects that don't support these settings
-        project.plugins.withId('com.android.application') {
-            android {
-                compileOptions {
-                    sourceCompatibility JavaVersion.VERSION_1_8
-                    targetCompatibility JavaVersion.VERSION_1_8
-                }
-            }
-        }
     }
 }
