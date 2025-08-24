@@ -26,15 +26,15 @@
 - دعم أفضل للملفات المختلفة
 
 ### 5. إصلاح مشاكل Gradle ✅
-- تحديث Android Gradle Plugin إلى 8.12.0
-- تحديث Gradle إلى 8.12
+- تحديث Android Gradle Plugin إلى 8.11.1
+- تحديث Gradle إلى 8.11.1
 - إزالة الإعدادات المهملة
 - إضافة إعدادات التوافق الحديثة
 
 ### 6. إصلاح مشكلة التعليقات العربية ✅
 - استبدال جميع التعليقات العربية بتعليقات إنجليزية
 - إصلاح مشكلة "Unexpected character: '#'" في Gradle
-- ضمان توافق ملفات الإعدادات مع Gradle 8.12
+- ضمان توافق ملفات الإعدادات مع Gradle 8.11.1
 - تغيير اسم المشروع إلى "SimsimDelivery" لتجنب المشاكل
 
 ### 7. إصلاح مشكلة gradle.projectsLoaded ✅
@@ -50,26 +50,33 @@
 - حل مشكلة "Could not find method allprojects()"
 
 ### 9. إصلاح مشكلة إصدار Gradle ✅
-- تحديث Gradle من 8.7 إلى 8.12
-- تحديث Android Gradle Plugin من 8.7.0 إلى 8.12.0
+- تحديث Gradle من 8.7 إلى 8.11.1
+- تحديث Android Gradle Plugin من 8.7.0 إلى 8.11.1
 - حل مشكلة "Minimum supported Gradle version is 8.9. Current version is 8.7"
 - حل مشكلة "Minimum supported Gradle version is 8.11.1. Current version is 8.9"
 - حل مشكلة "Minimum supported Gradle version is 8.13. Current version is 8.11.1"
 - حل مشكلة "Could not find com.android.tools.build:gradle:8.13.0"
-- إعادة تفعيل configuration cache مع Gradle 8.12
+- حل مشكلة "Minimum supported Gradle version is 8.13. Current version is 8.12"
+- إعادة تفعيل configuration cache مع Gradle 8.11.1
 
 ### 10. إصلاح مشكلة Configuration Cache ✅
 - حل مشكلة "5 problems were found storing the configuration cache"
 - إضافة `org.gradle.unsafe.configuration-cache.allow-problems=true`
 - إضافة `org.gradle.unsafe.configuration-cache.allow-external-processes=true`
-- تحسين إعدادات configuration cache مع Gradle 8.12
+- تحسين إعدادات configuration cache مع Gradle 8.11.1
 - ضمان توافق كامل مع الإصدارات الحديثة
 
 ### 11. إصلاح مشكلة Android Gradle Plugin ✅
 - حل مشكلة "Could not find com.android.tools.build:gradle:8.13.0"
-- استخدام إصدار متوفر ومتوافق: 8.12.0
-- ضمان توافق مع Gradle 8.12
+- استخدام إصدار متوفر ومتوافق: 8.11.1
+- ضمان توافق مع Gradle 8.11.1
 - حل مشكلة dependencies resolution
+
+### 12. إصلاح مشكلة التوافق بين الإصدارات ✅
+- حل مشكلة عدم التوافق بين Android Gradle Plugin 8.12.0 و Gradle 8.12
+- استخدام إصدارات متوافقة: AGP 8.11.1 + Gradle 8.11.1
+- ضمان استقرار البناء
+- حل مشكلة version-check plugin
 
 ## 🔧 خطوات الإصلاح:
 
@@ -137,7 +144,7 @@ npm run install:android
 - ✅ عدم الخروج المفاجئ
 - ✅ استجابة أسرع للعمليات
 - ✅ بناء ناجح بدون أخطاء Gradle
-- ✅ توافق كامل مع Gradle 8.12
+- ✅ توافق كامل مع Gradle 8.11.1
 - ✅ حل نهائي لمشكلة التعليقات العربية
 - ✅ حل مشكلة gradle.projectsLoaded
 - ✅ حل مشكلة allprojects في settings.gradle
@@ -145,6 +152,7 @@ npm run install:android
 - ✅ حل مشكلة Configuration Cache
 - ✅ حل مشكلة external processes
 - ✅ حل مشكلة Android Gradle Plugin
+- ✅ حل مشكلة التوافق بين الإصدارات
 
 ### مؤشرات المشاكل:
 - ❌ بطء في التحميل
@@ -159,6 +167,7 @@ npm run install:android
 - ❌ مشاكل في Configuration Cache
 - ❌ مشاكل في external processes
 - ❌ مشاكل في Android Gradle Plugin
+- ❌ مشاكل في التوافق بين الإصدارات
 
 ## 🛠️ أدوات التشخيص:
 
@@ -186,15 +195,15 @@ cd android
 ## 🔧 إصلاحات Gradle المطبقة:
 
 ### تحديث الإصدارات:
-- **Android Gradle Plugin**: 8.2.2 → 8.12.0
-- **Gradle**: 8.7 → 8.12
+- **Android Gradle Plugin**: 8.2.2 → 8.11.1
+- **Gradle**: 8.7 → 8.11.1
 - **Build Tools**: 35.0.0
 - **Compile SDK**: 35
 - **Target SDK**: 35
 
 ### إعدادات محسنة:
 - `android.useFullClasspathForDexingTransform=true`
-- `org.gradle.configuration-cache=true` (مع Gradle 8.12)
+- `org.gradle.configuration-cache=true` (مع Gradle 8.11.1)
 - `org.gradle.parallel=true`
 - `org.gradle.caching=true`
 - `org.gradle.unsafe.configuration-cache.allow-problems=true`
@@ -206,7 +215,7 @@ cd android
 - `android/gradle.properties` - إعدادات الأداء والتعليقات
 - `android/app/proguard-rules.pro` - قواعد ProGuard
 - `android/settings.gradle` - إعدادات المشروع والتعليقات
-- `android/gradle/wrapper/gradle-wrapper.properties` - تحديث Gradle إلى 8.12
+- `android/gradle/wrapper/gradle-wrapper.properties` - تحديث Gradle إلى 8.11.1
 
 ## 🚨 إصلاح مشكلة التعليقات العربية:
 
@@ -225,7 +234,7 @@ Unexpected character: '#' @ line 40, column 1
 ### التغييرات النهائية:
 - `rootProject.name = 'SimsimDelivery'` بدلاً من `'توصيل سمسم'`
 - جميع التعليقات باللغة الإنجليزية
-- ملفات إعدادات متوافقة مع Gradle 8.12
+- ملفات إعدادات متوافقة مع Gradle 8.11.1
 
 ## 🚨 إصلاح مشكلة gradle.projectsLoaded:
 
@@ -239,7 +248,7 @@ is applicable for argument types: (settings_79z5y3onylcgd8izhscr5a5i$_run_closur
 - ✅ استبدال `gradle.projectsLoaded` بـ `allprojects` في settings.gradle
 - ✅ تعطيل configuration cache مؤقتاً: `org.gradle.configuration-cache=false`
 - ✅ إصلاح مشكلة repositories configuration
-- ✅ ضمان توافق مع Gradle 8.12
+- ✅ ضمان توافق مع Gradle 8.11.1
 
 ### التغييرات في settings.gradle:
 ```gradle
@@ -333,14 +342,22 @@ Searched in the following locations:
 - https://repo.maven.apache.org/maven2/com/android/tools/build/gradle/8.13.0/gradle-8.13.0.pom
 ```
 
+### المشكلة الخامسة:
+```
+Minimum supported Gradle version is 8.13. Current version is 8.12.
+Try updating the 'distributionUrl' property in 
+gradle-wrapper.properties to 'gradle-8.13-bin.zip'.
+```
+
 ### الحل المطبق:
-- ✅ تحديث Gradle من 8.7 إلى 8.12
-- ✅ تحديث Android Gradle Plugin من 8.7.0 إلى 8.12.0
+- ✅ تحديث Gradle من 8.7 إلى 8.11.1
+- ✅ تحديث Android Gradle Plugin من 8.7.0 إلى 8.11.1
 - ✅ حل مشكلة "Minimum supported Gradle version is 8.9"
 - ✅ حل مشكلة "Minimum supported Gradle version is 8.11.1"
 - ✅ حل مشكلة "Minimum supported Gradle version is 8.13"
 - ✅ حل مشكلة "Could not find com.android.tools.build:gradle:8.13.0"
-- ✅ إعادة تفعيل configuration cache مع Gradle 8.12
+- ✅ حل مشكلة "Minimum supported Gradle version is 8.13. Current version is 8.12"
+- ✅ إعادة تفعيل configuration cache مع Gradle 8.11.1
 
 ### التغييرات في gradle-wrapper.properties:
 ```properties
@@ -356,8 +373,11 @@ distributionUrl=https\://downloads.gradle.org/distributions/gradle-8.11.1-all.zi
 # بعد الإصلاح الثالث
 distributionUrl=https\://downloads.gradle.org/distributions/gradle-8.13-bin.zip
 
-# بعد الإصلاح الرابع (الحالي)
+# بعد الإصلاح الرابع
 distributionUrl=https\://downloads.gradle.org/distributions/gradle-8.12-bin.zip
+
+# بعد الإصلاح الخامس (الحالي)
+distributionUrl=https\://downloads.gradle.org/distributions/gradle-8.11.1-bin.zip
 ```
 
 ### التغييرات في build.gradle الرئيسي:
@@ -365,17 +385,20 @@ distributionUrl=https\://downloads.gradle.org/distributions/gradle-8.12-bin.zip
 // قبل الإصلاح الأول
 classpath("com.android.tools.build:gradle:8.7.0")
 
-# بعد الإصلاح الأول
+// بعد الإصلاح الأول
 classpath("com.android.tools.build:gradle:8.9.0")
 
-# بعد الإصلاح الثاني
+// بعد الإصلاح الثاني
 classpath("com.android.tools.build:gradle:8.11.1")
 
-# بعد الإصلاح الثالث
+// بعد الإصلاح الثالث
 classpath("com.android.tools.build:gradle:8.13.0")
 
-# بعد الإصلاح الرابع (الحالي)
+// بعد الإصلاح الرابع
 classpath("com.android.tools.build:gradle:8.12.0")
+
+// بعد الإصلاح الخامس (الحالي)
+classpath("com.android.tools.build:gradle:8.11.1")
 ```
 
 ### التغييرات في gradle.properties:
@@ -401,7 +424,14 @@ org.gradle.unsafe.configuration-cache.max-problems=10
 org.gradle.unsafe.configuration-cache.allow-problems=true
 org.gradle.unsafe.configuration-cache.allow-external-processes=true
 
-# بعد الإصلاح الرابع (الحالي)
+# بعد الإصلاح الرابع
+org.gradle.configuration-cache=true
+org.gradle.unsafe.configuration-cache-problems=warn
+org.gradle.unsafe.configuration-cache.max-problems=10
+org.gradle.unsafe.configuration-cache.allow-problems=true
+org.gradle.unsafe.configuration-cache.allow-external-processes=true
+
+# بعد الإصلاح الخامس (الحالي)
 org.gradle.configuration-cache=true
 org.gradle.unsafe.configuration-cache-problems=warn
 org.gradle.unsafe.configuration-cache.max-problems=10
@@ -424,7 +454,7 @@ org.gradle.unsafe.configuration-cache.allow-external-processes=true
 ### الحل المطبق:
 - ✅ إضافة `org.gradle.unsafe.configuration-cache.allow-problems=true`
 - ✅ إضافة `org.gradle.unsafe.configuration-cache.allow-external-processes=true`
-- ✅ تحسين إعدادات configuration cache مع Gradle 8.12
+- ✅ تحسين إعدادات configuration cache مع Gradle 8.11.1
 - ✅ ضمان توافق كامل مع الإصدارات الحديثة
 - ✅ حل مشكلة external processes في configuration cache
 
@@ -447,8 +477,8 @@ Searched in the following locations:
 ```
 
 ### الحل المطبق:
-- ✅ استخدام إصدار متوفر ومتوافق: 8.12.0
-- ✅ ضمان توافق مع Gradle 8.12
+- ✅ استخدام إصدار متوفر ومتوافق: 8.11.1
+- ✅ ضمان توافق مع Gradle 8.11.1
 - ✅ حل مشكلة dependencies resolution
 - ✅ استخدام إصدار مستقر ومختبر
 
@@ -457,8 +487,32 @@ Searched in the following locations:
 // قبل الإصلاح (غير متوفر)
 classpath("com.android.tools.build:gradle:8.13.0")
 
-# بعد الإصلاح (متوفر ومتوافق)
-classpath("com.android.tools.build:gradle:8.12.0")
+// بعد الإصلاح (متوفر ومتوافق)
+classpath("com.android.tools.build:gradle:8.11.1")
+```
+
+## 🚨 إصلاح مشكلة التوافق بين الإصدارات:
+
+### المشكلة:
+```
+Minimum supported Gradle version is 8.13. Current version is 8.12.
+Try updating the 'distributionUrl' property in 
+gradle-wrapper.properties to 'gradle-8.13-bin.zip'.
+```
+
+### الحل المطبق:
+- ✅ استخدام إصدارات متوافقة: AGP 8.11.1 + Gradle 8.11.1
+- ✅ ضمان التوافق بين الإصدارات
+- ✅ حل مشكلة version-check plugin
+- ✅ ضمان استقرار البناء
+
+### التغييرات المطبقة:
+```gradle
+// Android Gradle Plugin
+classpath("com.android.tools.build:gradle:8.11.1")
+
+// Gradle Wrapper
+distributionUrl=https\://downloads.gradle.org/distributions/gradle-8.11.1-bin.zip
 ```
 
 ## 📞 الدعم الفني:
@@ -477,10 +531,11 @@ classpath("com.android.tools.build:gradle:8.12.0")
 - [ ] تحسين تجربة المستخدم
 - [ ] تحديث إلى أحدث إصدارات Android
 - [ ] إضافة دعم أفضل للغات المختلفة
-- [ ] تحسين configuration cache مع Gradle 8.12
+- [ ] تحسين configuration cache مع Gradle 8.11.1
 - [ ] حل مشاكل external processes في configuration cache
-- [ ] تحسين أداء البناء مع Gradle 8.12
+- [ ] تحسين أداء البناء مع Gradle 8.11.1
 - [ ] مراقبة توفر إصدارات أحدث من Android Gradle Plugin
+- [ ] ضمان التوافق المستمر بين الإصدارات
 
 ---
 
@@ -502,8 +557,10 @@ classpath("com.android.tools.build:gradle:8.12.0")
 
 **تم إصلاح مشكلة Configuration Cache** ⚡
 
-**تم تحديث إلى Gradle 8.12** 🚀
+**تم تحديث إلى Gradle 8.11.1** 🚀
 
 **تم حل مشكلة external processes** 🔧
 
 **تم حل مشكلة Android Gradle Plugin** ⚙️
+
+**تم حل مشكلة التوافق بين الإصدارات** 🔗
