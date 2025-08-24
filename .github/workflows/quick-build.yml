@@ -1,15 +1,22 @@
-name: Android Build
+name: Quick Android Build
 
 on:
-  push:
-    branches: [ main, develop ]
-  pull_request:
-    branches: [ main, develop ]
   workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Build Type'
+        required: true
+        default: 'apk'
+        type: choice
+        options:
+        - apk
+        - aab
+        - both
 
 jobs:
-  build-android:
+  quick-build:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     
     steps:
     - name: Checkout code
@@ -29,8 +36,7 @@ jobs:
         cache: 'npm'
         
     - name: Install dependencies
-      run: |
-        npm ci
+      run: npm ci
         
     - name: Cache Gradle packages
       uses: actions/cache@v3
@@ -42,16 +48,6 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-gradle-
           
-    - name: Cache Android build
-      uses: actions/cache@v3
-      with:
-        path: |
-          ~/.android/build-cache
-          ~/.android/avd
-        key: ${{ runner.os }}-android-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-        restore-keys: |
-          ${{ runner.os }}-android-
-          
     - name: Grant execute permission for gradlew
       run: chmod +x android/gradlew
       
@@ -61,26 +57,30 @@ jobs:
         ./gradlew clean
         cd ..
         
-    - name: Build Android APK
+    - name: Build APK
+      if: ${{ github.event.inputs.build_type == 'apk' || github.event.inputs.build_type == 'both' }}
       run: |
         cd android
         ./gradlew assembleRelease --no-daemon --stacktrace
         cd ..
         
-    - name: Upload APK
-      uses: actions/upload-artifact@v3
-      with:
-        name: app-release
-        path: android/app/build/outputs/apk/release/app-release.apk
-        
-    - name: Build Android AAB
+    - name: Build AAB
+      if: ${{ github.event.inputs.build_type == 'aab' || github.event.inputs.build_type == 'both' }}
       run: |
         cd android
         ./gradlew bundleRelease --no-daemon --stacktrace
         cd ..
         
-    - name: Upload AAB
+    - name: Upload APK
+      if: ${{ github.event.inputs.build_type == 'apk' || github.event.inputs.build_type == 'both' }}
       uses: actions/upload-artifact@v3
       with:
-        name: app-release-bundle
-        path: android/app/build/outputs/bundle/release/app-release.aab 
+        name: app-release-apk
+        path: android/app/build/outputs/apk/release/app-release.apk
+        
+    - name: Upload AAB
+      if: ${{ github.event.inputs.build_type == 'aab' || github.event.inputs.build_type == 'both' }}
+      uses: actions/upload-artifact@v3
+      with:
+        name: app-release-aab
+        path: android/app/build/outputs/bundle/release/app-release.aab
