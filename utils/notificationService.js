@@ -21,43 +21,56 @@ class NotificationService {
   }
 
   // تهيئة خدمة الإشعارات
-  async initialize() {
+  async initialize({ requestPermission = true, silent = true } = {}) {
     try {
-      // طلب إذن الإشعارات
-      const { status: existingStatus } = await Notifications.getPermissionsAsync();
-      let finalStatus = existingStatus;
-      
-      if (existingStatus !== 'granted') {
-        const { status } = await Notifications.requestPermissionsAsync();
-        finalStatus = status;
+      // طلب إذن الإشعارات بشكل آمن مع timeout
+      if (requestPermission) {
+        const { status: existingStatus } = await Notifications.getPermissionsAsync();
+        let finalStatus = existingStatus;
+
+        if (existingStatus !== 'granted') {
+          const p = Notifications.requestPermissionsAsync();
+          const res = await Promise.race([
+            p,
+            new Promise((r) => setTimeout(() => r({ status: 'denied' }), 8000))
+          ]);
+          finalStatus = res?.status || 'denied';
+        }
+
+        if (finalStatus !== 'granted') {
+          if (!silent) console.log('لم يتم منح إذن الإشعارات');
+          return false;
+        }
       }
-      
-      if (finalStatus !== 'granted') {
-        console.log('لم يتم منح إذن الإشعارات');
+
+      // الحصول على Push Token بأمان
+      if (!Device.isDevice) {
+        if (!silent) console.log('محاكي: تتطلب إشعارات جهازاً حقيقياً');
         return false;
       }
 
-      // الحصول على Push Token
-      if (Device.isDevice) {
-        this.expoPushToken = (await Notifications.getExpoPushTokenAsync({
-          projectId: '7afda903-8cd5-422f-9192-e535509be738'
-        })).data;
-        
-        console.log('Expo Push Token:', this.expoPushToken);
-        
-        // حفظ Token في AsyncStorage
-        await AsyncStorage.setItem('expoPushToken', this.expoPushToken);
-        
-        // إعداد مستمعي الإشعارات
+      try {
+        const tokenResponse = await Promise.race([
+          Notifications.getExpoPushTokenAsync({ projectId: '7afda903-8cd5-422f-9192-e535509be738' }),
+          new Promise((r) => setTimeout(() => r(null), 8000))
+        ]);
+
+        this.expoPushToken = tokenResponse?.data || null;
+        if (this.expoPushToken) {
+          await AsyncStorage.setItem('expoPushToken', this.expoPushToken);
+          // محاولة آمنة لتحديث الـ DB في الخلفية
+          this.updatePushTokenSafe().catch(() => {});
+        }
+
+        // إعداد المستمعين
         this.setupNotificationListeners();
-        
         return true;
-      } else {
-        console.log('يجب استخدام جهاز حقيقي للإشعارات');
+      } catch (err) {
+        console.error('الحصول على Push Token فشل:', err);
         return false;
       }
     } catch (error) {
-      console.error('خطأ في تهيئة خدمة الإشعارات:', error);
+      console.error('خطأ عام في تهيئة خدمة الإشعارات:', error);
       return false;
     }
   }
@@ -129,34 +142,29 @@ class NotificationService {
     });
   }
 
-  // تحديث Push Token في قاعدة البيانات
-  async updatePushToken(userId, userType) {
+  // تحديث آمن مع retry بسيط
+  async updatePushTokenSafe(retries = 2) {
+    if (!this.expoPushToken) return false;
     try {
-      if (!this.expoPushToken) {
-        console.log('لا يوجد Push Token');
-        return false;
-      }
+      const userId = await AsyncStorage.getItem('userId');
+      const userType = await AsyncStorage.getItem('userType');
+      if (!userId || !userType) return false;
 
-      let tableName = userType === 'driver' ? 'drivers' : 'stores';
-      let idField = userType === 'driver' ? 'driver_id' : 'store_id';
+      const table = userType === 'driver' ? 'drivers' : 'stores';
 
-      const { error } = await supabase
-        .from(tableName)
-        .update({ 
-          push_token: this.expoPushToken,
-          token_updated_at: new Date().toISOString()
-        })
-        .eq('id', userId);
+      // تحقق إن لم يتطابق التوكن لتقليل الكتابة
+      const { data, error } = await supabase.from(table).select('push_token').eq('id', Number(userId)).single();
+      if (!error && data && data.push_token === this.expoPushToken) return true;
 
-      if (error) {
-        console.error('خطأ في تحديث Push Token:', error);
-        return false;
-      }
-
-      console.log('تم تحديث Push Token بنجاح');
+      const up = await supabase.from(table).update({ push_token: this.expoPushToken, token_updated_at: new Date().toISOString() }).eq('id', Number(userId));
+      if (up.error) throw up.error;
       return true;
-    } catch (error) {
-      console.error('خطأ في تحديث Push Token:', error);
+    } catch (err) {
+      if (retries > 0) {
+        await new Promise((r) => setTimeout(r, 1000));
+        return this.updatePushTokenSafe(retries - 1);
+      }
+      console.error('فشل تحديث Push Token بعد محاولات:', err);
       return false;
     }
   }
