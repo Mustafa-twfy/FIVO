@@ -38,11 +38,6 @@ module.exports = {
           color: "#00C897"
         }
       ]
-    ],
-    extra: {
-      eas: {
-        projectId: "7afda903-8cd5-422f-9192-e535509be738"
-      }
-    }
+    ]
   }
 };
