@@ -7,7 +7,7 @@
 npm install -g @expo/eas-cli
 ```
 
-### 2. تسجيل الدخول إلى Expo
+### 2. تسجيل الدخول إلى Exp
 ```bash
 eas login
 ```
