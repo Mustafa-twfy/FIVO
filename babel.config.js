@@ -7,7 +7,7 @@ module.exports = function(api) {
       'react-native-reanimated/plugin',
       
       // دعم أفضل للتنقل
-      '@babel/plugin-proposal-export-namespace-from',
+      '@babel/plugin-transform-export-namespace-from',
       
       // تحسين التحميل
       ['@babel/plugin-transform-runtime', {

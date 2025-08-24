@@ -55,8 +55,11 @@
   },
   "devDependencies": {
     "@babel/core": "^7.24.0",
+    "@babel/plugin-transform-export-namespace-from": "^7.24.0",
     "@react-native-community/cli": "latest",
-    "@types/react": "^18.3.23"
+    "@types/react": "^18.3.23",
+    "babel-plugin-transform-remove-console": "^6.9.4",
+    "babel-plugin-transform-remove-debugger": "^6.9.4"
   },
   "private": true
 }
