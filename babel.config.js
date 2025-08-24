@@ -3,9 +3,6 @@ module.exports = function(api) {
   return {
     presets: ['babel-preset-expo'],
     plugins: [
-      // تحسين الأداء
-      'react-native-reanimated/plugin',
-      
       // دعم أفضل للتنقل
       '@babel/plugin-transform-export-namespace-from',
       
@@ -14,7 +11,9 @@ module.exports = function(api) {
         'regenerator': true,
         'helpers': true,
         'useESModules': false
-      }]
+      }],
+      // تحسين الأداء (react-native-reanimated plugin يجب أن يكون آخر إضافة)
+      'react-native-reanimated/plugin'
     ],
     
     // تحسينات إضافية
