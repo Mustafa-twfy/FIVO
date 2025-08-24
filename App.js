@@ -83,12 +83,14 @@ const darkTheme = {
 
 // دالة اختبار الاتصال بقاعدة البيانات
 const testDatabaseConnection = async () => {
-  console.log('=== بداية اختبار قاعدة البيانات ===');
+  console.log('=== بداية اختبار الاتصال بقاعدة البيانات ===');
   try {
     // تقليل التأخير لضمان استقرار التطبيق
     await new Promise(resolve => setTimeout(resolve, 500)); // تقليل من 1000ms إلى 500ms
     
-    const { data, error } = await supabase.from('drivers').select('count').limit(1);
+    const { count, error } = await supabase
+      .from('drivers')
+      .select('*', { count: 'exact', head: true });
     if (error) {
       console.error('❌ خطأ في الاتصال:', error);
       return false;
@@ -438,4 +440,4 @@ export default function App() {
       </ErrorBoundary>
     </AuthProvider>
   );
-}
+}q
