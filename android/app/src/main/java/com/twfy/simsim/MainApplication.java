@@ -8,7 +8,6 @@ import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint;
 import com.facebook.react.defaults.DefaultReactNativeHost;
 import com.facebook.soloader.SoLoader;
 import java.util.List;
-import java.util.Arrays;
 
 public class MainApplication extends Application implements ReactApplication {
 
@@ -21,8 +20,8 @@ public class MainApplication extends Application implements ReactApplication {
 
         @Override
         protected List<ReactPackage> getPackages() {
-          // إرجاع قائمة فارغة - سيتم التعامل مع الحزم تلقائياً
-          return Arrays.asList();
+          // السماح لـ React Native بإدارة الحزم تلقائياً
+          return null;
         }
 
         @Override
