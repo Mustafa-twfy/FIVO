@@ -103,6 +103,8 @@ export const AuthProvider = ({ children }) => {
     const loadSession = async () => {
       setLoading(true);
       try {
+        console.log('🔄 بدء تحميل الجلسة...');
+        
         const sessionStr = await EncryptedStorage.getItem('session');
         if (sessionStr) {
           const session = JSON.parse(sessionStr);
@@ -112,19 +114,25 @@ export const AuthProvider = ({ children }) => {
             const expiry = new Date(session.sessionExpiry);
             if (now < expiry) {
               // الجلسة صالحة
+              console.log('✅ جلسة صالحة تم تحميلها');
               setUser(session.user);
               setUserType(session.userType);
               setSessionExpiry(session.sessionExpiry);
               if (session.token) setUserToken(session.token);
             } else {
               // الجلسة منتهية الصلاحية - احذفها
+              console.log('⏰ الجلسة منتهية الصلاحية، يتم حذفها');
               await EncryptedStorage.removeItem('session');
             }
           } else {
             // لا يوجد تاريخ انتهاء - احذف الجلسة
+            console.log('❌ لا يوجد تاريخ انتهاء للجلسة، يتم حذفها');
             await EncryptedStorage.removeItem('session');
           }
+        } else {
+          console.log('📭 لا توجد جلسة محفوظة');
         }
+        
         // في حالة عدم وجود جلسة مشفرة، حاول استعادة التوكن والنوع من AsyncStorage
         // فقط إذا لم يكن هناك عملية تسجيل خروج جارية
         if (!user && !userType) {
@@ -135,22 +143,24 @@ export const AuthProvider = ({ children }) => {
             
             // التحقق من أن البيانات موجودة فعلاً
             if (storedToken && storedType && storedId) {
+              console.log('💾 استعادة بيانات من AsyncStorage');
               setUserToken(storedToken);
               setUserType(storedType);
               setUser({ id: parseInt(storedId, 10) });
             }
           } catch (e) {
-            console.error('خطأ في استعادة AsyncStorage أثناء التحميل:', e);
+            console.error('❌ خطأ في استعادة AsyncStorage أثناء التحميل:', e);
           }
         }
       } catch (e) {
         // تجاهل أي خطأ في التحميل
-        console.error('خطأ في تحميل الجلسة:', e);
+        console.error('❌ خطأ في تحميل الجلسة:', e);
       } finally {
         // تقليل تأخير إيقاف التحميل لضمان استقرار التطبيق
         setTimeout(() => {
+          console.log('✅ انتهى تحميل الجلسة');
           setLoading(false);
-        }, 200); // تقليل من 500ms إلى 200ms
+        }, 100); // تقليل من 200ms إلى 100ms
       }
     };
     loadSession();

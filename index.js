@@ -1,5 +1,8 @@
 import { registerRootComponent } from 'expo';
 
+// استيراد إعدادات البيئة أولاً
+import './environment';
+
 import App from './App';
 
 // registerRootComponent calls AppRegistry.registerComponent('main', () => App);

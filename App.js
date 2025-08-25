@@ -44,6 +44,7 @@ import StoreProfileScreen from './screens/StoreProfileScreen';
 import AdminSupportScreen from './screens/AdminSupportScreen';
 import AdminNewOrderScreen from './screens/AdminNewOrderScreen';
 import UpdateStoreLocationScreen from './screens/UpdateStoreLocationScreen';
+import SplashScreen from './screens/SplashScreen';
 
 // Components
 import UpdateModal from './components/UpdateModal';
@@ -170,127 +171,130 @@ function AppContent() {
   const [showSplash, setShowSplash] = useState(true);
   const [databaseInitialized, setDatabaseInitialized] = useState(false);
   const [initialRoute, setInitialRoute] = useState('Login');
+  const [isLoading, setIsLoading] = useState(true);
   const scheme = useColorScheme();
   const { login, user, userType, loading } = useAuth();
   const [pendingUpdate, setPendingUpdate] = useState(null);
   const [updateVisible, setUpdateVisible] = useState(false);
 
   useEffect(() => {
-    const checkUserSession = async () => {
+    const initializeApp = async () => {
       try {
-        if (user && userType) {
-          if (userType === 'admin') setInitialRoute('AdminDashboard');
-          else if (userType === 'driver') setInitialRoute('Driver');
-          else if (userType === 'store') setInitialRoute('Store');
-          return;
-        }
-
-        const sessionStr = await EncryptedStorage.getItem('session');
-        if (sessionStr) {
-          const session = JSON.parse(sessionStr);
-          // إذا لا يوجد تاريخ انتهاء مضبوط، اضبطه افتراضيًا 7 أيام من الآن
-          if (!session.sessionExpiry) {
-            const d = new Date();
-            d.setDate(d.getDate() + 7);
-            session.sessionExpiry = d.toISOString();
-            await EncryptedStorage.setItem('session', JSON.stringify(session));
-          }
-          // تحقق من صلاحية الجلسة
-          if (session.sessionExpiry) {
-            const now = new Date();
-            const expiry = new Date(session.sessionExpiry);
-            if (now < expiry) {
-              // الجلسة صالحة - استخدم login لتحميل البيانات في AuthContext
-              await login(session.user, session.userType, session.sessionExpiry, session.token || null);
-              if (session.userType === 'admin') {
-                setInitialRoute('AdminDashboard');
-              } else if (session.userType === 'driver') {
-                setInitialRoute('Driver');
-              } else if (session.userType === 'store') {
-                setInitialRoute('Store');
-              } else {
-                setInitialRoute('Login');
-              }
-              return;
-            }
-          }
-        }
-
-        const storedUserType = await AsyncStorage.getItem('userType');
-        if (storedUserType) {
-          if (storedUserType === 'admin') setInitialRoute('AdminDashboard');
-          else if (storedUserType === 'driver') setInitialRoute('Driver');
-          else if (storedUserType === 'store') setInitialRoute('Store');
-        } else {
-          setInitialRoute('Login');
-        }
+        console.log('🚀 بدء تهيئة التطبيق...');
+        
+        // تأخير قصير لضمان استقرار التطبيق
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        // التحقق من الجلسة
+        await checkUserSession();
+        
+        // تهيئة قاعدة البيانات في الخلفية
+        initializeDatabaseBackground();
+        
+        // إخفاء شاشة التحميل
+        setShowSplash(false);
+        setIsLoading(false);
+        
+        console.log('✅ تم تهيئة التطبيق بنجاح');
       } catch (error) {
-        setInitialRoute('Login');
-        console.error('خطأ في التحقق من الجلسة:', error);
+        console.error('❌ خطأ في تهيئة التطبيق:', error);
+        setShowSplash(false);
+        setIsLoading(false);
       }
     };
 
-    const splashTimeout = setTimeout(() => {
-      setShowSplash(false);
-      checkUserSession();
-    }, 500); // تقليل من 800ms إلى 500ms
-
-    // تهيئة خدمة الإشعارات معلقة مؤقتًا لتشخيص الشاشة البيضاء
-    /*
-    const initializeNotifications = async () => {
-      try {
-        const success = await notificationService.initialize();
-        if (success) {
-          console.log('✅ تم تهيئة خدمة الإشعارات بنجاح');
-        } else {
-          console.log('❌ فشل في تهيئة خدمة الإشعارات');
-        }
-      } catch (error) {
-        console.error('خطأ في تهيئة الإشعارات:', error);
-      }
-    };
-    setTimeout(() => {
-      initializeNotifications();
-    }, 1000);
-    */
-
-    // فحص/تهيئة قاعدة البيانات - تقليل التأخير
-    const backgroundInit = async () => {
-      try {
-        // تقليل تأخير فحص قاعدة البيانات
-        setTimeout(async () => {
-          try {
-            const shouldInit = process.env.EXPO_PUBLIC_ENABLE_DB_INIT === 'true';
-            if (!shouldInit) {
-              setDatabaseInitialized(true);
-              return;
-            }
-            const connectionTest = await testDatabaseConnection();
-            if (!connectionTest) {
-              console.error('فشل في اختبار الاتصال بقاعدة البيانات');
-              setDatabaseInitialized(true); // اعتبر التهيئة منتهية حتى لو فشلت
-              return;
-            }
-            const result = await initializeDatabase();
-            if (result.success) setDatabaseInitialized(true);
-            else {
-              console.error('فشل في تهيئة قاعدة البيانات:', result.error);
-              setDatabaseInitialized(true); // اعتبر التهيئة منتهية حتى لو فشلت
-            }
-          } catch (error) {
-            console.error('خطأ في تهيئة قاعدة البيانات:', error);
-            setDatabaseInitialized(true); // اعتبر التهيئة منتهية حتى لو فشلت
-          }
-        }, 1000); // تقليل من 3000ms إلى 1000ms
-      } catch (error) {
-        console.error('خطأ في تهيئة التطبيق:', error);
-        setDatabaseInitialized(true);
-      }
-    };
-    backgroundInit();
-
-    return () => clearTimeout(splashTimeout);
+    initializeApp();
   }, []);
+
+  const checkUserSession = async () => {
+    try {
+      console.log('🔍 التحقق من الجلسة...');
+      
+      if (user && userType) {
+        console.log('👤 المستخدم مسجل دخول:', userType);
+        if (userType === 'admin') setInitialRoute('AdminDashboard');
+        else if (userType === 'driver') setInitialRoute('Driver');
+        else if (userType === 'store') setInitialRoute('Store');
+        return;
+      }
+
+      const sessionStr = await EncryptedStorage.getItem('session');
+      if (sessionStr) {
+        const session = JSON.parse(sessionStr);
+        if (!session.sessionExpiry) {
+          const d = new Date();
+          d.setDate(d.getDate() + 7);
+          session.sessionExpiry = d.toISOString();
+          await EncryptedStorage.setItem('session', JSON.stringify(session));
+        }
+        
+        if (session.sessionExpiry) {
+          const now = new Date();
+          const expiry = new Date(session.sessionExpiry);
+          if (now < expiry) {
+            console.log('🔑 جلسة صالحة موجودة');
+            await login(session.user, session.userType, session.sessionExpiry, session.token || null);
+            if (session.userType === 'admin') setInitialRoute('AdminDashboard');
+            else if (session.userType === 'driver') setInitialRoute('Driver');
+            else if (session.userType === 'store') setInitialRoute('Store');
+            return;
+          }
+        }
+      }
+
+      const storedUserType = await AsyncStorage.getItem('userType');
+      if (storedUserType) {
+        console.log('💾 نوع مستخدم محفوظ:', storedUserType);
+        if (storedUserType === 'admin') setInitialRoute('AdminDashboard');
+        else if (storedUserType === 'driver') setInitialRoute('Driver');
+        else if (storedUserType === 'store') setInitialRoute('Store');
+      } else {
+        setInitialRoute('Login');
+      }
+    } catch (error) {
+      console.error('❌ خطأ في التحقق من الجلسة:', error);
+      setInitialRoute('Login');
+    }
+  };
+
+  const initializeDatabaseBackground = async () => {
+    try {
+      console.log('🗄️ تهيئة قاعدة البيانات في الخلفية...');
+      
+      setTimeout(async () => {
+        try {
+          const shouldInit = process.env.EXPO_PUBLIC_ENABLE_DB_INIT === 'true';
+          if (!shouldInit) {
+            console.log('⏭️ تم تخطي تهيئة قاعدة البيانات');
+            setDatabaseInitialized(true);
+            return;
+          }
+          
+          const connectionTest = await testDatabaseConnection();
+          if (!connectionTest) {
+            console.log('⚠️ فشل في اختبار الاتصال بقاعدة البيانات');
+            setDatabaseInitialized(true);
+            return;
+          }
+          
+          const result = await initializeDatabase();
+          if (result.success) {
+            console.log('✅ تم تهيئة قاعدة البيانات بنجاح');
+            setDatabaseInitialized(true);
+          } else {
+            console.log('❌ فشل في تهيئة قاعدة البيانات:', result.error);
+            setDatabaseInitialized(true);
+          }
+        } catch (error) {
+          console.error('❌ خطأ في تهيئة قاعدة البيانات:', error);
+          setDatabaseInitialized(true);
+        }
+      }, 1000);
+    } catch (error) {
+      console.error('❌ خطأ في تهيئة قاعدة البيانات:', error);
+      setDatabaseInitialized(true);
+    }
+  };
 
   useEffect(() => {
     if (user && userType && !showSplash) {
@@ -338,13 +342,9 @@ function AppContent() {
     }
   };
 
-  // عرض شاشة التحميل أثناء التهيئة (آمن — يعرض رسالة بسيطة لتجنب الشاشة البيضاء)
-  if (loading || showSplash) {
-    return (
-      <View style={{flex:1,justifyContent:'center',alignItems:'center',backgroundColor: (useColorScheme() === 'dark' ? '#181818' : '#fff')}}>
-        <Text style={{fontSize:18,color: (useColorScheme() === 'dark' ? '#fff' : '#333')}}>جاري تهيئة التطبيق...</Text>
-      </View>
-    );
+  // عرض شاشة التحميل المحسنة
+  if (loading || showSplash || isLoading) {
+    return <SplashScreen />;
   }
 
   // إذا كان المستخدم مسجل دخول، اعرض الشاشة المناسبة

@@ -1,179 +1,141 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, Dimensions, Animated, Easing } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-const simsimLogo = require('../assets/simsim-logo.png');
+import React, { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, Animated, Dimensions } from 'react-native';
+import { useColorScheme } from 'react-native';
+
+const { width, height } = Dimensions.get('window');
 
 export default function SplashScreen() {
-  const [imageError, setImageError] = useState(false);
-  const logoOpacity = useRef(new Animated.Value(0)).current;
-  const logoScale = useRef(new Animated.Value(0.3)).current;
-  const logoRotation = useRef(new Animated.Value(0)).current;
-  const textOpacity = useRef(new Animated.Value(0)).current;
-  const textScale = useRef(new Animated.Value(0.8)).current;
+  const scheme = useColorScheme();
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0.8)).current;
+  const rotateAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // تأثير ظهور اللوقو مع دوران وتكبير
-    Animated.sequence([
-      Animated.parallel([
-        Animated.timing(logoOpacity, {
+    // تحريك متوازي للرسوم المتحركة
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.timing(scaleAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.loop(
+        Animated.timing(rotateAnim, {
           toValue: 1,
-          duration: 800,
-          easing: Easing.out(Easing.cubic),
+          duration: 2000,
           useNativeDriver: true,
-        }),
-        Animated.timing(logoScale, {
-          toValue: 1,
-          duration: 1000,
-          easing: Easing.elastic(1.2),
-          useNativeDriver: true,
-        }),
-        Animated.timing(logoRotation, {
-          toValue: 1,
-          duration: 1200,
-          easing: Easing.out(Easing.back(1.5)),
-          useNativeDriver: true,
-        }),
-      ]),
-      // بعد ظهور اللوقو، يظهر النص
-      Animated.parallel([
-        Animated.timing(textOpacity, {
-          toValue: 1,
-          duration: 600,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-        Animated.timing(textScale, {
-          toValue: 1,
-          duration: 800,
-          easing: Easing.elastic(1.1),
-          useNativeDriver: true,
-        }),
-      ]),
+        })
+      ),
     ]).start();
   }, []);
 
-  const spin = logoRotation.interpolate({
+  const spin = rotateAnim.interpolate({
     inputRange: [0, 1],
     outputRange: ['0deg', '360deg'],
   });
 
   return (
-    <LinearGradient 
-      colors={['#00C897', '#00A884']} // ألوان خضراء منسقة مع التطبيق
-      style={styles.container} 
-      start={{x: 0, y: 0}} 
-      end={{x: 1, y: 1}}
-    >
-      <View style={styles.content}>
-        <Animated.View 
-          style={[
-            styles.logoContainer,
-            {
-              opacity: logoOpacity,
-              transform: [
-                { scale: logoScale },
-                { rotate: spin }
-              ]
-            }
-          ]}
-        >
-          <View style={styles.logoWrapper}>
-            {!imageError ? (
-              <Animated.Image
-                source={simsimLogo}
-                style={styles.logo}
-                onError={(e) => {
-                  console.error('Splash image load error', e.nativeEvent?.error || e);
-                  setImageError(true);
-                }}
-                onLoad={() => console.log('Splash image loaded')}
-              />
-            ) : (
-              <Text style={{ color: '#000', fontWeight: 'bold' }}>سمسم</Text>
-            )}
-          </View>
-        </Animated.View>
+    <View style={[
+      styles.container,
+      { backgroundColor: scheme === 'dark' ? '#181818' : '#fff' }
+    ]}>
+      <Animated.View style={[
+        styles.content,
+        {
+          opacity: fadeAnim,
+          transform: [{ scale: scaleAnim }],
+          backgroundColor: scheme === 'dark' ? '#232323' : '#f5f5f5',
+        }
+      ]}>
+        <Text style={[
+          styles.title,
+          { color: scheme === 'dark' ? '#fff' : '#333' }
+        ]}>
+          توصيل سمسم
+        </Text>
         
-        <Animated.View 
-          style={[
-            styles.textContainer,
-            {
-              opacity: textOpacity,
-              transform: [{ scale: textScale }]
-            }
-          ]}
-        >
-          <Text style={styles.appName}>سمسم</Text>
-          <Text style={styles.tagline}>توصيل سريع وآمن</Text>
-        </Animated.View>
-      </View>
-    </LinearGradient>
+        <Text style={[
+          styles.subtitle,
+          { color: scheme === 'dark' ? '#ccc' : '#666' }
+        ]}>
+          جاري تهيئة التطبيق...
+        </Text>
+        
+        <Animated.View style={[
+          styles.loader,
+          {
+            transform: [{ rotate: spin }],
+            borderColor: '#FF9800',
+          }
+        ]} />
+        
+        <View style={styles.dotsContainer}>
+          {[0, 1, 2].map((index) => (
+            <View
+              key={index}
+              style={[
+                styles.dot,
+                { backgroundColor: '#FF9800' }
+              ]}
+            />
+          ))}
+        </View>
+      </Animated.View>
+    </View>
   );
 }
-
-const { width, height } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   content: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  logoContainer: {
-    alignItems: 'center',
-    marginBottom: 30,
-  },
-  logoWrapper: {
-    width: 180,
-    height: 180,
-    borderRadius: 90, // دائري تماماً
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
+    padding: 30,
+    borderRadius: 20,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 8,
+      height: 2,
     },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  subtitle: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 25,
+  },
+  loader: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     borderWidth: 4,
-    borderColor: '#FFFFFF',
+    borderTopColor: 'transparent',
+    marginBottom: 20,
   },
-  logo: {
-    width: 140,
-    height: 140,
-    resizeMode: 'contain',
-    borderRadius: 70, // دائري للصورة أيضاً
-  },
-  textContainer: {
+  dotsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  appName: {
-    fontSize: 52,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    textAlign: 'center',
-    fontFamily: 'System',
-    letterSpacing: 3,
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
-    textShadowOffset: { width: 0, height: 3 },
-    textShadowRadius: 6,
-    marginBottom: 8,
-  },
-  tagline: {
-    fontSize: 18,
-    color: '#FFFFFF',
-    textAlign: 'center',
-    fontFamily: 'System',
-    opacity: 0.9,
-    textShadowColor: 'rgba(0, 0, 0, 0.2)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginHorizontal: 4,
   },
 }); 
