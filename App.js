@@ -50,6 +50,7 @@ import SplashScreen from './screens/SplashScreen';
 import UpdateModal from './components/UpdateModal';
 import DriverDrawerContent from './components/DriverDrawerContent';
 import ErrorBoundary from './components/ErrorBoundary';
+import ErrorScreen from './components/ErrorScreen';
 
 I18nManager.forceRTL(true);
 
@@ -169,6 +170,7 @@ function StoreDrawer() {
 // App Content
 function AppContent() {
   const [appReady, setAppReady] = useState(false);
+  const [error, setError] = useState(null);
   const scheme = useColorScheme();
   const { login, user, userType, loading } = useAuth();
   const [pendingUpdate, setPendingUpdate] = useState(null);
@@ -194,11 +196,26 @@ function AppContent() {
         console.log('✅ تم تهيئة التطبيق بنجاح');
       } catch (error) {
         console.error('❌ خطأ في تهيئة التطبيق:', error);
-        setAppReady(true); // حتى لو حدث خطأ، اجعل التطبيق جاهز
+        setError(error.message || 'حدث خطأ في تهيئة التطبيق');
+        // حتى لو حدث خطأ، اجعل التطبيق جاهز لتجنب الشاشة البيضاء
+        setAppReady(true);
+        console.log('⚠️ تم تفعيل التطبيق رغم وجود خطأ لتجنب الشاشة البيضاء');
       }
     };
 
+    // إضافة timeout لضمان عدم بقاء التطبيق معلق
+    const timeoutId = setTimeout(() => {
+      if (!appReady) {
+        console.log('⏰ انتهت مهلة التحميل، تفعيل التطبيق تلقائياً');
+        setAppReady(true);
+      }
+    }, 5000); // 5 ثواني كحد أقصى
+
     initializeApp();
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
   }, []);
 
   const checkUserSession = async () => {
@@ -234,6 +251,7 @@ function AppContent() {
       console.log('📭 لا توجد جلسة صالحة');
     } catch (error) {
       console.error('❌ خطأ في التحقق من الجلسة:', error);
+      throw new Error('فشل في التحقق من الجلسة: ' + error.message);
     }
   };
 
@@ -268,6 +286,28 @@ function AppContent() {
     } catch (error) {
       console.error('❌ خطأ في تهيئة قاعدة البيانات:', error);
     }
+  };
+
+  const handleRetry = () => {
+    setError(null);
+    setAppReady(false);
+    // إعادة تشغيل التطبيق
+    setTimeout(() => {
+      const initializeApp = async () => {
+        try {
+          console.log('🔄 إعادة محاولة تهيئة التطبيق...');
+          await checkUserSession();
+          initializeDatabaseBackground();
+          setAppReady(true);
+          console.log('✅ تم إعادة تهيئة التطبيق بنجاح');
+        } catch (error) {
+          console.error('❌ فشل في إعادة التهيئة:', error);
+          setError(error.message || 'فشل في إعادة التهيئة');
+          setAppReady(true);
+        }
+      };
+      initializeApp();
+    }, 1000);
   };
 
   // فحص التحديثات النشطة للمستخدم الحالي وإظهار نافذة منبثقة مع رابط
@@ -309,11 +349,18 @@ function AppContent() {
   };
 
   // إضافة logs للتشخيص
-  console.log("🚦 Rendering App:", { user, userType, loading, appReady });
+  console.log("🚦 Rendering App:", { user, userType, loading, appReady, error });
 
   // عرض شاشة التحميل إذا لم يكن التطبيق جاهز
   if (loading || !appReady) {
+    console.log("⏳ عرض شاشة التحميل:", { loading, appReady });
     return <SplashScreen />;
+  }
+
+  // عرض شاشة الخطأ إذا كان هناك خطأ
+  if (error) {
+    console.log("❌ عرض شاشة الخطأ:", error);
+    return <ErrorScreen error={error} onRetry={handleRetry} />;
   }
 
   // إرجاع NavigationContainer واحد مع شاشات مختلفة حسب نوع المستخدم
@@ -331,7 +378,8 @@ function AppContent() {
             <Stack.Screen name="AdminSupport" component={AdminSupportScreen} />
           </Stack.Navigator>
         ) : user && userType === 'driver' ? (
-          <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Driver">
+          <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="DriverDashboard">
+            <Stack.Screen name="DriverDashboard" component={DriverDashboardScreen} />
             <Stack.Screen name="Driver" component={DriverDrawer} />
             <Stack.Screen name="DriverRegistration" component={DriverRegistrationScreen} />
             <Stack.Screen name="DriverDocuments" component={DriverDocumentsScreen} />
@@ -339,7 +387,8 @@ function AppContent() {
             <Stack.Screen name="PendingApproval" component={PendingApprovalScreen} />
           </Stack.Navigator>
         ) : user && userType === 'store' ? (
-          <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Store">
+          <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="StoreDashboard">
+            <Stack.Screen name="StoreDashboard" component={StoreDashboardScreen} />
             <Stack.Screen name="Store" component={StoreDrawer} />
             <Stack.Screen name="UnifiedStoreRegistrationScreen" component={UnifiedStoreRegistrationScreen} />
             <Stack.Screen name="UnifiedPendingApproval" component={UnifiedPendingApprovalScreen} />
