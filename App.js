@@ -209,12 +209,21 @@ function AppContent() {
         console.log('⏰ انتهت مهلة التحميل، تفعيل التطبيق تلقائياً');
         setAppReady(true);
       }
-    }, 5000); // 5 ثواني كحد أقصى
+    }, 2000); // تقليل من 5 ثواني إلى 2 ثانية
+    
+    // إضافة fallback إضافي للتأكد من عدم بقاء التطبيق معلق
+    const fallbackTimeoutId = setTimeout(() => {
+      if (!appReady) {
+        console.log('🚨 تم تفعيل fallback طارئ لـ appReady');
+        setAppReady(true);
+      }
+    }, 3000); // 3 ثواني كحد أقصى
 
     initializeApp();
 
     return () => {
       clearTimeout(timeoutId);
+      clearTimeout(fallbackTimeoutId); // تنظيف الـ timeout الإضافي
     };
   }, []);
 
@@ -361,6 +370,13 @@ function AppContent() {
   if (error) {
     console.log("❌ عرض شاشة الخطأ:", error);
     return <ErrorScreen error={error} onRetry={handleRetry} />;
+  }
+
+  // Fallback للتأكد من عدم بقاء الشاشة البيضاء
+  if (!user && !userType) {
+    console.log("👤 مستخدم غير مسجل، عرض شاشة تسجيل الدخول");
+  } else {
+    console.log("👤 مستخدم مسجل:", { userType, userId: user?.id });
   }
 
   // إرجاع NavigationContainer واحد مع شاشات مختلفة حسب نوع المستخدم

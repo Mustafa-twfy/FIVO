@@ -160,7 +160,15 @@ export const AuthProvider = ({ children }) => {
         setTimeout(() => {
           console.log('✅ انتهى تحميل الجلسة');
           setLoading(false);
-        }, 100); // تقليل من 200ms إلى 100ms
+        }, 50); // تقليل من 100ms إلى 50ms
+        
+        // إضافة fallback للتأكد من عدم بقاء loading = true
+        setTimeout(() => {
+          if (loading) {
+            console.log('⚠️ تم تفعيل fallback لـ loading');
+            setLoading(false);
+          }
+        }, 2000);
       }
     };
     loadSession();
