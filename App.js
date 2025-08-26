@@ -94,13 +94,15 @@ const testDatabaseConnection = async () => {
       .from('drivers')
       .select('*', { count: 'exact', head: true });
     if (error) {
-      console.error('❌ خطأ في الاتصال:', error);
+      console.error('❌ خطأ في الاتصال بقاعدة البيانات:', error);
+      // لا نعرض ErrorScreen لقاعدة البيانات، فقط نعرض في console
       return false;
     }
     console.log('✅ الاتصال بقاعدة البيانات ناجح');
     return true;
   } catch (error) {
     console.error('❌ خطأ عام في اختبار قاعدة البيانات:', error);
+    // لا نعرض ErrorScreen لقاعدة البيانات، فقط نعرض في console
     return false;
   }
 };
@@ -239,11 +241,24 @@ function AppContent() {
       const sessionStr = await EncryptedStorage.getItem('session');
       if (sessionStr) {
         const session = JSON.parse(sessionStr);
+        
+        // التحقق من صحة userType
+        if (session.userType && !['driver', 'store', 'admin'].includes(session.userType)) {
+          console.log('❌ userType غير صحيح، تنظيف الجلسة');
+          await EncryptedStorage.removeItem('session');
+          throw new Error('نوع المستخدم غير صحيح، يرجى تسجيل الدخول من جديد');
+        }
+        
         if (!session.sessionExpiry) {
           const d = new Date();
           d.setDate(d.getDate() + 7);
           session.sessionExpiry = d.toISOString();
-          await EncryptedStorage.setItem('session', JSON.stringify(session));
+          try {
+            await EncryptedStorage.setItem('session', JSON.stringify(session));
+          } catch (storageError) {
+            console.error('❌ خطأ في حفظ الجلسة:', storageError);
+            // لا نعرض ErrorScreen للتخزين، فقط نعرض في console
+          }
         }
         
         if (session.sessionExpiry) {
@@ -251,8 +266,15 @@ function AppContent() {
           const expiry = new Date(session.sessionExpiry);
           if (now < expiry) {
             console.log('🔑 جلسة صالحة موجودة');
-            await login(session.user, session.userType, session.sessionExpiry, session.token || null);
-            return;
+            try {
+              await login(session.user, session.userType, session.sessionExpiry, session.token || null);
+              return;
+            } catch (loginError) {
+              console.error('❌ خطأ في تسجيل الدخول:', loginError);
+              // تنظيف الجلسة الفاسدة
+              await EncryptedStorage.removeItem('session');
+              throw new Error('فشل في تسجيل الدخول، يرجى المحاولة من جديد');
+            }
           }
         }
       }
@@ -279,6 +301,7 @@ function AppContent() {
           const connectionTest = await testDatabaseConnection();
           if (!connectionTest) {
             console.log('⚠️ فشل في اختبار الاتصال بقاعدة البيانات');
+            // لا نعرض ErrorScreen لقاعدة البيانات، فقط نعرض في console
             return;
           }
           
@@ -287,13 +310,16 @@ function AppContent() {
             console.log('✅ تم تهيئة قاعدة البيانات بنجاح');
           } else {
             console.log('❌ فشل في تهيئة قاعدة البيانات:', result.error);
+            // لا نعرض ErrorScreen لقاعدة البيانات، فقط نعرض في console
           }
         } catch (error) {
           console.error('❌ خطأ في تهيئة قاعدة البيانات:', error);
+          // لا نعرض ErrorScreen لقاعدة البيانات، فقط نعرض في console
         }
       }, 1000);
     } catch (error) {
       console.error('❌ خطأ في تهيئة قاعدة البيانات:', error);
+      // لا نعرض ErrorScreen لقاعدة البيانات، فقط نعرض في console
     }
   };
 
@@ -324,18 +350,34 @@ function AppContent() {
     const checkUpdates = async () => {
       try {
         if (!userType || !appReady) return;
+        
+        console.log('🔍 فحص التحديثات للمستخدم:', userType);
+        
         const { data, error } = await updatesAPI.getActiveUpdatesForUser(userType);
-        if (error) return;
+        if (error) {
+          console.error('❌ خطأ في فحص التحديثات:', error);
+          // لا نعرض ErrorScreen للتحديثات، فقط نعرض في console
+          return;
+        }
+        
         if (data && data.length > 0) {
           const latest = data[0];
           const ackKey = `ack_update_${latest.id}_${userType}_${user?.id || 'anon'}`;
-          const alreadyAck = await AsyncStorage.getItem(ackKey);
-          if (!alreadyAck) {
-            setPendingUpdate(latest);
-            setUpdateVisible(true);
+          try {
+            const alreadyAck = await AsyncStorage.getItem(ackKey);
+            if (!alreadyAck) {
+              setPendingUpdate(latest);
+              setUpdateVisible(true);
+            }
+          } catch (storageError) {
+            console.error('❌ خطأ في قراءة AsyncStorage:', storageError);
+            // لا نعرض ErrorScreen للتخزين، فقط نعرض في console
           }
         }
-      } catch (_) {}
+      } catch (error) {
+        console.error('❌ خطأ في فحص التحديثات:', error);
+        // لا نعرض ErrorScreen للتحديثات، فقط نعرض في console
+      }
     };
     checkUpdates();
   }, [userType, user, appReady]);
@@ -344,13 +386,25 @@ function AppContent() {
     try {
       if (pendingUpdate) {
         const ackKey = `ack_update_${pendingUpdate.id}_${userType}_${user?.id || 'anon'}`;
-        await AsyncStorage.setItem(ackKey, '1');
+        try {
+          await AsyncStorage.setItem(ackKey, '1');
+        } catch (storageError) {
+          console.error('❌ خطأ في كتابة AsyncStorage:', storageError);
+          // لا نعرض ErrorScreen للتخزين، فقط نعرض في console
+        }
+        
         try {
           if (user && userType) {
             await updatesAPI.acknowledgeUpdate(pendingUpdate.id, user.id, userType, { dismissed: false });
           }
-        } catch (_) {}
+        } catch (ackError) {
+          console.error('❌ خطأ في تأكيد التحديث:', ackError);
+          // لا نعرض ErrorScreen للتحديثات، فقط نعرض في console
+        }
       }
+    } catch (error) {
+      console.error('❌ خطأ في acknowledgeUpdate:', error);
+      // لا نعرض ErrorScreen للتحديثات، فقط نعرض في console
     } finally {
       setUpdateVisible(false);
       setPendingUpdate(null);
@@ -363,6 +417,12 @@ function AppContent() {
   // عرض شاشة التحميل إذا لم يكن التطبيق جاهز
   if (loading || !appReady) {
     console.log("⏳ عرض شاشة التحميل:", { loading, appReady });
+    
+    // إضافة fallback للتأكد من عدم بقاء الشاشة البيضاء
+    if (loading && !appReady) {
+      console.log("⚠️ التطبيق معلق على التحميل، عرض شاشة التحميل");
+    }
+    
     return <SplashScreen />;
   }
 
@@ -379,36 +439,16 @@ function AppContent() {
     console.log("👤 مستخدم مسجل:", { userType, userId: user?.id });
   }
 
-  // إرجاع NavigationContainer واحد مع شاشات مختلفة حسب نوع المستخدم
+  // إرجاع NavigationContainer مبسط
   return (
     <>
       <NavigationContainer theme={scheme === 'dark' ? darkTheme : lightTheme}>
-        {user && userType === 'admin' ? (
-          <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="AdminDashboard">
-            <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} />
-            <Stack.Screen name="Drivers" component={DriversScreen} />
-            <Stack.Screen name="Stores" component={StoresScreen} />
-            <Stack.Screen name="BannedUsers" component={BannedUsersScreen} />
-            <Stack.Screen name="RegistrationRequests" component={RegistrationRequestsScreen} />
-            <Stack.Screen name="AdminNewOrderScreen" component={AdminNewOrderScreen} />
-            <Stack.Screen name="AdminSupport" component={AdminSupportScreen} />
-          </Stack.Navigator>
-        ) : user && userType === 'driver' ? (
-          <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="DriverDashboard">
-            <Stack.Screen name="DriverDashboard" component={DriverDashboardScreen} />
-            <Stack.Screen name="Driver" component={DriverDrawer} />
-            <Stack.Screen name="DriverRegistration" component={DriverRegistrationScreen} />
-            <Stack.Screen name="DriverDocuments" component={DriverDocumentsScreen} />
-            <Stack.Screen name="DriverVehicle" component={DriverVehicleScreen} />
-            <Stack.Screen name="PendingApproval" component={PendingApprovalScreen} />
-          </Stack.Navigator>
-        ) : user && userType === 'store' ? (
-          <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="StoreDashboard">
-            <Stack.Screen name="StoreDashboard" component={StoreDashboardScreen} />
-            <Stack.Screen name="Store" component={StoreDrawer} />
-            <Stack.Screen name="UnifiedStoreRegistrationScreen" component={UnifiedStoreRegistrationScreen} />
-            <Stack.Screen name="UnifiedPendingApproval" component={UnifiedPendingApprovalScreen} />
-          </Stack.Navigator>
+        {userType === 'admin' ? (
+          <AdminDrawer />
+        ) : userType === 'driver' ? (
+          <DriverDrawer />
+        ) : userType === 'store' ? (
+          <StoreDrawer />
         ) : (
           <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Login">
             <Stack.Screen name="Login" component={LoginScreen} />
