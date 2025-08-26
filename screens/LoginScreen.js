@@ -66,10 +66,16 @@ export default function LoginScreen({ navigation }) {
   }, []);
 
   const redirectByRole = (role, id) => {
-    if (role === 'admin') navigation.replace('AdminDashboard');
-    else if (role === 'driver') navigation.replace('Driver', { driverId: id });
-    else if (role === 'store' || role === 'restaurant') navigation.replace('Store', { storeId: id });
-    else navigation.replace('UnifiedPendingApproval');
+    if (role === 'admin') {
+      navigation.replace('AdminDashboard');
+    } else if (role === 'driver') {
+      navigation.replace('DriverDashboard');
+    } else if (role === 'store' || role === 'restaurant') {
+      navigation.replace('StoreDashboard');
+    } else {
+      // fallback للشاشة الافتراضية
+      navigation.replace('Login');
+    }
   };
 
   const persistSession = async (user, role, expiryDate, token) => {

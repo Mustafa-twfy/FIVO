@@ -12,6 +12,7 @@ export const AuthProvider = ({ children }) => {
   const [userToken, setUserToken] = useState(null); // توكن الجلسة إذا وُجد
   const [sessionExpiry, setSessionExpiry] = useState(null); // تاريخ انتهاء الجلسة
   const [loading, setLoading] = useState(true); // حالة تحميل الجلسة
+  const [restoring, setRestoring] = useState(false); // حالة استعادة الجلسة
 
   // تسجيل الدخول
   // login now accepts optional token (from server) and saves it securely
@@ -102,6 +103,7 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const loadSession = async () => {
       setLoading(true);
+      setRestoring(true); // بدء استعادة الجلسة
       try {
         console.log('🔄 بدء تحميل الجلسة...');
         
@@ -160,6 +162,7 @@ export const AuthProvider = ({ children }) => {
         setTimeout(() => {
           console.log('✅ انتهى تحميل الجلسة');
           setLoading(false);
+          setRestoring(false); // انتهاء استعادة الجلسة
         }, 50); // تقليل من 100ms إلى 50ms
         
         // إضافة fallback للتأكد من عدم بقاء loading = true
@@ -167,6 +170,7 @@ export const AuthProvider = ({ children }) => {
           if (loading) {
             console.log('⚠️ تم تفعيل fallback لـ loading');
             setLoading(false);
+            setRestoring(false);
           }
         }, 2000);
       }
@@ -181,7 +185,7 @@ export const AuthProvider = ({ children }) => {
   }, [sessionExpiry]);
 
   return (
-    <AuthContext.Provider value={{ user, userType, sessionExpiry, login, logout, checkSessionExpiry, loading }}>
+    <AuthContext.Provider value={{ user, userType, sessionExpiry, login, logout, checkSessionExpiry, loading, restoring }}>
       {children}
     </AuthContext.Provider>
   );

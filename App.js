@@ -174,7 +174,7 @@ function AppContent() {
   const [appReady, setAppReady] = useState(false);
   const [error, setError] = useState(null);
   const scheme = useColorScheme();
-  const { login, user, userType, loading } = useAuth();
+  const { login, user, userType, loading, restoring } = useAuth();
   const [pendingUpdate, setPendingUpdate] = useState(null);
   const [updateVisible, setUpdateVisible] = useState(false);
 
@@ -412,15 +412,19 @@ function AppContent() {
   };
 
   // إضافة logs للتشخيص
-  console.log("🚦 Rendering App:", { user, userType, loading, appReady, error });
+  console.log("🚦 Rendering App:", { user, userType, loading, appReady, error, restoring });
 
-  // عرض شاشة التحميل إذا لم يكن التطبيق جاهز
-  if (loading || !appReady) {
-    console.log("⏳ عرض شاشة التحميل:", { loading, appReady });
+  // عرض شاشة التحميل إذا لم يكن التطبيق جاهز أو أثناء استعادة الجلسة
+  if (loading || !appReady || restoring) {
+    console.log("⏳ عرض شاشة التحميل:", { loading, appReady, restoring });
     
     // إضافة fallback للتأكد من عدم بقاء الشاشة البيضاء
     if (loading && !appReady) {
       console.log("⚠️ التطبيق معلق على التحميل، عرض شاشة التحميل");
+    }
+    
+    if (restoring) {
+      console.log("🔄 استعادة الجلسة، عرض شاشة التحميل");
     }
     
     return <SplashScreen />;
