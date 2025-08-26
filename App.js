@@ -463,8 +463,8 @@ function AppContent() {
             <Stack.Screen name="UnifiedPendingApproval" component={UnifiedPendingApprovalScreen} />
             <Stack.Screen name="UnifiedStoreRegistrationScreen" component={UnifiedStoreRegistrationScreen} />
             <Stack.Screen name="AdminNewOrderScreen" component={AdminNewOrderScreen} />
-            <Stack.Screen name="Driver" component={DriverDrawer} />
-            <Stack.Screen name="Store" component={StoreDrawer} />
+            <Stack.Screen name="DriverDashboard" component={DriverDashboardScreen} />
+            <Stack.Screen name="StoreDashboard" component={StoreDashboardScreen} />
             <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} />
             <Stack.Screen name="Drivers" component={DriversScreen} />
             <Stack.Screen name="Stores" component={StoresScreen} />

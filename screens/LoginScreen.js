@@ -33,6 +33,8 @@ export default function LoginScreen({ navigation }) {
   useEffect(() => {
     const restoreSession = async () => {
       try {
+        console.log('🔄 محاولة استعادة الجلسة...');
+        
         const [userId, userType, sessionExpiry, sessionToken, userEmail] = await Promise.all([
           AsyncStorage.getItem('userId'),
           AsyncStorage.getItem('userType'),
@@ -41,7 +43,12 @@ export default function LoginScreen({ navigation }) {
           AsyncStorage.getItem('userEmail'),
         ]);
 
-        if (!userId || !userType) return;
+        console.log('📱 بيانات الجلسة المحفوظة:', { userId, userType, sessionExpiry, userEmail });
+
+        if (!userId || !userType) {
+          console.log('📭 لا توجد بيانات جلسة كاملة');
+          return;
+        }
 
         // فحص انتهاء الجلسة (إن وُجدت)
         if (sessionExpiry) {
@@ -49,21 +56,49 @@ export default function LoginScreen({ navigation }) {
           const exp = new Date(sessionExpiry);
           if (isNaN(exp.getTime()) || exp <= now) {
             // انتهت الجلسة
+            console.log('⏰ الجلسة منتهية الصلاحية، تنظيف البيانات');
             await AsyncStorage.multiRemove(['userId', 'userType', 'sessionExpiry', 'sessionToken', 'userEmail']);
+            Alert.alert('انتهت صلاحية الجلسة', 'يرجى تسجيل الدخول من جديد');
             return;
           }
+        }
+
+        // التحقق من صحة userType
+        if (!['admin', 'driver', 'store', 'restaurant'].includes(userType)) {
+          console.log('❌ userType غير صحيح:', userType);
+          Alert.alert('خطأ في البيانات', 'بيانات الجلسة تالفة، يتم تنظيفها');
+          await clearAllStorage();
+          return;
         }
 
         // استدعاء login في الكونتكست (ببيانات متاحة) ثم توجيه
         const userObj = { id: Number(userId), email: userEmail || '' };
         await login(userObj, userType, sessionExpiry || null, sessionToken || null);
         redirectByRole(userType, Number(userId));
-      } catch (_) {
-        // تجاهل
+      } catch (error) {
+        console.error('❌ خطأ في استعادة الجلسة:', error);
+        Alert.alert('خطأ في استعادة الجلسة', 'يتم تنظيف البيانات المحفوظة');
+        await clearAllStorage();
       }
     };
     restoreSession();
   }, []);
+
+  // دالة لمسح جميع البيانات المحفوظة
+  const clearAllStorage = async () => {
+    try {
+      await AsyncStorage.multiRemove([
+        'userId', 
+        'userType', 
+        'sessionExpiry', 
+        'sessionToken', 
+        'userEmail'
+      ]);
+      console.log('🧹 تم مسح جميع البيانات المحفوظة');
+    } catch (error) {
+      console.error('❌ خطأ في مسح البيانات:', error);
+    }
+  };
 
   const redirectByRole = (role, id) => {
     if (role === 'admin') {
@@ -360,6 +395,15 @@ export default function LoginScreen({ navigation }) {
               <Text style={styles.registerButtonText}>متجر</Text>
             </TouchableOpacity>
           </View>
+
+          {/* زر مسح البيانات المحفوظة */}
+          <TouchableOpacity
+            style={styles.clearDataButton}
+            onPress={clearAllStorage}
+          >
+            <Ionicons name="trash-outline" size={20} color="#ff4444" />
+            <Text style={styles.clearDataText}>مسح البيانات المحفوظة</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -535,6 +579,23 @@ const styles = StyleSheet.create({
   supportName: {
     fontSize: 14,
     color: colors.dark,
+    marginLeft: 10,
+  },
+  clearDataButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#ff4444',
+  },
+  clearDataText: {
+    color: '#ff4444',
+    fontSize: 16,
+    fontWeight: 'bold',
     marginLeft: 10,
   },
 });
