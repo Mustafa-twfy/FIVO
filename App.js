@@ -205,8 +205,8 @@ function AppContent() {
       try {
         console.log('🚀 بدء تهيئة التطبيق...');
         
-        // تأخير قصير لضمان استقرار التطبيق
-        await new Promise(resolve => setTimeout(resolve, 300));
+        // تأخير أقصر لضمان استقرار التطبيق
+        await new Promise(resolve => setTimeout(resolve, 100));
         
         // التحقق من الجلسة
         await checkUserSession();
@@ -232,7 +232,7 @@ function AppContent() {
         console.log('⏰ انتهت مهلة التحميل، تفعيل التطبيق تلقائياً');
         setAppReady(true);
       }
-    }, 2000);
+    }, 1000);
     
     // إضافة fallback إضافي للتأكد من عدم بقاء التطبيق معلق
     const fallbackTimeoutId = setTimeout(() => {
@@ -240,13 +240,21 @@ function AppContent() {
         console.log('🚨 تم تفعيل fallback طارئ لـ appReady');
         setAppReady(true);
       }
-    }, 3000);
+    }, 2000);
+    
+    // إضافة fallback نهائي كحل طارئ أقصى
+    const emergencyTimeoutId = setTimeout(() => {
+      console.log('🆘 تم تفعيل fallback نهائي طارئ');
+      setAppReady(true);
+      setError(null);
+    }, 4000);
 
     initializeApp();
 
     return () => {
       clearTimeout(timeoutId);
       clearTimeout(fallbackTimeoutId);
+      clearTimeout(emergencyTimeoutId);
     };
   }, []);
 
@@ -437,7 +445,18 @@ function AppContent() {
       console.log("🔄 استعادة الجلسة، عرض شاشة التحميل");
     }
     
-    return <SplashScreen />;
+    try {
+      return <SplashScreen />;
+    } catch (splashError) {
+      console.error("❌ خطأ في عرض شاشة التحميل:", splashError);
+      
+      return (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
+          <Text style={{ fontSize: 18, color: '#333', textAlign: 'center' }}>توصيل سمسم</Text>
+          <Text style={{ fontSize: 14, color: '#666', marginTop: 10 }}>جاري تحميل التطبيق...</Text>
+        </View>
+      );
+    }
   }
 
   // عرض شاشة الخطأ إذا كان هناك خطأ
