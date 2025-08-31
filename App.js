@@ -14,7 +14,7 @@ import { supabase, initializeDatabase, updatesAPI } from './supabase';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import notificationService from './utils/notifications';
 
-// Screens
+// Screens (يجب التأكد من أن جميع الملفات موجودة)
 import LoginScreen from './screens/LoginScreen';
 import DriverRegistrationScreen from './screens/DriverRegistrationScreen';
 import DriverDocumentsScreen from './screens/DriverDocumentsScreen';
@@ -88,21 +88,19 @@ const testDatabaseConnection = async () => {
   console.log('=== بداية اختبار الاتصال بقاعدة البيانات ===');
   try {
     // تقليل التأخير لضمان استقرار التطبيق
-    await new Promise(resolve => setTimeout(resolve, 500)); // تقليل من 1000ms إلى 500ms
+    await new Promise(resolve => setTimeout(resolve, 500));
     
     const { count, error } = await supabase
       .from('drivers')
       .select('*', { count: 'exact', head: true });
     if (error) {
       console.error('❌ خطأ في الاتصال بقاعدة البيانات:', error);
-      // لا نعرض ErrorScreen لقاعدة البيانات، فقط نعرض في console
       return false;
     }
     console.log('✅ الاتصال بقاعدة البيانات ناجح');
     return true;
   } catch (error) {
     console.error('❌ خطأ عام في اختبار قاعدة البيانات:', error);
-    // لا نعرض ErrorScreen لقاعدة البيانات، فقط نعرض في console
     return false;
   }
 };
@@ -117,7 +115,30 @@ function AuthStack() {
       <Stack.Screen name="DriverVehicle" component={DriverVehicleScreen} />
       <Stack.Screen name="PendingApproval" component={PendingApprovalScreen} />
       <Stack.Screen name="UnifiedStoreRegistrationScreen" component={UnifiedStoreRegistrationScreen} />
+      <Stack.Screen name="UnifiedPendingApproval" component={UnifiedPendingApprovalScreen} />
     </Stack.Navigator>
+  );
+}
+
+// Admin Drawer (تمت إضافته لأنه كان مفقودًا)
+function AdminDrawer() {
+  return (
+    <Drawer.Navigator initialRouteName="AdminDashboard" screenOptions={{
+      headerShown: false,
+      drawerType: 'slide',
+      overlayColor: 'rgba(0,0,0,0.2)',
+      sceneContainerStyle: { backgroundColor: '#fff' },
+      animationTypeForReplace: 'push',
+      animation: 'slide_from_right',
+    }}>
+      <Drawer.Screen name="AdminDashboard" component={AdminDashboardScreen} options={{drawerLabel: 'لوحة التحكم'}} />
+      <Drawer.Screen name="Drivers" component={DriversScreen} options={{drawerLabel: 'السائقين'}} />
+      <Drawer.Screen name="Stores" component={StoresScreen} options={{drawerLabel: 'المتاجر'}} />
+      <Drawer.Screen name="BannedUsers" component={BannedUsersScreen} options={{drawerLabel: 'المستخدمين المحظورين'}} />
+      <Drawer.Screen name="RegistrationRequests" component={RegistrationRequestsScreen} options={{drawerLabel: 'طلبات التسجيل'}} />
+      <Drawer.Screen name="AdminSupport" component={AdminSupportScreen} options={{drawerLabel: 'الدعم الفني'}} />
+      <Drawer.Screen name="AdminNewOrderScreen" component={AdminNewOrderScreen} options={{drawerLabel: 'إنشاء طلب جديد'}} />
+    </Drawer.Navigator>
   );
 }
 
@@ -165,6 +186,7 @@ function StoreDrawer() {
       <Drawer.Screen name="StoreProfile" component={StoreProfileScreen} options={{drawerLabel: 'الملف الشخصي'}} />
       <Drawer.Screen name="StoreSupportChat" component={StoreSupportChatScreen} options={{drawerLabel: 'الدعم الفني'}} />
       <Drawer.Screen name="StoreNotifications" component={StoreNotificationsScreen} options={{drawerLabel: 'الإشعارات'}} />
+      <Drawer.Screen name="UpdateStoreLocation" component={UpdateStoreLocationScreen} options={{drawerLabel: 'تحديث الموقع'}} />
     </Drawer.Navigator>
   );
 }
@@ -199,7 +221,6 @@ function AppContent() {
       } catch (error) {
         console.error('❌ خطأ في تهيئة التطبيق:', error);
         setError(error.message || 'حدث خطأ في تهيئة التطبيق');
-        // حتى لو حدث خطأ، اجعل التطبيق جاهز لتجنب الشاشة البيضاء
         setAppReady(true);
         console.log('⚠️ تم تفعيل التطبيق رغم وجود خطأ لتجنب الشاشة البيضاء');
       }
@@ -211,7 +232,7 @@ function AppContent() {
         console.log('⏰ انتهت مهلة التحميل، تفعيل التطبيق تلقائياً');
         setAppReady(true);
       }
-    }, 2000); // تقليل من 5 ثواني إلى 2 ثانية
+    }, 2000);
     
     // إضافة fallback إضافي للتأكد من عدم بقاء التطبيق معلق
     const fallbackTimeoutId = setTimeout(() => {
@@ -219,13 +240,13 @@ function AppContent() {
         console.log('🚨 تم تفعيل fallback طارئ لـ appReady');
         setAppReady(true);
       }
-    }, 3000); // 3 ثواني كحد أقصى
+    }, 3000);
 
     initializeApp();
 
     return () => {
       clearTimeout(timeoutId);
-      clearTimeout(fallbackTimeoutId); // تنظيف الـ timeout الإضافي
+      clearTimeout(fallbackTimeoutId);
     };
   }, []);
 
@@ -257,7 +278,6 @@ function AppContent() {
             await EncryptedStorage.setItem('session', JSON.stringify(session));
           } catch (storageError) {
             console.error('❌ خطأ في حفظ الجلسة:', storageError);
-            // لا نعرض ErrorScreen للتخزين، فقط نعرض في console
           }
         }
         
@@ -301,7 +321,6 @@ function AppContent() {
           const connectionTest = await testDatabaseConnection();
           if (!connectionTest) {
             console.log('⚠️ فشل في اختبار الاتصال بقاعدة البيانات');
-            // لا نعرض ErrorScreen لقاعدة البيانات، فقط نعرض في console
             return;
           }
           
@@ -310,16 +329,13 @@ function AppContent() {
             console.log('✅ تم تهيئة قاعدة البيانات بنجاح');
           } else {
             console.log('❌ فشل في تهيئة قاعدة البيانات:', result.error);
-            // لا نعرض ErrorScreen لقاعدة البيانات، فقط نعرض في console
           }
         } catch (error) {
           console.error('❌ خطأ في تهيئة قاعدة البيانات:', error);
-          // لا نعرض ErrorScreen لقاعدة البيانات، فقط نعرض في console
         }
       }, 1000);
     } catch (error) {
       console.error('❌ خطأ في تهيئة قاعدة البيانات:', error);
-      // لا نعرض ErrorScreen لقاعدة البيانات، فقط نعرض في console
     }
   };
 
@@ -356,7 +372,6 @@ function AppContent() {
         const { data, error } = await updatesAPI.getActiveUpdatesForUser(userType);
         if (error) {
           console.error('❌ خطأ في فحص التحديثات:', error);
-          // لا نعرض ErrorScreen للتحديثات، فقط نعرض في console
           return;
         }
         
@@ -371,12 +386,10 @@ function AppContent() {
             }
           } catch (storageError) {
             console.error('❌ خطأ في قراءة AsyncStorage:', storageError);
-            // لا نعرض ErrorScreen للتخزين، فقط نعرض في console
           }
         }
       } catch (error) {
         console.error('❌ خطأ في فحص التحديثات:', error);
-        // لا نعرض ErrorScreen للتحديثات، فقط نعرض في console
       }
     };
     checkUpdates();
@@ -390,7 +403,6 @@ function AppContent() {
           await AsyncStorage.setItem(ackKey, '1');
         } catch (storageError) {
           console.error('❌ خطأ في كتابة AsyncStorage:', storageError);
-          // لا نعرض ErrorScreen للتخزين، فقط نعرض في console
         }
         
         try {
@@ -399,12 +411,10 @@ function AppContent() {
           }
         } catch (ackError) {
           console.error('❌ خطأ في تأكيد التحديث:', ackError);
-          // لا نعرض ErrorScreen للتحديثات، فقط نعرض في console
         }
       }
     } catch (error) {
       console.error('❌ خطأ في acknowledgeUpdate:', error);
-      // لا نعرض ErrorScreen للتحديثات، فقط نعرض في console
     } finally {
       setUpdateVisible(false);
       setPendingUpdate(null);
@@ -443,48 +453,22 @@ function AppContent() {
     console.log("👤 مستخدم مسجل:", { userType, userId: user?.id });
   }
 
-  // إرجاع NavigationContainer مبسط
+  // إرجاع NavigationContainer مع التصحيح الرئيسي
   return (
     <>
       <NavigationContainer theme={scheme === 'dark' ? darkTheme : lightTheme}>
-        {userType === 'admin' ? (
+        {!user || !userType ? (
+          // إذا لم يكن هناك مستخدم مسجل، عرض شاشات المصادقة
+          <AuthStack />
+        ) : userType === 'admin' ? (
           <AdminDrawer />
         ) : userType === 'driver' ? (
           <DriverDrawer />
         ) : userType === 'store' ? (
           <StoreDrawer />
         ) : (
-          <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Login">
-            <Stack.Screen name="Login" component={LoginScreen} />
-            <Stack.Screen name="DriverRegistration" component={DriverRegistrationScreen} />
-            <Stack.Screen name="DriverDocuments" component={DriverDocumentsScreen} />
-            <Stack.Screen name="DriverVehicle" component={DriverVehicleScreen} />
-            <Stack.Screen name="PendingApproval" component={PendingApprovalScreen} />
-            <Stack.Screen name="UnifiedPendingApproval" component={UnifiedPendingApprovalScreen} />
-            <Stack.Screen name="UnifiedStoreRegistrationScreen" component={UnifiedStoreRegistrationScreen} />
-            <Stack.Screen name="AdminNewOrderScreen" component={AdminNewOrderScreen} />
-            <Stack.Screen name="DriverDashboard" component={DriverDashboardScreen} />
-            <Stack.Screen name="StoreDashboard" component={StoreDashboardScreen} />
-            <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} />
-            <Stack.Screen name="Drivers" component={DriversScreen} />
-            <Stack.Screen name="Stores" component={StoresScreen} />
-            <Stack.Screen name="BannedUsers" component={BannedUsersScreen} />
-            <Stack.Screen name="RegistrationRequests" component={RegistrationRequestsScreen} />
-            <Stack.Screen name="StoreOrders" component={StoreOrdersScreen} />
-            <Stack.Screen name="NewOrder" component={NewOrderScreen} />
-            <Stack.Screen name="AvailableOrders" component={AvailableOrdersScreen} />
-            <Stack.Screen name="MyOrders" component={MyOrdersScreen} />
-            <Stack.Screen name="DriverProfile" component={DriverProfileScreen} />
-            <Stack.Screen name="FinancialAccounts" component={FinancialAccountsScreen} />
-            <Stack.Screen name="Rewards" component={RewardsScreen} />
-            <Stack.Screen name="SupportChat" component={SupportChatScreen} />
-            <Stack.Screen name="DriverNotifications" component={DriverNotificationsScreen} />
-            <Stack.Screen name="StoreSupportChat" component={StoreSupportChatScreen} />
-            <Stack.Screen name="StoreNotifications" component={StoreNotificationsScreen} />
-            <Stack.Screen name="AdminSupport" component={AdminSupportScreen} />
-            <Stack.Screen name="StoreProfile" component={StoreProfileScreen} />
-            <Stack.Screen name="UpdateStoreLocation" component={UpdateStoreLocationScreen} />
-          </Stack.Navigator>
+          // Fallback للأنواع غير المعروفة
+          <AuthStack />
         )}
       </NavigationContainer>
 
