@@ -218,7 +218,7 @@ export default function LoginScreen({ navigation }) {
 
         await persistSession(driver, 'driver', expiry.toISOString(), token);
         Alert.alert('نجح تسجيل الدخول', `مرحباً بك ${driver.name || ''}!`);
-        navigation.replace('Driver', { driverId: driver.id });
+        navigation.replace('DriverDashboard');
         setLoading(false);
         return;
       }
@@ -248,7 +248,7 @@ export default function LoginScreen({ navigation }) {
 
         await persistSession(store, 'store', expiry.toISOString(), token);
         Alert.alert('نجح تسجيل الدخول', `مرحباً بك ${store.name || ''}!`);
-        navigation.replace('Store', { storeId: store.id });
+        navigation.replace('StoreDashboard');
         setLoading(false);
         return;
       }

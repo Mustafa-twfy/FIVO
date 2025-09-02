@@ -205,8 +205,8 @@ function AppContent() {
       try {
         console.log('🚀 بدء تهيئة التطبيق...');
         
-        // تأخير أقصر لضمان استقرار التطبيق
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // تأخير قصير جداً لضمان استقرار التطبيق
+        await new Promise(resolve => setTimeout(resolve, 50));
         
         // التحقق من الجلسة
         await checkUserSession();
@@ -232,7 +232,7 @@ function AppContent() {
         console.log('⏰ انتهت مهلة التحميل، تفعيل التطبيق تلقائياً');
         setAppReady(true);
       }
-    }, 1000);
+    }, 500);
     
     // إضافة fallback إضافي للتأكد من عدم بقاء التطبيق معلق
     const fallbackTimeoutId = setTimeout(() => {
@@ -240,14 +240,14 @@ function AppContent() {
         console.log('🚨 تم تفعيل fallback طارئ لـ appReady');
         setAppReady(true);
       }
-    }, 2000);
+    }, 1000);
     
     // إضافة fallback نهائي كحل طارئ أقصى
     const emergencyTimeoutId = setTimeout(() => {
       console.log('🆘 تم تفعيل fallback نهائي طارئ');
       setAppReady(true);
       setError(null);
-    }, 4000);
+    }, 2000);
 
     initializeApp();
 

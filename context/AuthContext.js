@@ -163,21 +163,21 @@ export const AuthProvider = ({ children }) => {
           console.log('✅ انتهى تحميل الجلسة');
           setLoading(false);
           setRestoring(false);
-        }, 20);
+        }, 10);
         
         // إضافة fallback مبكر للتأكد من عدم بقاء loading = true
         setTimeout(() => {
           console.log('⚠️ تم تفعيل fallback مبكر لـ loading');
           setLoading(false);
           setRestoring(false);
-        }, 1000);
+        }, 500);
         
         // fallback نهائي كحل طارئ
         setTimeout(() => {
           console.log('🚨 تم تفعيل fallback طارئ لـ loading');
           setLoading(false);
           setRestoring(false);
-        }, 3000);
+        }, 1500);
       }
     };
     loadSession();

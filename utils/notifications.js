@@ -23,7 +23,7 @@ class NotificationService {
   async initialize() {
     try {
       // تأخير قصير لضمان استقرار التطبيق
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       // طلب إذن الإشعارات
       const { status: existingStatus } = await Notifications.getPermissionsAsync();
@@ -43,7 +43,7 @@ class NotificationService {
       if (Platform.OS !== 'web') {
         try {
           this.expoPushToken = await Notifications.getExpoPushTokenAsync({
-            projectId: '7afda903-8cd5-422f-9192-e535509be738'
+            projectId: '4c53d2aa-398a-4d97-98b0-d783c83749b3'
           });
           
           console.log('Expo Push Token:', this.expoPushToken.data);

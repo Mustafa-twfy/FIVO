@@ -3,11 +3,11 @@
  * يحتوي على متغيرات البيئة والإعدادات
  */
 
-// تعطيل الميزات التي قد تسبب الشاشة البيضاء
-process.env.EXPO_PUBLIC_ENABLE_DB_INIT = 'false';
-process.env.EXPO_PUBLIC_ENABLE_NOTIFICATIONS = 'false';
+// تفعيل الميزات الأساسية مع تحسين الأداء
+process.env.EXPO_PUBLIC_ENABLE_DB_INIT = 'true';
+process.env.EXPO_PUBLIC_ENABLE_NOTIFICATIONS = 'true';
 process.env.EXPO_PUBLIC_USE_SYSTEM_FONTS = 'true';
-process.env.EXPO_PUBLIC_DISABLE_COMPLEX_ANIMATIONS = 'true';
+process.env.EXPO_PUBLIC_DISABLE_COMPLEX_ANIMATIONS = 'false';
 
 // إعدادات قاعدة البيانات
 process.env.EXPO_PUBLIC_SUPABASE_URL = 'https://nzxmhpigoeexuadrnith.supabase.co';
@@ -19,11 +19,11 @@ process.env.EXPO_PUBLIC_SPLASH_TIMEOUT = '300';
 
 // تصدير الإعدادات
 module.exports = {
-  // تعطيل الميزات
-  DISABLE_DB_INIT: true,
-  DISABLE_NOTIFICATIONS: true,
+  // تفعيل الميزات
+  DISABLE_DB_INIT: false,
+  DISABLE_NOTIFICATIONS: false,
   USE_SYSTEM_FONTS: true,
-  DISABLE_COMPLEX_ANIMATIONS: true,
+  DISABLE_COMPLEX_ANIMATIONS: false,
   
   // إعدادات قاعدة البيانات
   SUPABASE_URL: process.env.EXPO_PUBLIC_SUPABASE_URL,
