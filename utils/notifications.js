@@ -22,6 +22,12 @@ class NotificationService {
   // تهيئة خدمة الإشعارات
   async initialize() {
     try {
+      // التحقق من أن الإشعارات مفعلة
+      if (process.env.EXPO_PUBLIC_ENABLE_NOTIFICATIONS === 'false') {
+        console.log('🔔 تم تخطي تهيئة الإشعارات - معطلة');
+        return false;
+      }
+      
       // تأخير قصير لضمان استقرار التطبيق
       await new Promise(resolve => setTimeout(resolve, 500));
       

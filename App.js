@@ -13,6 +13,8 @@ import { View, Text } from 'react-native';
 import { supabase, initializeDatabase, updatesAPI } from './supabase';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import notificationService from './utils/notifications';
+import environment from './environment';
+import './WHITE_SCREEN_EMERGENCY_FIX';
 
 // Screens (يجب التأكد من أن جميع الملفات موجودة)
 import LoginScreen from './screens/LoginScreen';
@@ -204,6 +206,10 @@ function AppContent() {
     const initializeApp = async () => {
       try {
         console.log('🚀 بدء تهيئة التطبيق...');
+        console.log('🔧 إعدادات البيئة:', {
+          DISABLE_NOTIFICATIONS: environment.DISABLE_NOTIFICATIONS,
+          DISABLE_DB_INIT: environment.DISABLE_DB_INIT
+        });
         
         // تأخير قصير جداً لضمان استقرار التطبيق
         await new Promise(resolve => setTimeout(resolve, 50));
@@ -213,6 +219,11 @@ function AppContent() {
         
         // تهيئة قاعدة البيانات في الخلفية
         initializeDatabaseBackground();
+        
+        // تهيئة الإشعارات فقط إذا كانت مفعلة
+        if (!environment.DISABLE_NOTIFICATIONS) {
+          initializeNotificationsBackground();
+        }
         
         // إعداد التطبيق جاهز
         setAppReady(true);
@@ -347,6 +358,27 @@ function AppContent() {
     }
   };
 
+  const initializeNotificationsBackground = async () => {
+    try {
+      console.log('🔔 تهيئة الإشعارات في الخلفية...');
+      
+      setTimeout(async () => {
+        try {
+          const success = await notificationService.initialize();
+          if (success) {
+            console.log('✅ تم تهيئة الإشعارات بنجاح');
+          } else {
+            console.log('⚠️ فشل في تهيئة الإشعارات');
+          }
+        } catch (error) {
+          console.error('❌ خطأ في تهيئة الإشعارات:', error);
+        }
+      }, 2000);
+    } catch (error) {
+      console.error('❌ خطأ في تهيئة الإشعارات:', error);
+    }
+  };
+
   const handleRetry = () => {
     setError(null);
     setAppReady(false);
@@ -357,6 +389,12 @@ function AppContent() {
           console.log('🔄 إعادة محاولة تهيئة التطبيق...');
           await checkUserSession();
           initializeDatabaseBackground();
+          
+          // تهيئة الإشعارات فقط إذا كانت مفعلة
+          if (!environment.DISABLE_NOTIFICATIONS) {
+            initializeNotificationsBackground();
+          }
+          
           setAppReady(true);
           console.log('✅ تم إعادة تهيئة التطبيق بنجاح');
         } catch (error) {
