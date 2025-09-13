@@ -158,26 +158,24 @@ export const AuthProvider = ({ children }) => {
         // تجاهل أي خطأ في التحميل
         console.error('❌ خطأ في تحميل الجلسة:', e);
       } finally {
-        // تقليل تأخير إيقاف التحميل أكثر لضمان استقرار التطبيق
-        setTimeout(() => {
-          console.log('✅ انتهى تحميل الجلسة');
-          setLoading(false);
-          setRestoring(false);
-        }, 10);
+        // إيقاف التحميل فوراً لتجنب الشاشة البيضاء
+        console.log('✅ انتهى تحميل الجلسة');
+        setLoading(false);
+        setRestoring(false);
         
-        // إضافة fallback مبكر للتأكد من عدم بقاء loading = true
+        // إضافة fallback للتأكد من عدم بقاء loading = true
         setTimeout(() => {
-          console.log('⚠️ تم تفعيل fallback مبكر لـ loading');
+          console.log('⚠️ تم تفعيل fallback لـ loading');
           setLoading(false);
           setRestoring(false);
-        }, 500);
+        }, 100);
         
         // fallback نهائي كحل طارئ
         setTimeout(() => {
           console.log('🚨 تم تفعيل fallback طارئ لـ loading');
           setLoading(false);
           setRestoring(false);
-        }, 1500);
+        }, 500);
       }
     };
     loadSession();

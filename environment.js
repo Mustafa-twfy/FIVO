@@ -4,10 +4,10 @@
  */
 
 // تعطيل الإشعارات مؤقتاً لحل الشاشة البيضاء
-process.env.EXPO_PUBLIC_ENABLE_DB_INIT = 'true';
+process.env.EXPO_PUBLIC_ENABLE_DB_INIT = 'false';
 process.env.EXPO_PUBLIC_ENABLE_NOTIFICATIONS = 'false';
 process.env.EXPO_PUBLIC_USE_SYSTEM_FONTS = 'true';
-process.env.EXPO_PUBLIC_DISABLE_COMPLEX_ANIMATIONS = 'false';
+process.env.EXPO_PUBLIC_DISABLE_COMPLEX_ANIMATIONS = 'true';
 
 // إعدادات قاعدة البيانات
 process.env.EXPO_PUBLIC_SUPABASE_URL = 'https://nzxmhpigoeexuadrnith.supabase.co';
@@ -20,10 +20,10 @@ process.env.EXPO_PUBLIC_SPLASH_TIMEOUT = '300';
 // تصدير الإعدادات
 module.exports = {
   // تعطيل الإشعارات مؤقتاً لحل الشاشة البيضاء
-  DISABLE_DB_INIT: false,
+  DISABLE_DB_INIT: true,
   DISABLE_NOTIFICATIONS: true,
   USE_SYSTEM_FONTS: true,
-  DISABLE_COMPLEX_ANIMATIONS: false,
+  DISABLE_COMPLEX_ANIMATIONS: true,
   
   // إعدادات قاعدة البيانات
   SUPABASE_URL: process.env.EXPO_PUBLIC_SUPABASE_URL,

@@ -15,6 +15,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import notificationService from './utils/notifications';
 import environment from './environment';
 import './WHITE_SCREEN_EMERGENCY_FIX';
+import './WHITE_SCREEN_FIX';
 
 // Screens (يجب التأكد من أن جميع الملفات موجودة)
 import LoginScreen from './screens/LoginScreen';
@@ -206,29 +207,36 @@ function AppContent() {
     const initializeApp = async () => {
       try {
         console.log('🚀 بدء تهيئة التطبيق...');
-        console.log('🔧 إعدادات البيئة:', {
-          DISABLE_NOTIFICATIONS: environment.DISABLE_NOTIFICATIONS,
-          DISABLE_DB_INIT: environment.DISABLE_DB_INIT
-        });
         
-        // تأخير قصير جداً لضمان استقرار التطبيق
-        await new Promise(resolve => setTimeout(resolve, 50));
-        
-        // التحقق من الجلسة
-        await checkUserSession();
-        
-        // تهيئة قاعدة البيانات في الخلفية
-        initializeDatabaseBackground();
-        
-        // تهيئة الإشعارات فقط إذا كانت مفعلة
-        if (!environment.DISABLE_NOTIFICATIONS) {
-          initializeNotificationsBackground();
-        }
-        
-        // إعداد التطبيق جاهز
+        // تفعيل التطبيق فوراً لتجنب الشاشة البيضاء
         setAppReady(true);
+        console.log('✅ تم تفعيل التطبيق فوراً');
         
-        console.log('✅ تم تهيئة التطبيق بنجاح');
+        // تهيئة المكونات الأخرى في الخلفية بدون انتظار
+        setTimeout(async () => {
+          try {
+            console.log('🔧 إعدادات البيئة:', {
+              DISABLE_NOTIFICATIONS: environment.DISABLE_NOTIFICATIONS,
+              DISABLE_DB_INIT: environment.DISABLE_DB_INIT
+            });
+            
+            // التحقق من الجلسة في الخلفية
+            await checkUserSession();
+            
+            // تهيئة قاعدة البيانات في الخلفية
+            initializeDatabaseBackground();
+            
+            // تهيئة الإشعارات فقط إذا كانت مفعلة
+            if (!environment.DISABLE_NOTIFICATIONS) {
+              initializeNotificationsBackground();
+            }
+            
+            console.log('✅ تم تهيئة المكونات في الخلفية');
+          } catch (error) {
+            console.error('❌ خطأ في تهيئة المكونات:', error);
+          }
+        }, 100);
+        
       } catch (error) {
         console.error('❌ خطأ في تهيئة التطبيق:', error);
         setError(error.message || 'حدث خطأ في تهيئة التطبيق');
