@@ -220,11 +220,15 @@ function AppContent() {
               DISABLE_DB_INIT: environment.DISABLE_DB_INIT
             });
             
-            // التحقق من الجلسة في الخلفية
-            await checkUserSession();
+            // التحقق من الجلسة في الخلفية (بدون انتظار)
+            checkUserSession().catch(err => {
+              console.log('⚠️ خطأ في التحقق من الجلسة:', err.message);
+            });
             
-            // تهيئة قاعدة البيانات في الخلفية
-            initializeDatabaseBackground();
+            // تهيئة قاعدة البيانات في الخلفية فقط إذا كانت مفعلة
+            if (!environment.DISABLE_DB_INIT) {
+              initializeDatabaseBackground();
+            }
             
             // تهيئة الإشعارات فقط إذا كانت مفعلة
             if (!environment.DISABLE_NOTIFICATIONS) {
@@ -235,7 +239,7 @@ function AppContent() {
           } catch (error) {
             console.error('❌ خطأ في تهيئة المكونات:', error);
           }
-        }, 100);
+        }, 500);
         
       } catch (error) {
         console.error('❌ خطأ في تهيئة التطبيق:', error);

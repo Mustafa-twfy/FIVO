@@ -11,7 +11,7 @@ export const AuthProvider = ({ children }) => {
   const [userType, setUserType] = useState(null); // نوع المستخدم (driver/store/admin)
   const [userToken, setUserToken] = useState(null); // توكن الجلسة إذا وُجد
   const [sessionExpiry, setSessionExpiry] = useState(null); // تاريخ انتهاء الجلسة
-  const [loading, setLoading] = useState(true); // حالة تحميل الجلسة
+  const [loading, setLoading] = useState(false); // حالة تحميل الجلسة - بدء بـ false
   const [restoring, setRestoring] = useState(false); // حالة استعادة الجلسة
 
   // تسجيل الدخول
