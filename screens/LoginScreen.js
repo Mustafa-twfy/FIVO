@@ -15,7 +15,7 @@ import {
 import { supabase } from '../supabase';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import colors from '../colors';
+// import colors from '../colors'; // تم تعطيله مؤقتاً
 import { useAuth } from '../context/AuthContext';
 
 const simsimLogo = { uri: 'https://i.ibb.co/Myy7sCzX/Picsart-25-07-31-16-12-30-512.jpg' };
@@ -28,6 +28,13 @@ export default function LoginScreen({ navigation }) {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  // معالجة أخطاء الشاشة
+  const handleError = (error) => {
+    console.error('خطأ في LoginScreen:', error);
+    setLoading(false);
+    Alert.alert('خطأ', 'حدث خطأ غير متوقع');
+  };
 
   // ✅ استعادة جلسة محفوظة (إن وجدت) + توجيه فوري
   useEffect(() => {

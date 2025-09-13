@@ -17,7 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase, storesAPI, pushNotificationsAPI } from '../supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import colors from '../colors';
+// import colors from '../colors'; // تم تعطيله مؤقتاً
 import { useAuth } from '../context/AuthContext';
 import isEqual from 'lodash.isequal';
 import pushNotificationSender from '../utils/pushNotificationSender';
@@ -25,6 +25,13 @@ const storeIcon = { uri: 'https://i.ibb.co/Myy7sCzX/Picsart-25-07-31-16-12-30-51
 
 export default function StoreDashboardScreen({ navigation }) {
   const { logout } = useAuth();
+  
+  // معالجة أخطاء الشاشة
+  const handleError = (error) => {
+    console.error('خطأ في StoreDashboardScreen:', error);
+    setLoading(false);
+    Alert.alert('خطأ', 'حدث خطأ غير متوقع');
+  };
   const [storeId, setStoreId] = useState(null);
   const [storeInfo, setStoreInfo] = useState(null);
   const [orders, setOrders] = useState([]);

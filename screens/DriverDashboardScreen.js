@@ -18,13 +18,20 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase, driversAPI, supportAPI, systemSettingsAPI, ordersAPI, pushNotificationsAPI } from '../supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import colors from '../colors';
+// import colors from '../colors'; // تم تعطيله مؤقتاً
 import { useAuth } from '../context/AuthContext';
 import isEqual from 'lodash.isequal';
 import notificationService from '../utils/notificationService';
 
 export default function DriverDashboardScreen({ navigation }) {
   const { logout, user, userType } = useAuth();
+  
+  // معالجة أخطاء الشاشة
+  const handleError = (error) => {
+    console.error('خطأ في DriverDashboardScreen:', error);
+    setLoading(false);
+    Alert.alert('خطأ', 'حدث خطأ غير متوقع');
+  };
   const [driverId, setDriverId] = useState(null);
   const [driverInfo, setDriverInfo] = useState(null);
   const [availableOrders, setAvailableOrders] = useState([]);
